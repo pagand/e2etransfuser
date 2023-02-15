@@ -17,6 +17,7 @@ transfuser_pmlr/results/
 wandb/
 .conda/
 .vscode/
+data/Town*
 
 
 # Byte-compiled / optimized / DLL files

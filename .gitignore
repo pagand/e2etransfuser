@@ -10,7 +10,13 @@ carla/*
 
 !data/README.md
 transfuser_cvpr/
-transfuser_pmlr/
+transfuser_pmlr/data/
+transfuser_pmlr/data0/
+transfuser_pmlr/log/
+transfuser_pmlr/results/
+wandb/
+.conda/
+.vscode/
 
 
 # Byte-compiled / optimized / DLL files

@@ -15,6 +15,8 @@ from data_from_pmlr import CARLA_Data
 from config import GlobalConfig
 from torch.utils.tensorboard import SummaryWriter
 
+import wandb
+
 
 class AverageMeter(object):
     def __init__(self):
@@ -293,6 +295,8 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 #MAIN FUNCTION
 def main():
 	config = GlobalConfig()
+	if config.wandb:
+		wandb.init(project=config.model, config=config,  entity="marslab")
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
@@ -378,6 +382,8 @@ def main():
 		])
 	writer = SummaryWriter(log_dir=config.logdir)
 	
+	if config.wandb:
+		wandb.watch(model, log="all")
 
 	epoch = curr_ep
 	while True:
@@ -438,6 +444,10 @@ def main():
 		#save recent model
 		torch.save(model.state_dict(), os.path.join(config.logdir, 'recent_model.pth'))
 		torch.save(optima.state_dict(), os.path.join(config.logdir, 'recent_optim.pth'))
+
+		if config.wandb:
+			dic = {x: v[-1] for x,v in log.items() if v }
+			wandb.log(dic)
 
 		#save model best only
 		if val_log['v_total_l'] < lowest_score:

@@ -1,6 +1,7 @@
 import os
 
 class GlobalConfig:
+    wandb = True
     gpu_id = '0'
     model = 'x13'
     logdir = 'log/'+model #+'_w1' for 1 weather only

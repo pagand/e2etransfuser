@@ -48,7 +48,7 @@ pip install mmcv-full==1.5.3 -f https://download.openmmlab.com/mmcv/dist/cu102/t
 ```
 
 ## Dataset
-Our dataset is generated via a privileged agent which we call the autopilot (`/team_code_autopilot/autopilot.py`) in 8 CARLA towns using the routes and scenario files provided in [this folder](./leaderboard/data/training/). See the [tools/dataset](./tools/dataset) folder for detailed documentation regarding the training routes and scenarios. 
+Our dataset is generated via a privileged agent which we call the autopilot (`/transfuser_pmlr/team_code_autopilot/autopilot.py`) in 8 CARLA towns using the routes and scenario files provided in [this folder](./transfuser_pmlr/leaderboard/data/training/). See the [transfuser_pmlr/tools/dataset](./transfuser_pmlr/tools/dataset) folder for detailed documentation regarding the training routes and scenarios. 
 
 The dataset is structured as follows:
 ```
@@ -64,18 +64,20 @@ The dataset is structured as follows:
             - measurements: contains ego-agent's position, velocity and other metadata
 ```
 
-### Downloading dataset
+### Option 1: Downloading dataset
 You can download the dataset (210GB) by running:
 
 ```Shell
+cd transfuser_pmlr
 chmod +x download_data.sh
 ./download_data.sh
 ```
 
-### Data generation
+### Option 2: Data generation
 In addition to the dataset itself, we have provided the scripts for data generation with our autopilot agent. To generate data, the first step is to launch a CARLA server:
 
 ```Shell
+cd transfuser_pmlr
 ./CarlaUE4.sh --world-port=2000 -opengl
 ```
 

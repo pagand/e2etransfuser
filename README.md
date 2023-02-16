@@ -1,17 +1,15 @@
 # e2etransfuser: Effiecient End-to-end Learning using Transformer to Fuser Infromation in Autonmous Driving 
 
-## [Paper](http://www.cvlibs.net/publications/Chitta2022PAMI.pdf) | [Supplementary](http://www.cvlibs.net/publications/Chitta2022PAMI_supplementary.pdf) | [Talk](https://www.youtube.com/watch?v=-GMhYcxOiEU) | [Poster](http://www.cvlibs.net/publications/Chitta2022PAMI_poster.pdf) | [Slides](https://kashyap7x.github.io/assets/pdf/talks/Chitta2022AIR.pdf)
 
-
-<img src="figures/demo.gif">
+<img src="transfuser_pmlr/figures/demo.gif">
 
 This repository hevealy depends on the following repos:
 
-the code for the PAMI 2022 paper [TransFuser: Imitation with Transformer-Based Sensor Fusion for Autonomous Driving](https://arxiv.org/abs/2205.15997)
+- The code for the PAMI 2022 paper [TransFuser: Imitation with Transformer-Based Sensor Fusion for Autonomous Driving](https://arxiv.org/abs/2205.15997)
 
-CVPR 2021 paper [Multi-Modal Fusion Transformer for End-to-End Autonomous Driving](https://arxiv.org/abs/2104.09224). The code for the CVPR 2021 paper is available in the [cvpr2021](https://github.com/autonomousvision/transfuser/tree/cvpr2021) branch.
+- CVPR 2021 paper [Multi-Modal Fusion Transformer for End-to-End Autonomous Driving](https://arxiv.org/abs/2104.09224). The code for the CVPR 2021 paper is available in the [cvpr2021](https://github.com/autonomousvision/transfuser/tree/cvpr2021) branch.
 
-end-to-end driving [End-to-end Autonomous Driving with Semantic Depth Cloud Mapping and Multi-agent](https://github.com/oskarnatan/end-to-end-driving)
+- End-to-end driving [End-to-end Autonomous Driving with Semantic Depth Cloud Mapping and Multi-agent](https://github.com/oskarnatan/end-to-end-driving)
 
 
 
@@ -32,9 +30,8 @@ Also, check out the code for other recent work on CARLA from our group:
 Clone the repo, setup CARLA 0.9.10.1, and build the conda environment:
 
 ```Shell
-git clone https://github.com/autonomousvision/transfuser.git
-cd transfuser
-git checkout 2022
+git clone git@github.com:pagand/e2etransfuser.git
+cd e2etransfuser
 chmod +x setup_carla.sh
 ./setup_carla.sh
 conda env create -f environment.yml

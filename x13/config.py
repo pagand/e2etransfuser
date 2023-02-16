@@ -1,13 +1,13 @@
 import os
 
 class GlobalConfig:
-    gpu_id = '1'
+    gpu_id = '0'
     model = 'x13'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 20
+    batch_size = 10 #20
     coverage_area = 64 
 
     # MGN parameter
@@ -20,21 +20,48 @@ class GlobalConfig:
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
-    val_towns = ['Town05']
-    train_data, val_data = [], []
-    for town in train_towns:
-        if not (town == 'Town07' or town == 'Town10'):
-            train_data.append(os.path.join(root_dir, town+'_long'))
-        train_data.append(os.path.join(root_dir, town+'_short'))
-        train_data.append(os.path.join(root_dir, town+'_tiny'))
-    for town in val_towns:
-        # val_data.append(os.path.join(root_dir, town+'_long')) #long is for testing
-        val_data.append(os.path.join(root_dir, town+'_short'))
-        val_data.append(os.path.join(root_dir, town+'_tiny'))
-    
+    # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
+    # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
+    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'  # for the PMLR dataset
 
+    train_data, val_data = [], []
+
+    ## For PMLR dataset
+    root_files = os.listdir(root_dir)
+    train_towns = ['Town04']
+    val_towns = ['Town05'] # 'Town05'
+
+    for dir in root_files:
+        scn_files = os.listdir(os.path.join(root_dir,dir))
+        for routes in scn_files:
+            for t in routes.split("_"):
+                if t[0] != 'T':
+                    continue
+                if t in train_towns:
+                    train_data.append(os.path.join(root_dir,dir, routes))
+                    break
+                elif t in val_towns:
+                    val_data.append(os.path.join(root_dir,dir, routes))
+                    break
+                else:
+                    break
+
+    ## For CVPR dataset
+    '''
+    # train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
+    train_towns = ['Town02']
+    val_towns = ['Town02'] # 'Town05'
+    for town in train_towns:
+        # if not (town == 'Town07' or town == 'Town10'):
+        #     train_data.append(os.path.join(root_dir, town+'_long'))
+        train_data.append(os.path.join(root_dir, town+'_short'))
+        # train_data.append(os.path.join(root_dir, town+'_tiny'))
+    for town in val_towns:
+        ## val_data.append(os.path.join(root_dir, town+'_long')) #long is for testing
+        val_data.append(os.path.join(root_dir, town+'_short'))
+        # val_data.append(os.path.join(root_dir, town+'_tiny'))
+
+    
     #buat prediksi expert, test
     test_data = []
     test_weather = 'Run3_ClearNoon' #ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset, Run1_ClearNoon, Run2_ClearNoon, Run3_ClearNoon
@@ -42,11 +69,13 @@ class GlobalConfig:
     expert_dir = '/media/aisl/data/XTRANSFUSER/EXPERIMENT_RUN/8T1W/EXPERT/'+test_scenario+'/'+test_weather  #8T1W 8T14W
     for town in val_towns: 
         test_data.append(os.path.join(expert_dir, 'Expert')) #Expert OR Expert_w1 for 1 weather only scenario
+    '''
 
-
-    input_resolution = 256
+    # input_resolution = 256 # CVPR dataset
+    input_resolution = 160 # PMLR dataset
     scale = 1 # image pre-processing
-    crop = 256 # image pre-processing
+    # crop = 256 # image pre-processing # CVPR dataset
+    crop = 160 # image pre-processing # CVPR dataset
     lr = 1e-4 # learning rate AdamW
     weight_decay = 1e-3
 

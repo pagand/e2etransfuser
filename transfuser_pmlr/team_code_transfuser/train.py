@@ -75,10 +75,12 @@ def main():
 
     parser.add_argument('--wandb', action="store_true", default=False, help='True to log to wandb otherwise False')
 
-    # args = parser.parse_args()
+    args = parser.parse_args()
 
-    args = parser.parse_args(['--batch_size','4','--logdir', '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/log','--root_dir',\
-     '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data','--parallel_training', '0','--wandb'])   #,'--log-wandb'
+    if not args:
+        args = parser.parse_args(['--batch_size','4','--logdir', '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/log','--root_dir',\
+            '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data','--parallel_training', '0','--wandb'])   #,'--log-wandb'
+    
     args.logdir = os.path.join(args.logdir, args.id)
     parallel = bool(args.parallel_training)
 

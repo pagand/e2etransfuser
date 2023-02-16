@@ -1,37 +1,246 @@
-# End-to-end Autonomous Driving with Semantic Depth Cloud Mapping and Multi-agent
+# e2etransfuser: Effiecient End-to-end Learning using Transformer to Fuser Infromation in Autonmous Driving 
 
-O. Natan and J. Miura, “End-to-end Autonomous Driving with Semantic Depth Cloud Mapping and Multi-agent,” IEEE Trans. Intelligent Vehicles, 2022. [[paper]](https://doi.org/10.1109/TIV.2022.3185303) 
+## [Paper](http://www.cvlibs.net/publications/Chitta2022PAMI.pdf) | [Supplementary](http://www.cvlibs.net/publications/Chitta2022PAMI_supplementary.pdf) | [Talk](https://www.youtube.com/watch?v=-GMhYcxOiEU) | [Poster](http://www.cvlibs.net/publications/Chitta2022PAMI_poster.pdf) | [Slides](https://kashyap7x.github.io/assets/pdf/talks/Chitta2022AIR.pdf)
 
-## Related works:
-1. O. Natan and J. Miura, “DeepIPC: Deeply Integrated Perception and Control for Mobile Robot in Real Environments,” arXiv:2207.09934, 2022. [[paper]](https://arxiv.org/abs/2207.09934) 
-2. O. Natan and J. Miura, “Towards Compact Autonomous Driving Perception with Balanced Learning and Multi-sensor Fusion,” IEEE Trans. Intelligent Transportation Systems, 2022. [[paper]](https://doi.org/10.1109/TITS.2022.3149370) [[code]](https://github.com/oskarnatan/compact-perception)
-3. O. Natan and J. Miura, "Semantic Segmentation and Depth Estimation with RGB and DVS Sensor Fusion for Multi-view Driving Perception," in Proc. Asian Conf. Pattern Recognition (ACPR), Jeju Island, South Korea, Nov. 2021, pp. 352–365. [[paper]](https://doi.org/10.1007/978-3-031-02375-0_26) [[code]](https://github.com/oskarnatan/RGBDVS-fusion)
 
-## Notes:
-1. Some files are copied and modified from [[TransFuser, CVPR 2021]](https://github.com/autonomousvision/transfuser) repository. Please go to their repository for more details.
-2. I assume you are familiar with Linux, python3, NVIDIA CUDA Toolkit, PyTorch GPU, and other necessary packages. Hence, I don't have to explain much detail.
-3. Install Unreal Engine 4 and CARLA:
-    - For UE4, follow: https://docs.unrealengine.com/4.27/en-US/SharingAndReleasing/Linux/BeginnerLinuxDeveloper/SettingUpAnUnrealWorkflow/
-    - For CARLA, go to https://github.com/carla-simulator/carla/releases/tag/0.9.10.1 and download prebuilt CARLA + additional maps. Then, extract them to a directory (e.g., ~/OSKAR/CARLA/CARLA_0.9.10.1)
+<img src="figures/demo.gif">
 
-## Steps:
-1. Download the dataset and extract to subfolder data. Or generate the data by yourself.
-2. To train-val-test each model, go to their folder and read the instruction written in the README.md file
-    - [X13](https://github.com/oskarnatan/end-to-end-driving/tree/main/x13) (proposed model)
-    - [S13](https://github.com/oskarnatan/end-to-end-driving/tree/main/s13) (proposed model without SDC mapping)
-    - [CILRS](https://github.com/oskarnatan/end-to-end-driving/tree/main/cilrs)
-    - [AIM](https://github.com/oskarnatan/end-to-end-driving/tree/main/aim)
-    - [LF](https://github.com/oskarnatan/end-to-end-driving/tree/main/late_fusion)
-    - [GF](https://github.com/oskarnatan/end-to-end-driving/tree/main/geometric_fusion)
-    - [TF](https://github.com/oskarnatan/end-to-end-driving/tree/main/transfuser)
+This repository hevealy depends on the following repos:
 
-## Generate Data and Automated Driving Evaluation:
-1. Run CARLA server:
-    - CUDA_VISIBLE_DEVICES=0 ~/OSKAR/CARLA/CARLA_0.9.10.1/CarlaUE4.sh -opengl --world-port=2000
-2. To generate data / collect data, Run expert (results are saved in subfolder 'data'):
-    - CUDA_VISIBLE_DEVICES=0 ./leaderboard/scripts/run_expert.sh
-3. For automated driving, Run agents (results are saved in subfolder 'data'):
-    - CUDA_VISIBLE_DEVICES=0 ./leaderboard/scripts/run_evaluation.sh
+the code for the PAMI 2022 paper [TransFuser: Imitation with Transformer-Based Sensor Fusion for Autonomous Driving](https://arxiv.org/abs/2205.15997)
 
-## To do list:
-1. Add download link for the dataset (The dataset is very large. I recommend you to generate the dataset by yourself :D)
+CVPR 2021 paper [Multi-Modal Fusion Transformer for End-to-End Autonomous Driving](https://arxiv.org/abs/2104.09224). The code for the CVPR 2021 paper is available in the [cvpr2021](https://github.com/autonomousvision/transfuser/tree/cvpr2021) branch.
+
+end-to-end driving [End-to-end Autonomous Driving with Semantic Depth Cloud Mapping and Multi-agent](https://github.com/oskarnatan/end-to-end-driving)
+
+
+
+Also, check out the code for other recent work on CARLA from our group:
+- [Renz et al., PlanT: Explainable Planning Transformers via Object-Level Representations (CoRL 2022)](https://github.com/autonomousvision/plant)
+- [Hanselmann et al., KING: Generating Safety-Critical Driving Scenarios for Robust Imitation via Kinematics Gradients (ECCV 2022)](https://github.com/autonomousvision/king)
+- [Chitta et al., NEAT: Neural Attention Fields for End-to-End Autonomous Driving (ICCV 2021)](https://github.com/autonomousvision/neat)
+
+## Contents
+
+1. [Setup](#setup)
+2. [Dataset and Training](#dataset-and-training)
+3. [Evaluation](#evaluation)
+
+
+## Setup
+
+Clone the repo, setup CARLA 0.9.10.1, and build the conda environment:
+
+```Shell
+git clone https://github.com/autonomousvision/transfuser.git
+cd transfuser
+git checkout 2022
+chmod +x setup_carla.sh
+./setup_carla.sh
+conda env create -f environment.yml
+conda activate tfuse
+
+# if you have CODA >10.2
+pip uninstall torch torchvision torchaudio #(run twice)
+pip install torch==1.12.1 torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
+pip install torch-scatter -f https://data.pyg.org/whl/torch-1.12.1%2Bcu113.html
+pip install mmcv-full -f  https://download.openmmlab.com/mmcv/dist/cu113/torch1.12.0/index.html
+# if you have CODA <=10.2
+pip install torch-scatter -f https://data.pyg.org/whl/torch-1.11.0+cu102.html
+pip install mmcv-full==1.5.3 -f https://download.openmmlab.com/mmcv/dist/cu102/torch1.11.0/index.html
+```
+
+## Dataset
+Our dataset is generated via a privileged agent which we call the autopilot (`/team_code_autopilot/autopilot.py`) in 8 CARLA towns using the routes and scenario files provided in [this folder](./leaderboard/data/training/). See the [tools/dataset](./tools/dataset) folder for detailed documentation regarding the training routes and scenarios. 
+
+The dataset is structured as follows:
+```
+- Scenario
+    - Town
+        - Route
+            - rgb: camera images
+            - depth: corresponding depth images
+            - semantics: corresponding segmentation images
+            - lidar: 3d point cloud in .npy format
+            - topdown: topdown segmentation maps
+            - label_raw: 3d bounding boxes for vehicles
+            - measurements: contains ego-agent's position, velocity and other metadata
+```
+
+### Downloading dataset
+You can download the dataset (210GB) by running:
+
+```Shell
+chmod +x download_data.sh
+./download_data.sh
+```
+
+### Data generation
+In addition to the dataset itself, we have provided the scripts for data generation with our autopilot agent. To generate data, the first step is to launch a CARLA server:
+
+```Shell
+./CarlaUE4.sh --world-port=2000 -opengl
+```
+
+For more information on running CARLA servers (e.g. on a machine without a display), see the [official documentation.](https://carla.readthedocs.io/en/stable/carla_headless/) Once the server is running, use the script below for generating training data:
+```Shell
+./leaderboard/scripts/datagen.sh <carla root> <working directory of this repo (*/transfuser/)>
+```
+
+The main variables to set for this script are `SCENARIOS` and `ROUTES`. 
+
+### Dataset location
+
+Remeber to put the dataset in the following directory:
+
+```Shell
+e2etransfuser/transfuser_pmlr/data
+```
+
+## TRAINING
+You can train different baselines. For each one, follow the section:
+
+### X13 
+The model will be saved in a newly created folder log.
+```Shell
+cd x13
+python train.py
+```
+To predict expert's driving records for task-wise evaluation
+```Shell
+python3 predict_expert.py is intended 
+```
+
+### S13, CILRS, AIM, LF, GF, Transfuser CVPR
+
+Under development
+
+### Transfuser PMLR 
+
+The code for training via imitation learning is provided in [train.py.](./team_code_transfuser/train.py) \
+A minimal example of running the training script on a single machine:
+```Shell
+cd transfuser_pmlr/team_code_transfuser
+python train.py --batch_size 10 --logdir /path/to/logdir --root_dir /path/to/dataset_root/ --parallel_training 0
+```
+The training script has many more useful features documented at the start of the main function. 
+One of them is parallel training. 
+The script has to be started differently when training on a multi-gpu node:
+```Shell
+cd team_code_transfuser
+CUDA_VISIBLE_DEVICES=0,1 OMP_NUM_THREADS=16 OPENBLAS_NUM_THREADS=1 torchrun --nnodes=1 --nproc_per_node=2 --max_restarts=0 --rdzv_id=1234576890 --rdzv_backend=c10d train.py --logdir /path/to/logdir --root_dir /path/to/dataset_root/ --parallel_training 1
+```
+Enumerate the GPUs you want to train on with CUDA_VISIBLE_DEVICES.
+Set the variable OMP_NUM_THREADS to the number of cpus available on your system.
+Set OPENBLAS_NUM_THREADS=1 if you want to avoid threads spawning other threads.
+Set --nproc_per_node to the number of available GPUs on your node.
+
+## Evaluation
+
+### Longest6 benchmark
+We make some minor modifications to the CARLA leaderboard code for the Longest6 benchmark, which are documented [here](./leaderboard). See the [leaderboard/data/longest6](./leaderboard/data/longest6/) folder for a description of Longest6 and how to evaluate on it.
+
+### Pretrained agents
+Pre-trained agent files for all 4 methods can be downloaded from [AWS](https://s3.eu-central-1.amazonaws.com/avg-projects/transfuser/models_2022.zip):
+
+```Shell
+mkdir model_ckpt
+wget https://s3.eu-central-1.amazonaws.com/avg-projects/transfuser/models_2022.zip -P model_ckpt
+unzip model_ckpt/models_2022.zip -d model_ckpt/
+rm model_ckpt/models_2022.zip
+```
+
+### Running an agent
+To evaluate a model, we first launch a CARLA server:
+
+```Shell
+./CarlaUE4.sh --world-port=2000 -opengl
+```
+
+Once the CARLA server is running, evaluate an agent with the script:
+```Shell
+./leaderboard/scripts/local_evaluation.sh <carla root> <working directory of this repo (*/transfuser/)>
+```
+
+By editing the arguments in `local_evaluation.sh`, we can benchmark performance on the Longest6 routes. You can evaluate both privileged agents (such as [autopilot.py]) and sensor-based models. To evaluate the sensor-based models use [submission_agent.py](./team_code_transfuser/submission_agent.py) as the `TEAM_AGENT` and point to the folder you downloaded the model weights into for the `TEAM_CONFIG`. The code is automatically configured to use the correct method based on the args.txt file in the model folder.
+
+You can look at qualitative examples of the expected driving behavior of TransFuser on the Longest6 routes [here](https://www.youtube.com/watch?v=DZS-U3-iV0s&list=PL6LvknlY2HlQG3YQ2nMIx7WcnyzgK9meO).
+
+### Parsing longest6 results
+To compute additional statistics from the results of evaluation runs we provide a parser script [tools/result_parser.py](./tools/result_parser.py).
+
+```Shell
+${WORK_DIR}/tools/result_parser.py --xml ${WORK_DIR}/leaderboard/data/longest6/longest6.xml --results /path/to/folder/with/json_results/ --save_dir /path/to/output --town_maps ${WORK_DIR}/leaderboard/data/town_maps_xodr
+```
+
+It will generate a results.csv file containing the average results of the run as well as additional statistics. It also generates town maps and marks the locations where infractions occurred.
+
+### Submitting to the CARLA leaderboard
+To submit to the CARLA leaderboard you need docker installed on your system.
+Edit the paths at the start of [make_docker.sh](./leaderboard/scripts/make_docker.sh).
+Create the folder *team_code_transfuser/model_ckpt/transfuser*.
+Copy the *model.pth* files and *args.txt* that you want to evaluate to *team_code_transfuser/model_ckpt/transfuser*.
+If you want to evaluate an ensemble simply copy multiple .pth files into the folder, the code will load all of them and ensemble the predictions.
+
+```Shell
+cd leaderboard
+cd scripts
+./make_docker.sh
+```
+The script will create a docker image with the name transfuser-agent.
+Follow the instructions on the [leaderboard](https://leaderboard.carla.org/submit/) to make an account and install alpha.
+
+```Shell
+alpha login
+alpha benchmark:submit  --split 3 transfuser-agent:latest
+```
+The command will upload the docker image to the cloud and evaluate it.
+
+<!-- ### Building docker image
+
+Add the following paths to your ```~/.bashrc```
+```
+export CARLA_ROOT=<path_to_carla_root>
+export SCENARIO_RUNNER_ROOT=<path_to_scenario_runner_in_this_repo>
+export LEADERBOARD_ROOT=<path_to_leaderboard_in_this_repo>
+export PYTHONPATH="${CARLA_ROOT}/PythonAPI/carla/":"${SCENARIO_RUNNER_ROOT}":"${LEADERBOARD_ROOT}":${PYTHONPATH}
+```
+
+Edit the contents of ```leaderboard/scripts/Dockerfile.master``` to specify the required dependencies, agent code and model checkpoints. Add all the required information in the area delimited by the tags ```BEGINNING OF USER COMMANDS``` and ```END OF USER COMMANDS```. The current Dockerfile works for all the models in this repository.
+
+Specify a name for the docker image in ```leaderboard/scripts/make_docker.sh``` and run:
+```
+leaderboard/scripts/make_docker.sh
+```
+
+Refer to the Transfuser example for the directory structure and where to include the code and checkpoints.
+
+### Testing the docker image locally
+
+Spin up a CARLA server:
+```
+SDL_VIDEODRIVER=offscreen SDL_HINT_CUDA_DEVICE=0 ./CarlaUE4.sh -world-port=2000 -opengl
+```
+
+Run the docker container:  
+Docker 19:  
+```
+docker run -it --rm --net=host --gpus '"device=0"' -e PORT=2000 <docker_image> ./leaderboard/scripts/run_evaluation.sh
+```
+If the docker container doesn't start properly, add another environment variable ```SDL_AUDIODRIVER=dsp```.
+
+### Submitting docker image to the leaderboard
+
+Register on [AlphaDriver](https://app.alphadrive.ai/), create a team and apply to the CARLA Leaderboard.
+
+Install AlphaDrive cli:
+```
+curl http://dist.alphadrive.ai/install-ubuntu.sh | sh -
+```
+
+Login to alphadrive and submit the docker image:
+```
+alpha login
+alpha benchmark:submit --split <2/3> <docker_image>
+```
+Use ```split 2``` for MAP track and ```split 3``` for SENSORS track. -->

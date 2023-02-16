@@ -11,7 +11,7 @@ import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
 from model import x13
-from data import CARLA_Data
+from data_from_pmlr import CARLA_Data
 from config import GlobalConfig
 from torch.utils.tensorboard import SummaryWriter
 
@@ -65,6 +65,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 	batch_ke = 0
 	for data in data_loader:
 		cur_step = cur_epoch*total_batch + batch_ke
+
 
 		fronts = data['fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
 		seg_fronts = data['seg_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]

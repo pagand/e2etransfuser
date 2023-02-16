@@ -61,13 +61,19 @@ class CARLA_Data(Dataset):
 
                 # list sub-directories in root 
                 root_files = os.listdir(sub_root)
-                routes = [folder for folder in root_files if not os.path.isfile(os.path.join(sub_root,folder))]
-                for route in routes:
-                    route_dir = os.path.join(sub_root, route)
-                    print(route_dir)
+                scenarios = [folder for folder in root_files if not os.path.isfile(os.path.join(sub_root,folder))]
+                # for route in routes:
+                #     routep = os.path.join(sub_root,route)
+                #     scn_files = os.listdir(routep)
+                #     scenarios = [folder for folder in scn_files if not os.path.isfile(os.path.join(routep,folder))]
+
+                for scenario in scenarios:
+
+                    scenario_dir = os.path.join(sub_root, scenario)
+                    # print(scenario_dir)
                     # subtract final frames (pred_len) since there are no future waypoints
                     # first frame of sequence not used
-                    num_seq = (len(os.listdir(route_dir+"/rgb_front/"))-self.pred_len-2)//self.seq_len
+                    num_seq = (len(os.listdir(scenario_dir+"/rgb/"))-self.pred_len-2)//self.seq_len
                     for seq in range(num_seq):
                         fronts = []
                         # lefts = []
@@ -84,15 +90,15 @@ class CARLA_Data(Dataset):
                             
                             # images
                             filename = f"{str(seq*self.seq_len+1+i).zfill(4)}.png"
-                            fronts.append(route_dir+"/rgb_front/"+filename)
+                            fronts.append(scenario_dir+"/rgb/"+filename)
                             # lefts.append(route_dir+"/rgb_left/"+filename)
                             # rights.append(route_dir+"/rgb_right/"+filename)
                             # rears.append(route_dir+"/rgb_rear/"+filename)
-                            seg_fronts.append(route_dir+"/seg_front/"+filename)
-                            depth_fronts.append(route_dir+"/depth_front/"+filename)
+                            seg_fronts.append(scenario_dir+"/semantics/"+filename)
+                            depth_fronts.append(scenario_dir+"/depth/"+filename)
 
                             # position
-                            with open(route_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
+                            with open(scenario_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
                                 data = json.load(read_file)
                             xs.append(data['x'])
                             ys.append(data['y'])
@@ -106,15 +112,14 @@ class CARLA_Data(Dataset):
                         preload_brake.append(data['brake'])
                         preload_command.append(data['command'])
                         preload_velocity.append(data['speed'])
-                        # preload_red_light.append(data['is_red_light_present'])
-                        # preload_stop_sign.append(data['is_stop_sign_present'])
-                        preload_red_light.append(0)
-                        preload_stop_sign.append(0)
+                        preload_red_light.append(data['light_hazard'])
+                        preload_stop_sign.append(data['stop_sign_hazard'])
+                        
 
                         # read files sequentially (future frames)
                         for i in range(self.seq_len, self.seq_len + self.pred_len):
                             # position
-                            with open(route_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
+                            with open(scenario_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
                                 data = json.load(read_file)
                             xs.append(data['x'])
                             ys.append(data['y'])

@@ -18,6 +18,7 @@ wandb/
 .conda/
 .vscode/
 data/Town*
+log/
 
 
 # Byte-compiled / optimized / DLL files

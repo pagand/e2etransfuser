@@ -14,9 +14,9 @@ This repository hevealy depends on the following repos:
 
 
 Also, check out the code for other recent work on CARLA from our group:
-- [Renz et al., PlanT: Explainable Planning Transformers via Object-Level Representations (CoRL 2022)](https://github.com/autonomousvision/plant)
-- [Hanselmann et al., KING: Generating Safety-Critical Driving Scenarios for Robust Imitation via Kinematics Gradients (ECCV 2022)](https://github.com/autonomousvision/king)
-- [Chitta et al., NEAT: Neural Attention Fields for End-to-End Autonomous Driving (ICCV 2021)](https://github.com/autonomousvision/neat)
+
+- Temporal transformer fuser [TempoFuser](https://github.com/pagand/Tempofuser)
+- Autonomous navigation with RL using transformer [AN](https://github.com/pagand/autonomous-navigation)
 
 ## Contents
 

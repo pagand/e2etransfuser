@@ -21,7 +21,8 @@ Also, check out the code for other recent work on CARLA from our group:
 ## Contents
 
 1. [Setup](#setup)
-2. [Dataset and Training](#dataset-and-training)
+2. [Dataset](#dataset)
+3. [Training](#training)
 3. [Evaluation](#evaluation)
 
 
@@ -37,12 +38,12 @@ chmod +x setup_carla.sh
 conda env create -f environment.yml
 conda activate tfuse
 
-# if you have CODA >10.2
+# if you have CUDA >10.2
 pip uninstall torch torchvision torchaudio #(run twice)
 pip install torch==1.12.1 torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
 pip install torch-scatter -f https://data.pyg.org/whl/torch-1.12.1%2Bcu113.html
 pip install mmcv-full -f  https://download.openmmlab.com/mmcv/dist/cu113/torch1.12.0/index.html
-# if you have CODA <=10.2
+# if you have CUDA <=10.2
 pip install torch-scatter -f https://data.pyg.org/whl/torch-1.11.0+cu102.html
 pip install mmcv-full==1.5.3 -f https://download.openmmlab.com/mmcv/dist/cu102/torch1.11.0/index.html
 ```
@@ -97,7 +98,7 @@ e2etransfuser/transfuser_pmlr/data
 ```
 
 ## TRAINING
-You can train different baselines. For each one, follow the section:
+You can train different baselines. For each method, follow the corresponding section. Check the config file in each folder accordingly. 
 
 ### X13 
 The model will be saved in a newly created folder log.

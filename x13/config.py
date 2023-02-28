@@ -9,7 +9,7 @@ class GlobalConfig:
 
     n_class = 23
     batch_size = 10 #20
-    coverage_area = 64 
+    coverage_area = 64  #64
 
     # MGN parameter
     MGN = True
@@ -72,8 +72,12 @@ class GlobalConfig:
         test_data.append(os.path.join(expert_dir, 'Expert')) #Expert OR Expert_w1 for 1 weather only scenario
     '''
 
+    num_worker = 0 # for debugging 0
+
     # input_resolution = 256 # CVPR dataset
-    input_resolution = 160 # PMLR dataset
+    # input_resolution = 160 # PMLR dataset
+    input_resolution = [160,512] # PMLR dataset #512
+
     scale = 1 # image pre-processing
     # crop = 256 # image pre-processing # CVPR dataset
     crop = 160 # image pre-processing # CVPR dataset

@@ -108,7 +108,13 @@ class x13(nn.Module): #
         self.cover_area = config.coverage_area
         self.n_class = config.n_class
         self.h, self.w = config.input_resolution[0], config.input_resolution[1]
-        fx = 160 
+
+
+        fovh = np.rad2deg(2.0 * np.arctan((self.config.img_height / self.config.img_width) * np.tan(0.5 * np.radians(self.config.fov))))
+        fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
+        fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
+
+        # fx = 160# 160 (for fov 86 deg, 300 image size)
         self.x_matrix = torch.vstack([torch.arange(-self.w/2, self.w/2)]*self.h) / fx
         self.x_matrix = self.x_matrix.to(device)
         #SC
@@ -122,7 +128,7 @@ class x13(nn.Module): #
         self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
             nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
+             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
         #------------------------------------------------------------------------------------------------
@@ -161,7 +167,7 @@ class x13(nn.Module): #
         ss_f = self.final_ss_f(self.up(ss_f_0))
         #------------------------------------------------------------------------------------------------
         #buat semantic cloud
-        top_view_sc = self.gen_top_view_sc(depth_f, ss_f) # gt_ss ,rgb_f
+        top_view_sc = self.gen_top_view_sc(depth_f, ss_f ) #  gt_ss ,rgb_f
         #bagian downsampling
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
         SC_features1 = self.SC_encoder.features[1](SC_features0)
@@ -209,8 +215,8 @@ class x13(nn.Module): #
         cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*self.w)] for n in range(depth.shape[0])])).to(self.gpu_device)
         
         #normalize to frame
-        cloud_data_x = torch.round(((depth_in * self.x_matrix) + (self.cover_area/2)) * (self.w-1) / self.cover_area).ravel()
-        cloud_data_z = torch.round((depth_in * -(self.h-1) / self.cover_area) + (self.h-1)).ravel()
+        cloud_data_x = torch.round(((depth_in * self.x_matrix) + (self.cover_area[1]/2)) * (self.w-1) / self.cover_area[1]).ravel()
+        cloud_data_z = torch.round((depth_in * -(self.h-1) / self.cover_area[0]) + (self.h-1)).ravel()
 
         #find the interest index
         bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= self.w-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
@@ -221,6 +227,7 @@ class x13(nn.Module): #
         coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor must be long so that it can be used as an index
         top_view_sc = torch.zeros_like(semseg) #this is faster because automatically the size, data type, and device are the same as those of the input (semseg)
         top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #axis format from NCHW
+
 
         return top_view_sc
 

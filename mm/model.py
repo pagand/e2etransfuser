@@ -75,9 +75,9 @@ class PIDController(object):
 
 
 
-class x13(nn.Module): #
+class mm(nn.Module): #
     def __init__(self, config, device):
-        super(x13, self).__init__()
+        super(mm, self).__init__()
         self.config = config
         self.gpu_device = device
         #------------------------------------------------------------------------------------------------

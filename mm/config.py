@@ -1,72 +1,85 @@
 import os
 
 class GlobalConfig:
+    wandb = True
     gpu_id = '0'
-    model = 'x13'
-    logdir = 'log/'+model#+'_w1'
+    model = 'mm'
+    logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 20
-    coverage_area = 64 #untuk top view SC, HXW sama dalam meter
+    batch_size = 64 #20
+    coverage_area = 64 
 
-    #parameter untuk MGN
+    # MGN parameter
     MGN = True
     loss_weights = [1, 1, 1, 1, 1, 1, 1]
     lw_alpha = 1.5
     bottleneck = [335, 679]
 
-	# Data
+	# for Data
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data clear_noon_full_data
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
-    val_towns = ['Town05']
-    # train_towns = ['Town00']
-    # val_towns = ['Town00']
-    train_data, val_data = [], []
-    for town in train_towns:
-        if not (town == 'Town07' or town == 'Town10'):
-            train_data.append(os.path.join(root_dir, town+'_long'))
-        train_data.append(os.path.join(root_dir, town+'_short'))
-        train_data.append(os.path.join(root_dir, town+'_tiny'))
-        # train_data.append(os.path.join(root_dir, town+'_x'))
-    for town in val_towns:
-        # val_data.append(os.path.join(root_dir, town+'_long'))
-        val_data.append(os.path.join(root_dir, town+'_short'))
-        val_data.append(os.path.join(root_dir, town+'_tiny'))
-        # val_data.append(os.path.join(root_dir, town+'_x'))
-    
+    # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
+    # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
+    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # for the PMLR dataset
 
+    train_data, val_data = [], []
+
+    ## For PMLR dataset
+    root_files = os.listdir(root_dir)
+    train_towns = ['Town01','Town02','Town03','Town04','Town06','Town07','Town10']
+    val_towns = ['Town05'] # 'Town05'
+
+    for dir in root_files:
+        scn_files = os.listdir(os.path.join(root_dir,dir))
+        for routes in scn_files:
+            for t in routes.split("_"):
+                if t[0] != 'T':
+                    continue
+                if t in train_towns:
+                    train_data.append(os.path.join(root_dir,dir, routes))
+                    break
+                elif t in val_towns:
+                    val_data.append(os.path.join(root_dir,dir, routes))
+                    break
+                else:
+                    break
+
+    ## For CVPR dataset
+    '''
+    # train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
+    train_towns = ['Town02']
+    val_towns = ['Town02'] # 'Town05'
+    for town in train_towns:
+        # if not (town == 'Town07' or town == 'Town10'):
+        #     train_data.append(os.path.join(root_dir, town+'_long'))
+        train_data.append(os.path.join(root_dir, town+'_short'))
+        # train_data.append(os.path.join(root_dir, town+'_tiny'))
+    for town in val_towns:
+        ## val_data.append(os.path.join(root_dir, town+'_long')) #long is for testing
+        val_data.append(os.path.join(root_dir, town+'_short'))
+        # val_data.append(os.path.join(root_dir, town+'_tiny'))
+    
     #buat prediksi expert, test
     test_data = []
     test_weather = 'Run3_ClearNoon' #ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset, Run1_ClearNoon, Run2_ClearNoon, Run3_ClearNoon
     test_scenario = 'ADVERSARIAL' #NORMAL ADVERSARIAL
     expert_dir = '/media/aisl/data/XTRANSFUSER/EXPERIMENT_RUN/8T1W/EXPERT/'+test_scenario+'/'+test_weather  #8T1W 8T14W
-    for town in val_towns: #test town = val town
-        test_data.append(os.path.join(expert_dir, 'Expert_w1')) #Expert Expert_w1
+    for town in val_towns: 
+        test_data.append(os.path.join(expert_dir, 'Expert')) #Expert OR Expert_w1 for 1 weather only scenario
+    '''
 
-
-    ignore_sides = True # don't consider side cameras
-    ignore_rear = True # don't consider rear cameras
-
-    camera_width = 960
-    camera_height = 480
-    camera_fov = 120
-    scale = 1
-    img_width = 320
-    img_resolution = (160,704)
-
-    input_resolution = 160 # 256
-
-    crop = 256 # image pre-processing   ??????????????????????
-
-    lr = 1e-4 # learning rate #pakai AdamW
+    # input_resolution = 256 # CVPR dataset
+    input_resolution = 160 # PMLR dataset
+    scale = 1 # image pre-processing
+    # crop = 256 # image pre-processing # CVPR dataset
+    crop = 160 # image pre-processing # CVPR dataset
+    lr = 1e-4 # learning rate AdamW
     weight_decay = 1e-3
 
     # Controller
-    # control_option = 4 #1-one_of 2-both_must 3-pid_only 4-mlp_only 5-pid_def
     #control weights untuk PID dan MLP dari tuningan MGN
     #urutan steer, throttle, brake
     #baca dulu trainval_log.csv setelah training selesai, dan normalize bobotnya 0-1
@@ -94,7 +107,7 @@ class GlobalConfig:
     brake_speed = 0.4 # desired speed below which brake is triggered
     brake_ratio = 1.1 # ratio of speed to desired speed at which brake is triggered
     clip_delta = 0.25 # maximum change in speed input to logitudinal controller
-    min_act_thrt = 0.2 #minimum nilai suatu throttle dianggap aktif diinjak
+    min_act_thrt = 0.2 #minimum throttle
 
     #ORDER DALAM RGB!!!!!!!!
     SEG_CLASSES = {
@@ -110,12 +123,8 @@ class GlobalConfig:
                             'Dynamic', 'Water', 'Terrain']
     }
 
-    n_fmap_b0 = [[32,16], [24], [40], [80,112], [192,320,1280]]
-    n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] #sama dengan b0
-    n_fmap_b2 = [[32,16], [24], [48], [88,120], [208,352,1408]]
-    n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] #lihat underdevelopment/efficientnet.py
-    n_fmap_b4 = [[48,24], [32], [56], [112,160], [272,448,1792]]
-    #jangan lupa untuk mengganti model torchvision di init model.py
+    n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
+    n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] 
 
     def __init__(self, **kwargs):
         for k,v in kwargs.items():

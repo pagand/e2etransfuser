@@ -19,6 +19,8 @@ from x13.model import x13
 from x13.config import GlobalConfig
 from x13.data import scale_and_crop_image, scale_and_crop_image_cv, rgb_to_depth, swap_RGB2BGR
 from team_code.planner import RoutePlanner
+import torchvision.transforms as T
+from torchvision.utils import save_image
 
 
 SAVE_PATH = os.environ.get('SAVE_PATH', None)
@@ -35,7 +37,8 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		self.step = -1
 		self.wall_start = time.time()
 		self.initialized = False
-		self.input_buffer = {'rgb': deque(), 'depth': deque(), 'gps': deque(), 'thetas': deque()} #'rgb_left': deque(), 'rgb_right': deque(), 'rgb_rear': deque(), 
+            #    self.input_buffer = {'rgb': deque(), 'depth': deque(), 'gps': deque(), 'thetas': deque(), 'rgb_left': deque(), 'rgb_right': deque(), 'rgb_rear': deque()}
+		self.input_buffer = {'rgb': deque(), 'depth': deque(), 'gps': deque(), 'thetas': deque()}
 
 		self.config = GlobalConfig()
 		self.net = x13(self.config, torch.device("cuda:0")).float().to(torch.device("cuda:0"))
@@ -59,8 +62,14 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 			self.save_path.mkdir(parents=True, exist_ok=False)
 
 			(self.save_path / 'rgb').mkdir()
+#                        (self.save_path / 'rgb_left').mkdir()
+#                        (self.save_path / 'rgb_right').mkdir()
 			(self.save_path / 'depth').mkdir()
+#                        (self.save_path / 'depth_left').mkdir()
+#                        (self.save_path / 'depth_right').mkdir()
 			(self.save_path / 'segmentation').mkdir()
+#                        (self.save_path / 'segmentation_left').mkdir()
+#                        (self.save_path / 'segmentation_right').mkdir()
 			(self.save_path / 'semantic_cloud').mkdir()
 			(self.save_path / 'meta').mkdir()
 
@@ -75,42 +84,77 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		gps = (gps - self._route_planner.mean) * self._route_planner.scale
 
 		return gps
+        
+	def scale_crop(self, image, scale=1, start_x=0, crop_x=None, start_y=0, crop_y=None):
+		(width, height) = (image.width // scale, image.height // scale)
+		if scale != 1:
+			image = image.resize((width, height))
+		if crop_x is None:
+			crop_x = width
+		if crop_y is None:
+			crop_y = height
+
+		image = np.asarray(image)
+		cropped_image = image[start_y:start_y+crop_y, start_x:start_x+crop_x]
+		return cropped_image
 
 	def sensors(self):
-		return [
+                camera_width = 960
+                camera_height = 480
+                camera_fov = 120
+                self.scale = 1
+                self.img_width = 320
+                self.img_resolution = (160,704)
+
+
+                return [
 				{
 					'type': 'sensor.camera.rgb',
 					'x': 1.3, 'y': 0.0, 'z':2.3,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-					'width': 400, 'height': 300, 'fov': 100,
-					'id': 'rgb'
+					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
+					'id': 'rgb_front'
 					},
 				{
 					'type': 'sensor.camera.depth',
 					'x': 1.3, 'y': 0.0, 'z':2.3,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-					'width': 400, 'height': 300, 'fov': 100,
-					'id': 'depth'
+					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
+					'id': 'depth_front'
 					},
-				# {
-				# 	'type': 'sensor.camera.rgb',
-				# 	'x': 1.3, 'y': 0.0, 'z':2.3,
-				# 	'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
-				# 	'width': 400, 'height': 300, 'fov': 100,
-				# 	'id': 'rgb_left'
-				# 	},
-				# {
-				# 	'type': 'sensor.camera.rgb',
-				# 	'x': 1.3, 'y': 0.0, 'z':2.3,
-				# 	'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
-				# 	'width': 400, 'height': 300, 'fov': 100,
-				# 	'id': 'rgb_right'
-				# 	},
-				# {
+				{
+			 	'type': 'sensor.camera.rgb',
+				 	'x': 1.3, 'y': 0.0, 'z':2.3,
+				 	'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
+				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
+				 	'id': 'rgb_left'
+				 	},
+				{
+				 	'type': 'sensor.camera.rgb',
+				 	'x': 1.3, 'y': 0.0, 'z':2.3,
+				 	'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
+				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
+				 	'id': 'rgb_right'
+				 	},
+                                {
+                                        'type': 'sensor.camera.depth',
+                                        'x': 1.3, 'y': 0.0, 'z':2.3,
+                                        'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
+                                        'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
+                                        'id': 'depth_left'
+                                        },
+                                {
+                                        'type': 'sensor.camera.depth',
+                                        'x': 1.3, 'y': 0.0, 'z':2.3,
+                                        'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
+                                        'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
+                                        'id': 'depth_right'
+                                        },
+                                #{
 				# 	'type': 'sensor.camera.rgb',
 				# 	'x': -1.3, 'y': 0.0, 'z':2.3,
 				# 	'roll': 0.0, 'pitch': 0.0, 'yaw': -180.0,
-				# 	'width': 400, 'height': 300, 'fov': 100,
+				# 	'width': camera_width, 'height': camera_height, 'fov': camera_fov,
 				# 	'id': 'rgb_rear'
 				# 	},
 				{
@@ -137,20 +181,39 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 	def tick(self, input_data):
 		self.step += 1
 
-		rgb = cv2.cvtColor(input_data['rgb'][1][:, :, :3], cv2.COLOR_BGR2RGB)
-		depth = cv2.cvtColor(input_data['depth'][1][:, :, :3], cv2.COLOR_BGR2RGB)
-		# rgb_left = cv2.cvtColor(input_data['rgb_left'][1][:, :, :3], cv2.COLOR_BGR2RGB)
-		# rgb_right = cv2.cvtColor(input_data['rgb_right'][1][:, :, :3], cv2.COLOR_BGR2RGB)
-		# rgb_rear = cv2.cvtColor(input_data['rgb_rear'][1][:, :, :3], cv2.COLOR_BGR2RGB)
+		rgb1 = cv2.cvtColor(input_data['rgb_front'][1][:, :, :3], cv2.COLOR_BGR2RGB)
+		rgb = []
+		for pos in ['left', 'front', 'right']:
+#		for pos in [ 'front']:
+                    rgb_cam = 'rgb_' + pos
+                    rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
+                    rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width, self.config.img_width, self.config.img_resolution[0], self.config.img_resolution[0])
+                    rgb.append(rgb_pos)
+		rgb = np.concatenate(rgb, axis=1)
+#		cv2.imwrite('rgb.png', rgb)
+#		depth1 = cv2.cvtColor(input_data['depth_front'][1][:, :, :3], cv2.COLOR_BGR2RGB)
+
+		depth = []
+		for pos in ['left', 'front', 'right']:
+#		for pos in [ 'front']:
+                    depth_cam = 'depth_' + pos
+                    depth_pos = cv2.cvtColor(input_data[depth_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
+                    depth_pos = self.scale_crop(Image.fromarray(depth_pos), self.config.scale, self.config.img_width, self.config.img_width, self.config.img_resolution[0], self.config.img_resolution[0])
+                    depth.append(depth_pos)
+		depth = np.concatenate(depth, axis=1)
+
+	#prv	rgb_left = cv2.cvtColor(input_data['rgb_left'][1][:, :, :3], cv2.COLOR_BGR2RGB)
+      #prv		rgb_right = cv2.cvtColor(input_data['rgb_right'][1][:, :, :3], cv2.COLOR_BGR2RGB)
+	#prv	rgb_rear = cv2.cvtColor(input_data['rgb_rear'][1][:, :, :3], cv2.COLOR_BGR2RGB)
 		gps = input_data['gps'][1][:2]
 		speed = input_data['speed'][1]['speed']
 		compass = input_data['imu'][1][-1]
 
 		result = {
-				'rgb': rgb,
-				'depth': depth,
-				# 'rgb_left': rgb_left,
-				# 'rgb_right': rgb_right,
+				'rgb': rgb, # rgb
+				'depth': depth, # depth
+				#'rgb_left': rgb_left,
+				#'rgb_right': rgb_right,
 				# 'rgb_rear': rgb_rear,
 				'gps': gps,
 				'speed': speed,
@@ -218,12 +281,14 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 
 		# encoding = []
 		rgb = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb']), scale=self.config.scale, crop=self.config.input_resolution)).unsqueeze(0)
+		
 		self.input_buffer['rgb'] = rgb.to('cuda', dtype=torch.float32)
 		# self.input_buffer['rgb'].popleft()
 		# self.input_buffer['rgb'].append(rgb.to('cuda', dtype=torch.float32))
 		# encoding.append(self.net.image_encoder(list(self.input_buffer['rgb'])))
 
 		depth = torch.from_numpy(np.array(rgb_to_depth(scale_and_crop_image_cv(swap_RGB2BGR(tick_data['depth']), scale=self.config.scale, crop=self.config.input_resolution))))
+		torch.save(depth,'depth.pt')
 		self.input_buffer['depth'] = depth.to('cuda', dtype=torch.float32)
 		# self.input_buffer['depth'].popleft()
 		# self.input_buffer['depth'].append(depth.to('cuda', dtype=torch.float32))
@@ -296,14 +361,14 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		for i in range(1, self.config.pred_len+1):
 			x_point = int((frame_dim/2) + (self.control_metadata['wp_'+str(i)][0]*(frame_dim/2)/area))
 			y_point = int(frame_dim - (self.control_metadata['wp_'+str(i)][1]*frame_dim/area))
-			xy_arr = np.clip(np.array([x_point, y_point]), 0, frame_dim)#constrain
+			xy_arr = np.clip(np.array([x_point, y_point]), 0, frame_dim) #constrain
 			point_xy.append(xy_arr)
 		
 		#proses juga untuk next route
 		# - + y point kebalikan dari WP, karena asumsinya agent mendekati next route point, dari negatif menuju 0
 		x_point = int((frame_dim/2) + (self.control_metadata['next_point'][0]*(frame_dim/2)/area))
 		y_point = int(frame_dim + (self.control_metadata['next_point'][1]*frame_dim/area))
-		xy_arr = np.clip(np.array([x_point, y_point]), 0, frame_dim)#constrain
+		xy_arr = np.clip(np.array([x_point, y_point]), 0, frame_dim) #constrain
 		point_xy.append(xy_arr)
 		return point_xy
 

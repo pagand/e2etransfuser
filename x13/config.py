@@ -3,12 +3,12 @@ import os
 class GlobalConfig:
     wandb = True
     gpu_id = '0'
-    model = 'x13'
+    model = 'mohammad_test'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 10 #20
+    batch_size = 64 #20
     coverage_area = 64 
 
     # MGN parameter
@@ -23,13 +23,13 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'  # for the PMLR dataset
+    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # for the PMLR dataset
 
     train_data, val_data = [], []
 
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
-    train_towns = ['Town04']
+    train_towns = ['Town01','Town02','Town03','Town04','Town06','Town07','Town10']
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:
@@ -61,7 +61,6 @@ class GlobalConfig:
         ## val_data.append(os.path.join(root_dir, town+'_long')) #long is for testing
         val_data.append(os.path.join(root_dir, town+'_short'))
         # val_data.append(os.path.join(root_dir, town+'_tiny'))
-
     
     #buat prediksi expert, test
     test_data = []
@@ -73,7 +72,7 @@ class GlobalConfig:
     '''
 
     # input_resolution = 256 # CVPR dataset
-    input_resolution = 160 # PMLR dataset
+    input_resolution = [160,512] # PMLR dataset
     scale = 1 # image pre-processing
     # crop = 256 # image pre-processing # CVPR dataset
     crop = 160 # image pre-processing # CVPR dataset

@@ -1,15 +1,17 @@
 import os
 
 class GlobalConfig:
-    wandb = True
+    num_worker = 4# for debugging 0
+    wandb = False
     gpu_id = '0'
     model = 'mohammad_test'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 64 #20
     coverage_area = 64 
+    batch_size = 16  #20
+    
 
     # MGN parameter
     MGN = True
@@ -29,7 +31,8 @@ class GlobalConfig:
 
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
-    train_towns = ['Town01','Town02','Town03','Town04','Town06','Town07','Town10']
+    # train_towns = ['Town04']
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:
@@ -71,8 +74,23 @@ class GlobalConfig:
         test_data.append(os.path.join(expert_dir, 'Expert')) #Expert OR Expert_w1 for 1 weather only scenario
     '''
 
-    # input_resolution = 256 # CVPR dataset
-    input_resolution = [160,512] # PMLR dataset
+    
+
+    # input_resolution = [256,256] # CVPR dataset
+    # input_resolution = 160 # PMLR dataset
+    input_resolution = [160,768] # PMLR dataset #512
+    # input_resolution = [160,160] # PMLR dataset #512
+    # coverage_area = 64
+    coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
+
+
+    # camera intrinsic
+    img_width = 352
+    img_height = 160
+    fov = 2*60
+    
+   
+
     scale = 1 # image pre-processing
     # crop = 256 # image pre-processing # CVPR dataset
     crop = 160 # image pre-processing # CVPR dataset

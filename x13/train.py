@@ -12,6 +12,7 @@ torch.backends.cudnn.benchmark = True
 
 from model import x13
 from data_from_pmlr import CARLA_Data
+# from data import CARLA_Data
 from config import GlobalConfig
 from torch.utils.tensorboard import SummaryWriter
 
@@ -83,7 +84,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 
 		#forward pass
-		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts)
+		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity)#,seg_fronts
 
 		#compute loss
 		loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -97,8 +98,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 
 		optimizer.zero_grad()
 
-		if batch_ke == 0: #batch pertama, hitung loss awal
-			total_loss.backward() #ga usah retain graph
+		if batch_ke == 0: #first batch, calculate the initial loss
+			total_loss.backward() #no need to retain the graph
 			loss_seg_0 = torch.clone(loss_seg)
 			loss_wp_0 = torch.clone(loss_wp)
 			loss_str_0 = torch.clone(loss_str)
@@ -108,7 +109,16 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			loss_stops_0 = torch.clone(loss_stops)
 
 		elif 0 < batch_ke < total_batch-1:
-			total_loss.backward() #ga usah retain graph
+			total_loss.backward() #no need to retain the graph
+
+			if not loss_seg_0*loss_wp_0*loss_str_0*loss_thr_0*loss_brk_0*loss_redl_0*loss_stops_0:
+				loss_seg_0 = torch.clone(loss_seg) if not loss_seg_0 else loss_seg_0
+				loss_wp_0 = torch.clone(loss_wp) if not loss_wp_0 else loss_wp_0
+				loss_str_0 = torch.clone(loss_str) if not loss_str_0 else loss_str_0
+				loss_thr_0 = torch.clone(loss_thr) if not loss_thr_0 else loss_thr_0
+				loss_brk_0 = torch.clone(loss_brk) if not loss_brk_0 else loss_brk_0
+				loss_redl_0 = torch.clone(loss_redl) if not loss_redl_0 else loss_redl_0
+				loss_stops_0 = torch.clone(loss_stops) if not loss_stops_0 else loss_stops_0
 
 		elif batch_ke == total_batch-1: #berarti batch terakhir, compute update loss weights
 			if config.MGN:
@@ -131,13 +141,13 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				G6 = torch.norm(G6R[0], keepdim=True)
 				G_avg = (G0+G1+G2+G3+G4+G5+G6) / len(config.loss_weights)
 
-				#relative loss
-				loss_seg_hat = loss_seg / loss_seg_0
-				loss_wp_hat = loss_wp / loss_wp_0
-				loss_str_hat = loss_str / loss_str_0
-				loss_thr_hat = loss_thr / loss_thr_0
-				loss_brk_hat = loss_brk / loss_brk_0
-				loss_redl_hat = loss_redl / loss_redl_0
+				#relative loss (zero division handling)
+				loss_seg_hat = loss_seg / loss_seg_0 
+				loss_wp_hat = loss_wp / loss_wp_0 
+				loss_str_hat = loss_str / loss_str_0 
+				loss_thr_hat = loss_thr / loss_thr_0 
+				loss_brk_hat = loss_brk / loss_brk_0 
+				loss_redl_hat = loss_redl / loss_redl_0 
 				loss_stops_hat = loss_stops / loss_stops_0
 				loss_hat_avg = (loss_seg_hat + loss_wp_hat + loss_str_hat + loss_thr_hat + loss_brk_hat + loss_redl_hat + loss_stops_hat) / len(config.loss_weights)
 
@@ -320,8 +330,8 @@ def main():
 		drop_last = True 
 	else: 
 		drop_last = False
-	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=4, pin_memory=True, drop_last=drop_last) 
-	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=4, pin_memory=True)
+	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
+	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 	
 	if not os.path.exists(config.logdir+"/trainval_log.csv"):
 		print('TRAIN from the beginning!!!!!!!!!!!!!!!!')

@@ -2,18 +2,19 @@ import os
 
 class GlobalConfig:
     num_worker = 4# for debugging 0
-    wandb = False
+    wandb = True
+    low_data = True
     gpu_id = '0'
     model = 'x13'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 16  #20
+    batch_size = 20 #20
     
 
     # MGN parameter
-    MGN = True
+    MGN = False
     loss_weights = [1, 1, 1, 1, 1, 1, 1]
     lw_alpha = 1.5
     bottleneck = [335, 679]
@@ -48,7 +49,10 @@ class GlobalConfig:
                     break
                 else:
                     break
-
+    if low_data:
+        train_data = train_data[:int(0.1*len(train_data))]
+        val_data = val_data[:int(0.1*len(val_data))]
+    
     ## For CVPR dataset
     '''
     # train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']

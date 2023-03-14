@@ -149,6 +149,7 @@ class x13(nn.Module): #
 
     def forward(self, rgb_f, depth_f, next_route, velo_in):#, gt_ss):
         #------------------------------------------------------------------------------------------------
+        # # only CNN
         in_rgb = self.rgb_normalizer(rgb_f) #[i]
         RGB_features0 = self.RGB_encoder.features[0](in_rgb)
         RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
@@ -159,7 +160,7 @@ class x13(nn.Module): #
         RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
         RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
         RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
-        #bagian upsampling
+        # bagian upsampling
         ss_f_3 = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
         ss_f_2 = self.conv2_ss_f(cat([self.up(ss_f_3), RGB_features3], dim=1))
         ss_f_1 = self.conv1_ss_f(cat([self.up(ss_f_2), RGB_features2], dim=1))

@@ -81,6 +81,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_waypoints = [torch.stack(data['waypoints'][i], dim=1).to(device, dtype=torch.float) for i in range(config.seq_len, len(data['waypoints']))]
 		gt_waypoints = torch.stack(gt_waypoints, dim=1).to(device, dtype=torch.float)
 		gt_steer = data['steer'].to(device, dtype=torch.float)
+		# correct the nan in GT steer
+		gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
 		gt_throttle = data['throttle'].to(device, dtype=torch.float)
 		gt_brake = data['brake'].to(device, dtype=torch.float)
 		gt_red_light = data['red_light'].to(device, dtype=torch.float)
@@ -130,7 +132,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
 				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
 				G0 = torch.norm(G0R[0], keepdim=True)
-				G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+				G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True, allow_unused=True)
 				G1 = torch.norm(G1R[0], keepdim=True)
 				G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
 				G2 = torch.norm(G2R[0], keepdim=True)
@@ -145,13 +147,13 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				G_avg = (G0+G1+G2+G3+G4+G5+G6) / len(config.loss_weights)
 
 				#relative loss (zero division handling)
-				loss_seg_hat = loss_seg / loss_seg_0  if loss_seg_0 else 0
-				loss_wp_hat = loss_wp / loss_wp_0  if loss_wp_0 else 0
-				loss_str_hat = loss_str / loss_str_0  if loss_str_0 else 0
-				loss_thr_hat = loss_thr / loss_thr_0  if loss_thr_0 else 0
-				loss_brk_hat = loss_brk / loss_brk_0  if loss_brk_0 else 0 
-				loss_redl_hat = loss_redl / loss_redl_0 if loss_redl_0 else 0
-				loss_stops_hat = loss_stops / loss_stops_0 if loss_stops_0 else 0
+				loss_seg_hat = loss_seg / loss_seg_0  
+				loss_wp_hat = loss_wp / loss_wp_0 
+				loss_str_hat = loss_str / loss_str_0  
+				loss_thr_hat = loss_thr / loss_thr_0  
+				loss_brk_hat = loss_brk / loss_brk_0  
+				loss_redl_hat = loss_redl / loss_redl_0 
+				loss_stops_hat = loss_stops / loss_stops_0 
 				loss_hat_avg = (loss_seg_hat + loss_wp_hat + loss_str_hat + loss_thr_hat + loss_brk_hat + loss_redl_hat + loss_stops_hat) / len(config.loss_weights)
 
 				#r_i_(t) relative inverse training rate
@@ -193,6 +195,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		score['brk_loss'].update(loss_brk.item())
 		score['redl_loss'].update(loss_redl.item())
 		score['stops_loss'].update(loss_stops.item())
+
 
 		postfix = OrderedDict([('t_total_l', score['total_loss'].avg),
 							('t_ss_l', score['ss_loss'].avg),

@@ -3,18 +3,18 @@ import os
 class GlobalConfig:
     num_worker = 4# for debugging 0
     wandb = True
-    low_data = True
+    low_data = False
     gpu_id = '0'
     model = 'x13'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 20 #20
+    batch_size = 64 #20
     
 
     # MGN parameter
-    MGN = False
+    MGN = True
     loss_weights = [1, 1, 1, 1, 1, 1, 1]
     lw_alpha = 1.5
     bottleneck = [335, 679]
@@ -82,7 +82,7 @@ class GlobalConfig:
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
-    input_resolution = [160,768] # PMLR dataset #512
+    input_resolution = [160,160] # PMLR dataset #768
     # input_resolution = [160,160] # PMLR dataset #512
     # coverage_area = 64
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64

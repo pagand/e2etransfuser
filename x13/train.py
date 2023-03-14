@@ -126,7 +126,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				total_loss.backward(retain_graph=True) # retain graph karena graphnya masih dipakai perhitungan
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
 				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				G0 = torch.norm(G0R[0], keepdim=True)
+				G0 = torch.norm(G0R[0][0][0], keepdim=True)
 				G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
 				G1 = torch.norm(G1R[0], keepdim=True)
 				G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
@@ -136,9 +136,9 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				G4R = torch.autograd.grad(loss_brk, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
 				G4 = torch.norm(G4R[0], keepdim=True)
 				G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				G5 = torch.norm(G5R[0], keepdim=True)
+				G5 = torch.norm(G5R[0][0][0], keepdim=True)
 				G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				G6 = torch.norm(G6R[0], keepdim=True)
+				G6 = torch.norm(G6R[0][0][0], keepdim=True)
 				G_avg = (G0+G1+G2+G3+G4+G5+G6) / len(config.loss_weights)
 
 				#relative loss (zero division handling)
@@ -254,7 +254,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts)
+			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity) #, seg_fronts)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)

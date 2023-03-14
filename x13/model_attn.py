@@ -271,11 +271,11 @@ class Fusion_Block(nn.Module):
             drop=drop
         )
 
-    def forward(self, RGB_features, SC_features, h, w):
-        res = RGB_features
+    def forward(self, RGB_features8, SC_features8, h, w):
+        res = RGB_features8
 
-        x = self.norm1(RGB_features)
-        y = self.norm2(SC_features)
+        x = self.norm1(RGB_features8)
+        y = self.norm2(SC_features8)
 
         attn = self.attn(x, y, h, w)
         x = res + self.drop_path(attn)
@@ -309,7 +309,7 @@ class x13(nn.Module): #
             nn.Linear(config.n_fmap_b3[4][-1], 2),
             nn.ReLU()
         )
-        self.tls_biasing = nn.Linear(2, config.n_fmap_b3[3][0])
+        self.tls_biasing = nn.Linear(2, config.n_fmap_b3[4][0])
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area
@@ -340,10 +340,10 @@ class x13(nn.Module): #
 #        )
 
         self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.n_fmap_b3[3][-1], config.n_fmap_b3[3][1], kernel_size=1, stride=1, padding=0),
+            nn.Conv2d(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[3][1], config.n_fmap_b3[3][0])
+            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
 
         embed_dim_q = self.config.fusion_embed_dim_q
@@ -360,8 +360,8 @@ class x13(nn.Module): #
 
         #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
-        self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[3][0])
-        self.pred_dwp = nn.Linear(config.n_fmap_b3[3][0], 2)
+        self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
+        self.pred_dwp = nn.Linear(config.n_fmap_b3[4][0], 2)
         #PID Controller
         self.turn_controller = PIDController(K_P=config.turn_KP, K_I=config.turn_KI, K_D=config.turn_KD, n=config.turn_n)
         self.speed_controller = PIDController(K_P=config.speed_KP, K_I=config.speed_KI, K_D=config.speed_KD, n=config.speed_n)
@@ -369,8 +369,8 @@ class x13(nn.Module): #
         #controller
         #MLP Controller
         self.controller = nn.Sequential(
-            nn.Linear(config.n_fmap_b3[3][0], config.n_fmap_b3[3][0]//2),
-            nn.Linear(config.n_fmap_b3[3][0]//2, 3),
+            nn.Linear(config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
+            nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
         )
 
@@ -439,17 +439,17 @@ class x13(nn.Module): #
 #        input = cat([RGB_features8, SC_features8], dim=1)
 #        hx = self.necks_net(input) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
 
-        bs,_,H,W =RGB_features5.shape
+        bs,_,H,W =RGB_features8.shape
 
-        RGB_features5 = rearrange(RGB_features5 , 'b c h w-> b (h w) c')
-        SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
+        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
+        SC_features8 = rearrange(SC_features8 , 'b c h w-> b (h w) c')
         
         for i, blk in enumerate(self.blocks):
-            x = blk(RGB_features5, SC_features5, H, W)
+            x = blk(RGB_features8, SC_features8, H, W)
 
         x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
         hx = self.attn_neck(x)
-
+        
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         #predict delta wp
         out_wp = list()

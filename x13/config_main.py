@@ -2,9 +2,9 @@ import os
 
 class GlobalConfig:
     num_worker = 4# for debugging 0
-    wandb = True
+    wandb = False
     gpu_id = '0'
-    model = 'mohammad_3_image_5'
+    model = 'mohammad_3_image'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
@@ -123,10 +123,6 @@ class GlobalConfig:
     clip_delta = 0.25 # maximum change in speed input to logitudinal controller
     min_act_thrt = 0.2 #minimum throttle
 
-
-
-
-
     #ORDER DALAM RGB!!!!!!!!
     SEG_CLASSES = {
         'colors'        :[[0, 0, 0], [70, 70, 70], [100, 40, 40], [55, 90, 80], [220, 20, 60],  
@@ -144,10 +140,9 @@ class GlobalConfig:
     n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
     n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] 
 
-
     ## fusion settings
-    fusion_embed_dim_q = n_fmap_b3[3][-1]
-    fusion_embed_dim_kv = n_fmap_b1[3][-1]
+    fusion_embed_dim_q = 1536
+    fusion_embed_dim_kv = 1280
     fusion_depth = 1 #1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4

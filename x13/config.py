@@ -9,7 +9,7 @@ class GlobalConfig:
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 16  #20
+    batch_size = 64 #20
     
 
     # MGN parameter
@@ -48,7 +48,10 @@ class GlobalConfig:
                     break
                 else:
                     break
-
+    if low_data:
+        train_data = train_data[:int(0.1*len(train_data))]
+        val_data = val_data[:int(0.1*len(val_data))]
+    
     ## For CVPR dataset
     '''
     # train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']

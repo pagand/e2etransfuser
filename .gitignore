@@ -10,6 +10,8 @@ carla/*
 *.pyc
 
 !data/README.md
+cvt/DATASET/
+cvt/OUTPUT/
 transfuser_cvpr/
 transfuser_pmlr/data/
 transfuser_pmlr/data0/

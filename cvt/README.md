@@ -25,6 +25,11 @@ You can download all the models from our [model zoo](https://1drv.ms/u/s!AhIXJn_
 # Quick start
 ## Installation
 Assuming that you have installed PyTorch and TorchVision, if not, please follow the [officiall instruction](https://pytorch.org/) to install them firstly. 
+``` 
+!pip install torch==1.8.1+cu111 torchvision==0.9.1+cu111 torchaudio==0.8.1 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html
+pip install torchtext==0.9.1
+```
+
 Intall the dependencies using cmd:
 
 ``` sh

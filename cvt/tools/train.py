@@ -52,7 +52,9 @@ def parse_args():
                         default=None,
                         nargs=argparse.REMAINDER)
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
+    args = parser.parse_args(['--cfg','experiments/imagenet/cvt/cvt-13-224x224.yaml'])
+
 
     return args
 

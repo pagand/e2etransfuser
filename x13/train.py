@@ -19,6 +19,9 @@ from torch.utils.tensorboard import SummaryWriter
 import wandb
 
 
+
+
+
 class AverageMeter(object):
     def __init__(self):
         self.val = 0
@@ -78,6 +81,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_waypoints = [torch.stack(data['waypoints'][i], dim=1).to(device, dtype=torch.float) for i in range(config.seq_len, len(data['waypoints']))]
 		gt_waypoints = torch.stack(gt_waypoints, dim=1).to(device, dtype=torch.float)
 		gt_steer = data['steer'].to(device, dtype=torch.float)
+		# correct the nan in GT steer
+		gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
 		gt_throttle = data['throttle'].to(device, dtype=torch.float)
 		gt_brake = data['brake'].to(device, dtype=torch.float)
 		gt_red_light = data['red_light'].to(device, dtype=torch.float)
@@ -123,7 +128,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		elif batch_ke == total_batch-1: #berarti batch terakhir, compute update loss weights
 			if config.MGN:
 				optimizer_lw.zero_grad()
-				total_loss.backward(retain_graph=True) # retain graph karena graphnya masih dipakai perhitungan
+				total_loss.backward(retain_graph=True) # retain graph because the graph is still used for calculation
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
 				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
 				G0 = torch.norm(G0R[0][0][0], keepdim=True)
@@ -142,13 +147,13 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				G_avg = (G0+G1+G2+G3+G4+G5+G6) / len(config.loss_weights)
 
 				#relative loss (zero division handling)
-				loss_seg_hat = loss_seg / loss_seg_0 
+				loss_seg_hat = loss_seg / loss_seg_0  
 				loss_wp_hat = loss_wp / loss_wp_0 
-				loss_str_hat = loss_str / loss_str_0 
-				loss_thr_hat = loss_thr / loss_thr_0 
-				loss_brk_hat = loss_brk / loss_brk_0 
+				loss_str_hat = loss_str / loss_str_0  
+				loss_thr_hat = loss_thr / loss_thr_0  
+				loss_brk_hat = loss_brk / loss_brk_0  
 				loss_redl_hat = loss_redl / loss_redl_0 
-				loss_stops_hat = loss_stops / loss_stops_0
+				loss_stops_hat = loss_stops / loss_stops_0 
 				loss_hat_avg = (loss_seg_hat + loss_wp_hat + loss_str_hat + loss_thr_hat + loss_brk_hat + loss_redl_hat + loss_stops_hat) / len(config.loss_weights)
 
 				#r_i_(t) relative inverse training rate
@@ -176,7 +181,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				lgrad = Lgrad.item()
 				new_param_lw = optimizer_lw.param_groups[0]['params']
 			else:
-				total_loss.backward()
+				total_loss.backward(retain_graph=True)
 				lgrad = 0
 				new_param_lw = 1
 			
@@ -190,6 +195,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		score['brk_loss'].update(loss_brk.item())
 		score['redl_loss'].update(loss_redl.item())
 		score['stops_loss'].update(loss_stops.item())
+
 
 		postfix = OrderedDict([('t_total_l', score['total_loss'].avg),
 							('t_ss_l', score['ss_loss'].avg),
@@ -306,7 +312,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		wandb.init(project=config.model, config=config,  entity="ai-mars")
+		wandb.init(project=config.model,  entity="ai-mars")
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
@@ -392,8 +398,8 @@ def main():
 		])
 	writer = SummaryWriter(log_dir=config.logdir)
 	
-	if config.wandb:
-		wandb.watch(model, log="all")
+	# if config.wandb:
+	# 	wandb.watch(model, log="all")
 
 	epoch = curr_ep
 	while True:

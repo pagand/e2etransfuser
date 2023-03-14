@@ -13,7 +13,7 @@ from timm.models.layers import DropPath, trunc_normal_
 import time
 =======
 
-# from transformers import CvtModel #, AutoImageProcessor
+from transformers import CvtModel #, AutoImageProcessor
 
 
 def kaiming_init_layer(layer):

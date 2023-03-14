@@ -58,7 +58,7 @@ class GlobalConfig:
     img_width = 320
     img_resolution = (160,704)
 
-    input_resolution = 160 # 256
+    input_resolution = [160,768] # 256
 
     crop = 256 # image pre-processing   ??????????????????????
 

@@ -99,13 +99,6 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		return cropped_image
 
 	def sensors(self):
-                camera_width = 960
-                camera_height = 480
-                camera_fov = 120
-                self.scale = 1
-                self.img_width = 320
-                self.img_resolution = (160,704)
-
 
                 return [
 				{
@@ -288,7 +281,6 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		# encoding.append(self.net.image_encoder(list(self.input_buffer['rgb'])))
 
 		depth = torch.from_numpy(np.array(rgb_to_depth(scale_and_crop_image_cv(swap_RGB2BGR(tick_data['depth']), scale=self.config.scale, crop=self.config.input_resolution))))
-		torch.save(depth,'depth.pt')
 		self.input_buffer['depth'] = depth.to('cuda', dtype=torch.float32)
 		# self.input_buffer['depth'].popleft()
 		# self.input_buffer['depth'].append(depth.to('cuda', dtype=torch.float32))

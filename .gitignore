@@ -24,8 +24,7 @@ wandb/
 data/Town*
 log/
 x13_GT/
-
-
+*.pyc
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

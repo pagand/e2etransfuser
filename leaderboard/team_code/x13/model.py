@@ -344,9 +344,6 @@ class x13(nn.Module): #
         else:
             sys.exit("ERROR, FALSE CONTROL OPTION")
 
-
-
-
         metadata = {
             'control_option': ctrl_opt,
             'speed': float(speed.astype(np.float64)),

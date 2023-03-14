@@ -99,13 +99,6 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		return cropped_image
 
 	def sensors(self):
-                camera_width = 960
-                camera_height = 480
-                camera_fov = 120
-                self.scale = 1
-                self.img_width = 320
-                self.img_resolution = (160,704)
-
 
                 return [
 				{

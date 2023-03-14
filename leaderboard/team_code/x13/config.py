@@ -48,14 +48,19 @@ class GlobalConfig:
         test_data.append(os.path.join(expert_dir, 'Expert_w1')) #Expert Expert_w1
 
 
-
     ignore_sides = True # don't consider side cameras
     ignore_rear = True # don't consider rear cameras
 
-    input_resolution = 256
+    camera_width = 960
+    camera_height = 480
+    camera_fov = 120
+    scale = 1
+    img_width = 320
+    img_resolution = (160,704)
 
-    scale = 1 # image pre-processing
-    crop = 256 # image pre-processing
+    input_resolution = [160,768] # 256
+
+    crop = 256 # image pre-processing   ??????????????????????
 
     lr = 1e-4 # learning rate #pakai AdamW
     weight_decay = 1e-3

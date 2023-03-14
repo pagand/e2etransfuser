@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torchvision.models as models
 import torchvision.transforms as transforms
 
-# from transformers import CvtModel #, AutoImageProcessor
+from transformers import CvtModel #, AutoImageProcessor
 
 
 

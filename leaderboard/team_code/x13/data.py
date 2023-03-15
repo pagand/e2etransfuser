@@ -323,7 +323,7 @@ def scale_and_crop_image_cv(image, scale=1, crop=256):
     upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]
     cropped_im = image[upper_left_yx[0]:upper_left_yx[0]+crop[0], upper_left_yx[1]:upper_left_yx[1]+crop[1], :]
     cropped_image = np.transpose(cropped_im, (2,0,1))
-    return
+    return cropped_image
 
 def cls2one_hot(ss_gt):
     #inputnya adalah CHW hasil dari crop image

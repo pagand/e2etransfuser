@@ -8,7 +8,7 @@ class GlobalConfig:
 
     n_class = 23
     batch_size = 20
-    coverage_area = 64 #untuk top view SC, HXW sama dalam meter
+    # coverage_area = 64 #untuk top view SC, HXW sama dalam meter
 
     #parameter untuk MGN
     MGN = True
@@ -56,11 +56,20 @@ class GlobalConfig:
     camera_fov = 120
     scale = 1
     img_width = 320
+
+
+    img_width_fov = 352
+    img_height_fov = 160
+
+
     img_resolution = (160,704)
 
     input_resolution = [160,768] # 256
 
-    crop = 256 # image pre-processing   ??????????????????????
+    coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
+
+
+    crop = 160 # image pre-processing 256  ??????????????????????
 
     lr = 1e-4 # learning rate #pakai AdamW
     weight_decay = 1e-3

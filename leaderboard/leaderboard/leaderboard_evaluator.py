@@ -111,6 +111,7 @@ class LeaderboardEvaluator(object):
         """
         Terminate scenario ticking when receiving a signal interrupt
         """
+        print(1111)
         if self._agent_watchdog and not self._agent_watchdog.get_status():
             raise RuntimeError("Timeout: Agent took too long to setup")
         elif self.manager:
@@ -120,7 +121,6 @@ class LeaderboardEvaluator(object):
         """
         Cleanup and delete actors, ScenarioManager and CARLA world
         """
-
         self._cleanup()
         if hasattr(self, 'manager') and self.manager:
             del self.manager

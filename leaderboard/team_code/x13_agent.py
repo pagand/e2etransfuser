@@ -174,7 +174,6 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 	def tick(self, input_data):
 		self.step += 1
 
-		rgb1 = cv2.cvtColor(input_data['rgb_front'][1][:, :, :3], cv2.COLOR_BGR2RGB)
 		rgb = []
 		for pos in ['left', 'front', 'right']:
 #		for pos in [ 'front']:
@@ -184,7 +183,6 @@ class x13Agent(autonomous_agent.AutonomousAgent):
                     rgb.append(rgb_pos)
 		rgb = np.concatenate(rgb, axis=1)
 #		cv2.imwrite('rgb.png', rgb)
-#		depth1 = cv2.cvtColor(input_data['depth_front'][1][:, :, :3], cv2.COLOR_BGR2RGB)
 
 		depth = []
 		for pos in ['left', 'front', 'right']:
@@ -351,15 +349,15 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		#proses wp
 		""""""
 		for i in range(1, self.config.pred_len+1):
-			x_point = int((frame_dim/2) + (self.control_metadata['wp_'+str(i)][0]*(frame_dim/2)/area))
-			y_point = int(frame_dim - (self.control_metadata['wp_'+str(i)][1]*frame_dim/area))
+			x_point = int((frame_dim/2) + (self.control_metadata['wp_'+str(i)][0]*(frame_dim/2)/area[1]))
+			y_point = int(frame_dim - (self.control_metadata['wp_'+str(i)][1]*frame_dim/area[0]))
 			xy_arr = np.clip(np.array([x_point, y_point]), 0, frame_dim) #constrain
 			point_xy.append(xy_arr)
 		
 		#proses juga untuk next route
 		# - + y point kebalikan dari WP, karena asumsinya agent mendekati next route point, dari negatif menuju 0
-		x_point = int((frame_dim/2) + (self.control_metadata['next_point'][0]*(frame_dim/2)/area))
-		y_point = int(frame_dim + (self.control_metadata['next_point'][1]*frame_dim/area))
+		x_point = int((frame_dim/2) + (self.control_metadata['next_point'][0]*(frame_dim/2)/area[1]))
+		y_point = int(frame_dim + (self.control_metadata['next_point'][1]*frame_dim/area[0]))
 		xy_arr = np.clip(np.array([x_point, y_point]), 0, frame_dim) #constrain
 		point_xy.append(xy_arr)
 		return point_xy

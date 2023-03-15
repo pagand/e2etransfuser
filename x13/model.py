@@ -85,9 +85,9 @@ class x13(nn.Module): #
         self.gpu_device = device
         #------------------------------------------------------------------------------------------------
         #CVT
-        # # self.pre = AutoImageProcessor.from_pretrained("microsoft/cvt-13")
-        # self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
-        # self.avgpool = nn.AvgPool2d(2, stride=2)
+        # self.pre = AutoImageProcessor.from_pretrained("microsoft/cvt-13")
+        self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
+        self.avgpool = nn.AvgPool2d(2, stride=2)
         #RGB
         self.rgb_normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         self.RGB_encoder = models.efficientnet_b3(pretrained=True) #efficientnet_b4
@@ -155,33 +155,33 @@ class x13(nn.Module): #
 
     def forward(self, rgb_f, depth_f, next_route, velo_in):#, gt_ss):
         #------------------------------------------------------------------------------------------------
-        # # CVT and CNN
-        # # inputs = self.pre(rgb_f, return_tensors="pt").to(self.gpu_device)
-        # # out = self.cvt(**inputs, output_hidden_states=True)
-        # embed_dim = [24, 32, 48, 136]
-        # in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        # out = self.cvt(in_rgb, output_hidden_states=True)
-        # RGB_features1 = self.RGB_encoder.features[0](in_rgb)[:,:embed_dim[0],:,:]
-        # RGB_features2 = out[2][0][:,:embed_dim[1],:,:]
-        # RGB_features3 = out[2][1][:,:embed_dim[2],:,:]
-        # RGB_features5 = out[2][2][:,:embed_dim[3],:,:]
-        # RGB_features9 = self.RGB_encoder.features[8](out[2][2])
-        # RGB_features8 = self.avgpool(RGB_features9)
-        # ss_f_3 = self.conv3_ss_f(cat([RGB_features9, RGB_features5], dim=1))
+        # CVT and CNN
+        # inputs = self.pre(rgb_f, return_tensors="pt").to(self.gpu_device)
+        # out = self.cvt(**inputs, output_hidden_states=True)
+        embed_dim = [24, 32, 48, 136]
+        in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        out = self.cvt(in_rgb, output_hidden_states=True)
+        RGB_features1 = self.RGB_encoder.features[0](in_rgb)[:,:embed_dim[0],:,:]
+        RGB_features2 = out[2][0][:,:embed_dim[1],:,:]
+        RGB_features3 = out[2][1][:,:embed_dim[2],:,:]
+        RGB_features5 = out[2][2][:,:embed_dim[3],:,:]
+        RGB_features9 = self.RGB_encoder.features[8](out[2][2])
+        RGB_features8 = self.avgpool(RGB_features9)
+        ss_f_3 = self.conv3_ss_f(cat([RGB_features9, RGB_features5], dim=1))
 
         # # only CNN
-        in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        RGB_features0 = self.RGB_encoder.features[0](in_rgb)
-        RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
-        RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
-        RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
-        RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
-        RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
-        RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
-        RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
-        RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
-        # bagian upsampling
-        ss_f_3 = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
+        # in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        # RGB_features0 = self.RGB_encoder.features[0](in_rgb)
+        # RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
+        # RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
+        # RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
+        # RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
+        # RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
+        # RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
+        # RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
+        # RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
+        # # bagian upsampling
+        # ss_f_3 = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
         ss_f_2 = self.conv2_ss_f(cat([self.up(ss_f_3), RGB_features3], dim=1))
         ss_f_1 = self.conv1_ss_f(cat([self.up(ss_f_2), RGB_features2], dim=1))
         ss_f_0 = self.conv0_ss_f(cat([self.up(ss_f_1), RGB_features1], dim=1))

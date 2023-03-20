@@ -2,22 +2,42 @@ import os
 
 class GlobalConfig:
     num_worker = 4# for debugging 0
-    wandb = False
-    low_data = False
     gpu_id = '0'
-    model = 'x13_cvt'
+    wandb = True
+    low_data = False
+    # TODO: correct the forward path in case of change
+    kind = 'cvt_cnn' # ['effnet', cvt_effnet', 'cvt_cnn']
+
+    model = 'x13_'+kind #'x13'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
+    if kind == 'cvt_cnn':
+        bottleneck = [350, 695]
+    else:
+        bottleneck = [335, 679]
+
     n_class = 23
-    batch_size = 64 #20
+    batch_size = 20 #20
+
+    if kind == 'cvt_effnet' or kind == 'effnet':
+
+        # parameters for Effnet
+        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
+        n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] 
+    elif kind == 'cvt_cnn':
+    # parameters for CVT
+        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
+        n_fmap_b3 = [[40,32], [64], [192], [96,384], [232,384,1536]] 
+    else:
+        raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
 
     # MGN parameter
     MGN = True
     loss_weights = [1, 1, 1, 1, 1, 1, 1]
     lw_alpha = 1.5
-    bottleneck = [335, 679]
+    
 
 	# for Data
     seq_len = 1 # jumlah input seq
@@ -50,7 +70,7 @@ class GlobalConfig:
                 else:
                     break
     if low_data:
-        train_data = train_data[:int(0.1*len(train_data))]
+        train_data = train_data[:int(0.05*len(train_data))]
         val_data = val_data[:int(0.1*len(val_data))]
     
     ## For CVPR dataset
@@ -144,9 +164,8 @@ class GlobalConfig:
                             'Bridge', 'RailTrack', 'GuardRail', 'TrafficLight', 'Static',
                             'Dynamic', 'Water', 'Terrain']
     }
+        
 
-    n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
-    n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] 
 
     def __init__(self, **kwargs):
         for k,v in kwargs.items():

@@ -89,6 +89,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 
 		#forward pass
+
 		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity)#,seg_fronts
 
 		#compute loss
@@ -132,7 +133,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
 				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
 				G0 = torch.norm(G0R[0], keepdim=True)
-				G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True, allow_unused=True)
+				G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True ) #, allow_unused=True
 				G1 = torch.norm(G1R[0], keepdim=True)
 				G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
 				G2 = torch.norm(G2R[0], keepdim=True)

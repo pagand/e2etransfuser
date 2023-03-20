@@ -272,13 +272,14 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 
 		# encoding = []
 		rgb = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb']), scale=self.config.scale, crop=self.config.input_resolution)).unsqueeze(0)
-		
+		# torch.save(rgb, 'rgb.pt')
 		self.input_buffer['rgb'] = rgb.to('cuda', dtype=torch.float32)
 		# self.input_buffer['rgb'].popleft()
 		# self.input_buffer['rgb'].append(rgb.to('cuda', dtype=torch.float32))
 		# encoding.append(self.net.image_encoder(list(self.input_buffer['rgb'])))
 
 		depth = torch.from_numpy(np.array(rgb_to_depth(scale_and_crop_image_cv(swap_RGB2BGR(tick_data['depth']), scale=self.config.scale, crop=self.config.input_resolution))))
+		# torch.save(depth, 'depth.pt')
 		self.input_buffer['depth'] = depth.to('cuda', dtype=torch.float32)
 		# self.input_buffer['depth'].popleft()
 		# self.input_buffer['depth'].append(depth.to('cuda', dtype=torch.float32))

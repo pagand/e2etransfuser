@@ -34,16 +34,16 @@ class ConvBNRelu(nn.Module):
         return y
 
 class ConvBlock(nn.Module):
-    def __init__(self, channel, final=False): #up, 
+    def __init__(self, channel, final=False, stridex=1): #up, 
         super(ConvBlock, self).__init__()
         if final:
-            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[0]], stridex=1)
+            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[0]], stridex=stridex)
             self.conv_block1 = nn.Sequential(
             nn.Conv2d(channel[0], channel[1], kernel_size=1),
             nn.Sigmoid()
             )
         else:
-            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[1]], stridex=1)
+            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[1]], stridex=stridex)
             self.conv_block1 = ConvBNRelu(channelx=[channel[1], channel[1]], stridex=1)
         self.conv_block0.apply(kaiming_init)
         self.conv_block1.apply(kaiming_init)
@@ -84,15 +84,22 @@ class x13(nn.Module): #
         self.config = config
         self.gpu_device = device
         #------------------------------------------------------------------------------------------------
-        #CVT
+        # CVT and effnet
         # self.pre = AutoImageProcessor.from_pretrained("microsoft/cvt-13")
-        self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
-        self.avgpool = nn.AvgPool2d(2, stride=2)
+        if config.kind == "cvt_effnet":
+            self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
+            self.avgpool = nn.AvgPool2d(2, stride=2)
+        #CVT and conv
+        if config.kind == "cvt_cnn":
+            self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
+            self.conv1_down =  ConvBlock(channel=[3, config.n_fmap_b3[0][-1]],stridex=2)
+            self.conv2_down =  ConvBlock(channel=[config.n_fmap_b3[3][-1], config.n_fmap_b3[4][-1]],stridex=2)
         #RGB
         self.rgb_normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        self.RGB_encoder = models.efficientnet_b3(pretrained=True) #efficientnet_b4
-        self.RGB_encoder.classifier = nn.Sequential()
-        self.RGB_encoder.avgpool = nn.Sequential()  
+        if config.kind != "cvt_cnn":
+            self.RGB_encoder = models.efficientnet_b3(pretrained=True) #efficientnet_b4
+            self.RGB_encoder.classifier = nn.Sequential()
+            self.RGB_encoder.avgpool = nn.Sequential()  
         #SS
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True) 
         self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[4][-1]+config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
@@ -155,19 +162,30 @@ class x13(nn.Module): #
 
     def forward(self, rgb_f, depth_f, next_route, velo_in):#, gt_ss):
         #------------------------------------------------------------------------------------------------
-        # CVT and CNN
-        # inputs = self.pre(rgb_f, return_tensors="pt").to(self.gpu_device)
-        # out = self.cvt(**inputs, output_hidden_states=True)
-        embed_dim = [24, 32, 48, 136]
+        # CVT and conv (approach2)
         in_rgb = self.rgb_normalizer(rgb_f) #[i]
         out = self.cvt(in_rgb, output_hidden_states=True)
-        RGB_features1 = self.RGB_encoder.features[0](in_rgb)[:,:embed_dim[0],:,:]
-        RGB_features2 = out[2][0][:,:embed_dim[1],:,:]
-        RGB_features3 = out[2][1][:,:embed_dim[2],:,:]
-        RGB_features5 = out[2][2][:,:embed_dim[3],:,:]
-        RGB_features9 = self.RGB_encoder.features[8](out[2][2])
-        RGB_features8 = self.avgpool(RGB_features9)
-        ss_f_3 = self.conv3_ss_f(cat([RGB_features9, RGB_features5], dim=1))
+        RGB_features1 = self.conv1_down(in_rgb)
+        RGB_features2 = out[2][0]
+        RGB_features3 = out[2][1]
+        RGB_features5 = out[2][2]
+        RGB_features8 = self.conv2_down(RGB_features5)
+
+        # # CVT and effnet (approach1)
+        # # inputs = self.pre(rgb_f, return_tensors="pt").to(self.gpu_device)
+        # # out = self.cvt(**inputs, output_hidden_states=True)
+        # embed_dim = [24, 32, 48, 136]
+        # in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        # out = self.cvt(in_rgb, output_hidden_states=True)
+        # RGB_features1 = self.RGB_encoder.features[0](in_rgb)[:,:embed_dim[0],:,:]
+        # RGB_features2 = out[2][0][:,:embed_dim[1],:,:]
+        # RGB_features3 = out[2][1][:,:embed_dim[2],:,:]
+        # RGB_features5 = out[2][2][:,:embed_dim[3],:,:]
+        # RGB_features9 = self.RGB_encoder.features[8](out[2][2])
+        # RGB_features8 = self.avgpool(RGB_features9)
+        # ss_f_3 = self.conv3_ss_f(cat([RGB_features9, RGB_features5], dim=1))
+        # # TODO: Comment next ss_f_3
+
 
         # # only CNN
         # in_rgb = self.rgb_normalizer(rgb_f) #[i]
@@ -180,8 +198,9 @@ class x13(nn.Module): #
         # RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
         # RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
         # RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
-        # # bagian upsampling
-        # ss_f_3 = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
+
+        # bagian upsampling
+        ss_f_3 = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
         ss_f_2 = self.conv2_ss_f(cat([self.up(ss_f_3), RGB_features3], dim=1))
         ss_f_1 = self.conv1_ss_f(cat([self.up(ss_f_2), RGB_features2], dim=1))
         ss_f_0 = self.conv0_ss_f(cat([self.up(ss_f_1), RGB_features1], dim=1))

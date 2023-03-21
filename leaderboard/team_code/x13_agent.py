@@ -304,9 +304,9 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 			self.input_buffer['rgb_rear'].append(rgb_rear.to('cuda', dtype=torch.float32))
 			encoding.append(self.net.image_encoder(list(self.input_buffer['rgb_rear'])))
 		"""
-
+		a = 0
 		# forward pass
-		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pstops, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity)
+		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pstops, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
 		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
 		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)

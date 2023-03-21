@@ -121,8 +121,8 @@ class GlobalConfig:
     #jangan lupa untuk mengganti model torchvision di init model.py
 
     ## fusion settings
-    fusion_embed_dim_q = n_fmap_b3[3][-1]
-    fusion_embed_dim_kv = n_fmap_b1[3][-1]
+    fusion_embed_dim_q = n_fmap_b3[4][-1]
+    fusion_embed_dim_kv = n_fmap_b1[4][-1]
     fusion_depth = 1 #1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4

@@ -2,7 +2,7 @@ import os
 
 class GlobalConfig:
     num_worker = 4# for debugging 0
-    wandb = False
+    wandb = True
     gpu_id = '0'
     model = 'mohammad_3_image_5_march_20th'
     logdir = 'log/'+model #+'_w1' for 1 weather only

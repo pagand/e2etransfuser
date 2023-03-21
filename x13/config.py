@@ -3,16 +3,19 @@ import os
 class GlobalConfig:
     num_worker = 4# for debugging 0
     gpu_id = '0'
-    wandb = True
-    low_data = False
-    # TODO: correct the forward path in case of change
-    kind = 'cvt_cnn' # ['effnet', cvt_effnet', 'cvt_cnn']
+    wandb = False
+    low_data = True
 
-    model = 'x13_'+kind #'x13'
+    # TODO: correct the forward path in case of change
+    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt']
+
+    model = 'x13_'+kind if kind is not 'effnet' else 'x13'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
     if kind == 'cvt_cnn':
+        bottleneck = [350, 695]
+    elif kind == 'min_cvt':
         bottleneck = [350, 695]
     else:
         bottleneck = [335, 679]
@@ -21,7 +24,6 @@ class GlobalConfig:
     batch_size = 20 #20
 
     if kind == 'cvt_effnet' or kind == 'effnet':
-
         # parameters for Effnet
         n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
         n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] 
@@ -29,6 +31,9 @@ class GlobalConfig:
     # parameters for CVT
         n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
         n_fmap_b3 = [[40,32], [64], [192], [96,384], [232,384,1536]] 
+    elif kind == 'min_cvt':
+        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
+        n_fmap_b3 = [[40,0], [64], [192], [96,384], [232,384,1536]] 
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     

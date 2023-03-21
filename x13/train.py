@@ -35,8 +35,8 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def BCEDice(Yp, Yt, smooth=1e-7):
-	Yp = Yp.view(-1)
-	Yt = Yt.view(-1)
+	Yp = Yp.reshape(-1)
+	Yt = Yt.reshape(-1)
 	bce = F.binary_cross_entropy(Yp, Yt, reduction='mean')
 	intersection = (Yp * Yt).sum() #irisan
 	dice_loss = 1 - ((2. * intersection + smooth) / (Yp.sum() + Yt.sum() + smooth))

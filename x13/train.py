@@ -19,9 +19,6 @@ from torch.utils.tensorboard import SummaryWriter
 import wandb
 
 
-
-
-
 class AverageMeter(object):
     def __init__(self):
         self.val = 0
@@ -71,8 +68,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 	batch_ke = 0
 	for data in data_loader:
 		cur_step = cur_epoch*total_batch + batch_ke
-
-
 		fronts = data['fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
 		seg_fronts = data['seg_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
 		depth_fronts = data['depth_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
@@ -89,7 +84,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 
 		#forward pass
-		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity)#,seg_fronts
+		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts)
 
 		#compute loss
 		loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -130,8 +125,25 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				optimizer_lw.zero_grad()
 				total_loss.backward(retain_graph=True) # retain graph because the graph is still used for calculation
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
+				# G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+				# G0 = torch.norm(G0R[0][0][0], keepdim=True)
+				# G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+				# G1 = torch.norm(G1R[0], keepdim=True)
+				# G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+				# G2 = torch.norm(G2R[0], keepdim=True)
+				# G3R = torch.autograd.grad(loss_thr, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+				# G3 = torch.norm(G3R[0], keepdim=True)
+				# G4R = torch.autograd.grad(loss_brk, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+				# G4 = torch.norm(G4R[0], keepdim=True)
+				# G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+				# G5 = torch.norm(G5R[0][0][0], keepdim=True)
+				# G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+				# G6 = torch.norm(G6R[0][0][0], keepdim=True)
+				# G_avg = (G0+G1+G2+G3+G4+G5+G6) / len(config.loss_weights)
+
+
 				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				G0 = torch.norm(G0R[0][0][0], keepdim=True)
+				G0 = torch.norm(G0R[0], keepdim=True)
 				G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
 				G1 = torch.norm(G1R[0], keepdim=True)
 				G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
@@ -141,10 +153,11 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				G4R = torch.autograd.grad(loss_brk, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
 				G4 = torch.norm(G4R[0], keepdim=True)
 				G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				G5 = torch.norm(G5R[0][0][0], keepdim=True)
+				G5 = torch.norm(G5R[0], keepdim=True)
 				G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				G6 = torch.norm(G6R[0][0][0], keepdim=True)
+				G6 = torch.norm(G6R[0], keepdim=True)
 				G_avg = (G0+G1+G2+G3+G4+G5+G6) / len(config.loss_weights)
+
 
 				#relative loss (zero division handling)
 				loss_seg_hat = loss_seg / loss_seg_0  
@@ -260,7 +273,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity) #, seg_fronts)
+			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)

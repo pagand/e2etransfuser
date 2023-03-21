@@ -25,6 +25,7 @@ data/Town*
 log/
 x13_GT/
 *.pyc
+test_codes/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

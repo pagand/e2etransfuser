@@ -2,13 +2,12 @@ import os
 
 class GlobalConfig:
     gpu_id = '0'
-    model = 'x13'
+    model = 'mohammad_3_image_5_march_20th'
     logdir = 'log/'+model#+'_w1'
     init_stop_counter = 15
 
     n_class = 23
     batch_size = 20
-    coverage_area = 64 #untuk top view SC, HXW sama dalam meter
 
     #parameter untuk MGN
     MGN = True
@@ -38,7 +37,6 @@ class GlobalConfig:
         val_data.append(os.path.join(root_dir, town+'_tiny'))
         # val_data.append(os.path.join(root_dir, town+'_x'))
     
-
     #buat prediksi expert, test
     test_data = []
     test_weather = 'Run3_ClearNoon' #ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset, Run1_ClearNoon, Run2_ClearNoon, Run3_ClearNoon
@@ -47,20 +45,25 @@ class GlobalConfig:
     for town in val_towns: #test town = val town
         test_data.append(os.path.join(expert_dir, 'Expert_w1')) #Expert Expert_w1
 
-
     ignore_sides = True # don't consider side cameras
     ignore_rear = True # don't consider rear cameras
 
     camera_width = 960
     camera_height = 480
-    camera_fov = 120
+    fov = 120
     scale = 1
-    img_width = 320
+    img_width_cut = 320
     img_resolution = (160,704)
 
-    input_resolution = [160,768] # 256
+    ## camera info
+    img_width = 352
+    img_height = 160
 
-    crop = 256 # image pre-processing   ??????????????????????
+    input_resolution = [160,768] # March 15th# 256
+ #   coverage_area = [64,64]
+    coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #March 15th
+
+    crop = 160 # image pre-processing   should be two values
 
     lr = 1e-4 # learning rate #pakai AdamW
     weight_decay = 1e-3
@@ -116,6 +119,17 @@ class GlobalConfig:
     n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] #lihat underdevelopment/efficientnet.py
     n_fmap_b4 = [[48,24], [32], [56], [112,160], [272,448,1792]]
     #jangan lupa untuk mengganti model torchvision di init model.py
+
+    ## fusion settings
+    fusion_embed_dim_q = n_fmap_b3[3][-1]
+    fusion_embed_dim_kv = n_fmap_b1[3][-1]
+    fusion_depth = 1 #1
+    fusion_num_heads = 8 #1
+    fusion_mlp_ratio = 4
+    fusion_qkv = True
+    fusion_drop_rate = 0
+    fusion_attn_drop_rate = 0
+    fusion_dpr = [0.1,0.2,0.3,0.4]
 
     def __init__(self, **kwargs):
         for k,v in kwargs.items():

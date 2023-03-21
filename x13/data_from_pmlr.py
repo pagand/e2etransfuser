@@ -6,7 +6,7 @@ from PIL import Image, ImageFile
 import numpy as np
 import torch 
 from torch.utils.data import Dataset
-
+import matplotlib.pyplot as plt
 
 class CARLA_Data(Dataset):
 
@@ -222,7 +222,7 @@ class CARLA_Data(Dataset):
         data['seg_fronts'] = torch.from_numpy(np.array(cls2one_hot(
             scale_and_crop_image_cv(cv2.imread(seq_seg_fronts[-1]), scale=self.config.scale, crop=self.config.input_resolution)))) #[ ]
         data['depth_fronts'] = torch.from_numpy(np.array(rgb_to_depth(
-            scale_and_crop_image_cv(cv2.imread(seq_depth_fronts[-1], cv2.COLOR_BGR2RGB), scale=self.config.scale, crop=self.config.input_resolution)))) #[ ]
+            scale_and_crop_image_cv(swap_RGB2BGR(cv2.imread(seq_depth_fronts[-1],cv2.COLOR_BGR2RGB)), scale=self.config.scale, crop=self.config.input_resolution)))) #[ ]
 
         ego_x = seq_x[i]
         ego_y = seq_y[i]
@@ -295,7 +295,8 @@ def cls2one_hot(ss_gt):
 def rgb_to_depth(de_gt):
     de_gt = de_gt.transpose(1, 2, 0)
     arrayd = de_gt.astype(np.float32)
-    normalized_depth = np.dot(arrayd, [65536.0, 256.0, 1.0]) # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
+    normalized_depth = np.zeros(np.dot(arrayd, [65536.0, 256.0, 1.0]).shape,dtype="float32")
+    normalized_depth += np.dot(arrayd, [65536.0, 256.0, 1.0]) # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
     depthx = normalized_depth/16777215.0  # (256.0 * 256.0 * 256.0 - 1.0) --> rangenya 0 - 1
     result = np.expand_dims(depthx, axis=0)
     return result

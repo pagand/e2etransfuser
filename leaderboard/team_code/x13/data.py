@@ -323,7 +323,7 @@ def scale_and_crop_image_cv(image, scale=1, crop=256):
     upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]
     cropped_im = image[upper_left_yx[0]:upper_left_yx[0]+crop[0], upper_left_yx[1]:upper_left_yx[1]+crop[1], :]
     cropped_image = np.transpose(cropped_im, (2,0,1))
-    return
+    return cropped_image
 
 def cls2one_hot(ss_gt):
     #inputnya adalah CHW hasil dari crop image
@@ -341,7 +341,8 @@ def rgb_to_depth(de_gt):
     # print(de_gt.shape)
     de_gt = de_gt.transpose(1, 2, 0)
     arrayd = de_gt.astype(np.float32)
-    normalized_depth = np.dot(arrayd, [65536.0, 256.0, 1.0]) # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
+    normalized_depth = np.zeros(np.dot(arrayd, [65536.0, 256.0, 1.0]).shape,dtype="float32")
+    normalized_depth += np.dot(arrayd, [65536.0, 256.0, 1.0]) # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
     depthx = normalized_depth/16777215.0  # (256.0 * 256.0 * 256.0 - 1.0) --> rangenya 0 - 1
     result = np.expand_dims(depthx, axis=0)
     # print(result)

@@ -29,7 +29,6 @@ CONTROL_OPTION = os.environ.get('CONTROL_OPTION', None)
 def get_entry_point():
 	return 'x13Agent'
 
-
 class x13Agent(autonomous_agent.AutonomousAgent):
 	def setup(self, path_to_conf_file):
 		self.track = autonomous_agent.Track.SENSORS
@@ -42,6 +41,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 
 		self.config = GlobalConfig()
 		self.net = x13(self.config, torch.device("cuda:0")).float().to(torch.device("cuda:0"))
+
 		self.net.load_state_dict(torch.load(os.path.join(path_to_conf_file, 'best_model.pth')))
 		self.net.cuda()
 		self.net.eval()
@@ -105,44 +105,44 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 					'type': 'sensor.camera.rgb',
 					'x': 1.3, 'y': 0.0, 'z':2.3,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
+					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 					'id': 'rgb_front'
 					},
 				{
 					'type': 'sensor.camera.depth',
 					'x': 1.3, 'y': 0.0, 'z':2.3,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
+					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 					'id': 'depth_front'
 					},
 				{
 			 	'type': 'sensor.camera.rgb',
 				 	'x': 1.3, 'y': 0.0, 'z':2.3,
 				 	'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
-				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
+				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 				 	'id': 'rgb_left'
 				 	},
 				{
 				 	'type': 'sensor.camera.rgb',
 				 	'x': 1.3, 'y': 0.0, 'z':2.3,
 				 	'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
-				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
+				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 				 	'id': 'rgb_right'
 				 	},
-                                {
-                                        'type': 'sensor.camera.depth',
-                                        'x': 1.3, 'y': 0.0, 'z':2.3,
-                                        'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
-                                        'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
-                                        'id': 'depth_left'
-                                        },
-                                {
-                                        'type': 'sensor.camera.depth',
-                                        'x': 1.3, 'y': 0.0, 'z':2.3,
-                                        'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
-                                        'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
-                                        'id': 'depth_right'
-                                        },
+					{
+							'type': 'sensor.camera.depth',
+							'x': 1.3, 'y': 0.0, 'z':2.3,
+							'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
+							'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
+							'id': 'depth_left'
+							},
+					{
+							'type': 'sensor.camera.depth',
+							'x': 1.3, 'y': 0.0, 'z':2.3,
+							'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
+							'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
+							'id': 'depth_right'
+							},
                                 #{
 				# 	'type': 'sensor.camera.rgb',
 				# 	'x': -1.3, 'y': 0.0, 'z':2.3,
@@ -180,7 +180,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 #		for pos in [ 'front']:
                     rgb_cam = 'rgb_' + pos
                     rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
-                    rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width, self.config.img_width, self.config.img_resolution[0], self.config.img_resolution[0])
+                    rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
                     rgb.append(rgb_pos)
 		rgb = np.concatenate(rgb, axis=1)
 #		cv2.imwrite('rgb.png', rgb)
@@ -191,7 +191,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 #		for pos in [ 'front']:
                     depth_cam = 'depth_' + pos
                     depth_pos = cv2.cvtColor(input_data[depth_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
-                    depth_pos = self.scale_crop(Image.fromarray(depth_pos), self.config.scale, self.config.img_width, self.config.img_width, self.config.img_resolution[0], self.config.img_resolution[0])
+                    depth_pos = self.scale_crop(Image.fromarray(depth_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
                     depth.append(depth_pos)
 		depth = np.concatenate(depth, axis=1)
 
@@ -265,7 +265,6 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 			
 			return control
 		"""
-
 		gt_velocity = torch.FloatTensor([tick_data['speed']]).to('cuda', dtype=torch.float32)
 		# command = torch.FloatTensor([tick_data['next_command']]).to('cuda', dtype=torch.float32)
 
@@ -276,12 +275,14 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		rgb = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb']), scale=self.config.scale, crop=self.config.input_resolution)).unsqueeze(0)
 		
 		self.input_buffer['rgb'] = rgb.to('cuda', dtype=torch.float32)
+		
 		# self.input_buffer['rgb'].popleft()
 		# self.input_buffer['rgb'].append(rgb.to('cuda', dtype=torch.float32))
 		# encoding.append(self.net.image_encoder(list(self.input_buffer['rgb'])))
 
 		depth = torch.from_numpy(np.array(rgb_to_depth(scale_and_crop_image_cv(swap_RGB2BGR(tick_data['depth']), scale=self.config.scale, crop=self.config.input_resolution))))
 		self.input_buffer['depth'] = depth.to('cuda', dtype=torch.float32)
+
 		# self.input_buffer['depth'].popleft()
 		# self.input_buffer['depth'].append(depth.to('cuda', dtype=torch.float32))
 		
@@ -320,7 +321,6 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		self.control_metadata['car_pos'] = tuple([float(tick_data['gps'][0]), float(tick_data['gps'][1])])
 		self.control_metadata['next_point'] = tuple([float(tick_data['target_point'][0].cpu().data.numpy()), float(tick_data['target_point'][1].cpu().data.numpy())])
 
-
 		control = carla.VehicleControl()
 		control.steer = float(steer) #pid_steer mlp_steer steer
 		control.throttle = float(throttle) #pid_throttle mlp_throttle throttle
@@ -351,15 +351,15 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		#proses wp
 		""""""
 		for i in range(1, self.config.pred_len+1):
-			x_point = int((frame_dim/2) + (self.control_metadata['wp_'+str(i)][0]*(frame_dim/2)/area))
-			y_point = int(frame_dim - (self.control_metadata['wp_'+str(i)][1]*frame_dim/area))
+			x_point = int((frame_dim/2) + (self.control_metadata['wp_'+str(i)][0]*(frame_dim/2)/area[1]))
+			y_point = int(frame_dim - (self.control_metadata['wp_'+str(i)][1]*frame_dim/area[0]))
 			xy_arr = np.clip(np.array([x_point, y_point]), 0, frame_dim) #constrain
 			point_xy.append(xy_arr)
 		
 		#proses juga untuk next route
 		# - + y point kebalikan dari WP, karena asumsinya agent mendekati next route point, dari negatif menuju 0
-		x_point = int((frame_dim/2) + (self.control_metadata['next_point'][0]*(frame_dim/2)/area))
-		y_point = int(frame_dim + (self.control_metadata['next_point'][1]*frame_dim/area))
+		x_point = int((frame_dim/2) + (self.control_metadata['next_point'][0]*(frame_dim/2)/area[1]))
+		y_point = int(frame_dim + (self.control_metadata['next_point'][1]*frame_dim/area[0]))
 		xy_arr = np.clip(np.array([x_point, y_point]), 0, frame_dim) #constrain
 		point_xy.append(xy_arr)
 		return point_xy

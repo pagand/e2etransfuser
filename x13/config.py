@@ -2,15 +2,16 @@ import os
 
 class GlobalConfig:
     num_worker = 4# for debugging 0
-    wandb = True
+    wandb = False
     gpu_id = '0'
-    model = 'mohammad_3_image_5'
+    model = 'mohammad_3_image_5_march_20th'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 64 #20
+    batch_size = 16 #20
     
+    low_data = False
 
     # MGN parameter
     MGN = True   ## True
@@ -76,13 +77,11 @@ class GlobalConfig:
         test_data.append(os.path.join(expert_dir, 'Expert')) #Expert OR Expert_w1 for 1 weather only scenario
     '''
 
-    
-
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
     input_resolution = [160,768] # PMLR dataset #768
     # input_resolution = [160,160] # PMLR dataset #512
-    # coverage_area = 64
+  #  coverage_area = [64,64]
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
 
     # camera intrinsic
@@ -126,10 +125,6 @@ class GlobalConfig:
     clip_delta = 0.25 # maximum change in speed input to logitudinal controller
     min_act_thrt = 0.2 #minimum throttle
 
-
-
-
-
     #ORDER DALAM RGB!!!!!!!!
     SEG_CLASSES = {
         'colors'        :[[0, 0, 0], [70, 70, 70], [100, 40, 40], [55, 90, 80], [220, 20, 60],  
@@ -149,8 +144,8 @@ class GlobalConfig:
 
 
     ## fusion settings
-    fusion_embed_dim_q = n_fmap_b3[3][-1]
-    fusion_embed_dim_kv = n_fmap_b1[3][-1]
+    fusion_embed_dim_q = n_fmap_b3[4][-1]
+    fusion_embed_dim_kv = n_fmap_b1[4][-1]
     fusion_depth = 1 #1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4

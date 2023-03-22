@@ -37,16 +37,36 @@ chmod +x setup_carla.sh
 ./setup_carla.sh
 conda env create -f environment.yml
 conda activate tfuse
+```
+1-  if you have 10 <CUDA <=10.2
+```Shell
+pip install torch-scatter -f https://data.pyg.org/whl/torch-1.11.0+cu102.html
+pip install mmcv-full==1.5.3 -f https://download.openmmlab.com/mmcv/dist/cu102/torch1.11.0/index.html 
+```
 
-# if you have CUDA >10.2
+2-  if you have CUDA >10.2
+```Shell
 pip uninstall torch torchvision torchaudio #(run twice)
 pip install torch==1.12.1 torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
 pip install torch-scatter -f https://data.pyg.org/whl/torch-1.12.1%2Bcu113.html
 pip install mmcv-full -f  https://download.openmmlab.com/mmcv/dist/cu113/torch1.12.0/index.html
-# if you have CUDA <=10.2
-pip install torch-scatter -f https://data.pyg.org/whl/torch-1.11.0+cu102.html
-pip install mmcv-full==1.5.3 -f https://download.openmmlab.com/mmcv/dist/cu102/torch1.11.0/index.html
 ```
+
+3- Alternatively
+```Shell
+pip uninstall torch torchvision torchaudio #(run twice)
+```
+Install the correct version of pytorch given your CUDA from [previous versions](https://pytorch.org/get-started/previous-versions/) or [start locally](https://pytorch.org/get-started/locally/). Replcae the {version} with the correct compatible version.
+```Shell
+conda install pytorch=={version1} torchvision=={version2} cudatoolkit={version3} -c pytorch
+```
+Install torch-scatter by finding your closest CUDA/pytroch version in [this address](https://data.pyg.org/whl/). Then replace the {address} with that.
+```Shell
+pip install torch-scatter -f {adderss}
+```
+
+Install mmcv-full acording to your pytorch and CUDA choose the correct prebuilt package available in [this address](https://mmcv.readthedocs.io/en/latest/get_started/installation.html)
+
 
 ## Dataset
 Our dataset is generated via a privileged agent which we call the autopilot (`/transfuser_pmlr/team_code_autopilot/autopilot.py`) in 8 CARLA towns using the routes and scenario files provided in [this folder](./transfuser_pmlr/leaderboard/data/training/). See the [transfuser_pmlr/tools/dataset](./transfuser_pmlr/tools/dataset) folder for detailed documentation regarding the training routes and scenarios. 

@@ -88,8 +88,10 @@ class x13(nn.Module): #
         # self.pre = AutoImageProcessor.from_pretrained("microsoft/cvt-13")
         if config.kind == "min_cvt":
             self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
-            self.conv_down = ConvBNRelu(channelx=[config.n_fmap_b3[3][-1], config.n_fmap_b3[4][-1]],stridex=2, kernelx = 1, paddingx =0)
-            self.conv_down.apply(kaiming_init)
+            self.conv1_down = ConvBNRelu(channelx=[3, config.n_fmap_b3[0][-1]],stridex=2)
+            self.conv2_down = ConvBNRelu(channelx=[config.n_fmap_b3[3][-1], config.n_fmap_b3[4][-1]],stridex=2, kernelx = 1, paddingx =0)
+            self.conv1_down.apply(kaiming_init)
+            self.conv2_down.apply(kaiming_init)
 
         elif config.kind == "cvt_cnn":
             #CVT and conv
@@ -109,7 +111,10 @@ class x13(nn.Module): #
         self.rgb_normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         #SS
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True) 
-        self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[4][-1]+config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
+        if config.kind == "min_cvt":
+            self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
+        else:
+            self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[4][-1]+config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
         self.conv2_ss_f = ConvBlock(channel=[config.n_fmap_b3[3][-1]+config.n_fmap_b3[2][-1], config.n_fmap_b3[2][-1]])
         self.conv1_ss_f = ConvBlock(channel=[config.n_fmap_b3[2][-1]+config.n_fmap_b3[1][-1], config.n_fmap_b3[1][-1]])
         self.conv0_ss_f = ConvBlock(channel=[config.n_fmap_b3[1][-1]+config.n_fmap_b3[0][-1], config.n_fmap_b3[0][0]])
@@ -169,24 +174,15 @@ class x13(nn.Module): #
 
     def forward(self, rgb_f, depth_f, next_route, velo_in):#, gt_ss):
         #------------------------------------------------------------------------------------------------
-        # Minimal CVT and conv (approach3)
-        in_rgb = self.rgb_normalizer(rgb_f)
+        # CVT and conv (approach2) and Min CVT
+        in_rgb = self.rgb_normalizer(rgb_f) #[i]
         out = self.cvt(in_rgb, output_hidden_states=True)
+        RGB_features1 = self.conv1_down(in_rgb)
         RGB_features2 = out[2][0]
         RGB_features3 = out[2][1]
         RGB_features5 = out[2][2]
-        RGB_features8 = self.conv_down(RGB_features5)
-        # TODO: change the ss_f_0
-
-
-        # # CVT and conv (approach2)
-        # in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        # out = self.cvt(in_rgb, output_hidden_states=True)
-        # RGB_features1 = self.conv1_down(in_rgb)
-        # RGB_features2 = out[2][0]
-        # RGB_features3 = out[2][1]
-        # RGB_features5 = out[2][2]
-        # RGB_features8 = self.conv2_down(RGB_features5)
+        RGB_features8 = self.conv2_down(RGB_features5)
+        # TODO: for Min CVT change upsampling
 
         # # CVT and effnet (approach1)
         # # inputs = self.pre(rgb_f, return_tensors="pt").to(self.gpu_device)
@@ -201,32 +197,33 @@ class x13(nn.Module): #
         # RGB_features9 = self.RGB_encoder.features[8](out[2][2])
         # RGB_features8 = self.avgpool(RGB_features9)
         # ss_f_3 = self.conv3_ss_f(cat([RGB_features9, RGB_features5], dim=1))
-        # # TODO: Comment next ss_f_3
+        # # TODO: Comment next conv0_ss_f
 
 
-        # # only CNN
-        # in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        # RGB_features0 = self.RGB_encoder.features[0](in_rgb)
-        # RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
-        # RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
-        # RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
-        # RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
-        # RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
-        # RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
-        # RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
-        # RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
+        # only CNN
+        in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        RGB_features0 = self.RGB_encoder.features[0](in_rgb)
+        RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
+        RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
+        RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
+        RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
+        RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
+        RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
+        RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
+        RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
 
         # bagian upsampling
-        ss_f_3 = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
-        ss_f_2 = self.conv2_ss_f(cat([self.up(ss_f_3), RGB_features3], dim=1))
-        ss_f_1 = self.conv1_ss_f(cat([self.up(ss_f_2), RGB_features2], dim=1))
-        # ss_f_0 = self.conv0_ss_f(cat([self.up(ss_f_1), RGB_features1], dim=1))
-        # Only for Min CVT
-        ss_f_0 = self.conv0_ss_f(cat([self.up(ss_f_1)], dim=1))
-        ss_f = self.final_ss_f(self.up(ss_f_0))
+        # ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
+        # only for Min CVT
+        ss_f = self.conv3_ss_f(RGB_features5)
+
+        ss_f = self.conv2_ss_f(cat([self.up(ss_f), RGB_features3], dim=1))
+        ss_f = self.conv1_ss_f(cat([self.up(ss_f), RGB_features2], dim=1))
+        ss_f = self.conv0_ss_f(cat([self.up(ss_f), RGB_features1], dim=1))
+        ss_f = self.final_ss_f(self.up(ss_f))
         #------------------------------------------------------------------------------------------------
         #buat semantic cloud
-        top_view_sc = self.gen_top_view_sc(depth_f, ss_f ) #  gt_ss ,rgb_f
+        top_view_sc = self.gen_top_view_sc(depth_f, ss_f ) # ss_f gt_ss ,rgb_f
         #bagian downsampling
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
         SC_features1 = self.SC_encoder.features[1](SC_features0)

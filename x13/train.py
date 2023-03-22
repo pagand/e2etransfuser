@@ -131,7 +131,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				optimizer_lw.zero_grad()
 				total_loss.backward(retain_graph=True) # retain graph because the graph is still used for calculation
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
-				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[2]], retain_graph=True, create_graph=True)
 				G0 = torch.norm(G0R[0], keepdim=True)
 				G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True ) #, allow_unused=True
 				G1 = torch.norm(G1R[0], keepdim=True)
@@ -261,7 +261,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity)#, seg_fronts[-1])
+			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity)#, seg_fronts)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)

@@ -1,4 +1,5 @@
 import os
+import random
 
 class GlobalConfig:
     num_worker = 4# for debugging 0
@@ -14,11 +15,11 @@ class GlobalConfig:
     init_stop_counter = 15
 
     if kind == 'cvt_cnn':
-        bottleneck = [350, 695]
+        bottleneck = [350, 695, 350]
     elif kind == 'min_cvt':
-        bottleneck = [350, 695]
+        bottleneck = [342, 687, 338]
     else:
-        bottleneck = [335, 679]
+        bottleneck = [335, 679, 335]
 
     n_class = 23
     batch_size = 20 #20
@@ -33,7 +34,7 @@ class GlobalConfig:
         n_fmap_b3 = [[40,32], [64], [192], [96,384], [232,384,1536]] 
     elif kind == 'min_cvt':
         n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
-        n_fmap_b3 = [[40,0], [64], [192], [96,384], [232,384,1536]] 
+        n_fmap_b3 = [[32,24], [64], [192], [96,384], [232,384,1536]] 
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
@@ -75,8 +76,12 @@ class GlobalConfig:
                 else:
                     break
     if low_data:
-        train_data = train_data[:int(0.05*len(train_data))]
-        val_data = val_data[:int(0.1*len(val_data))]
+        random.seed(0)
+        train_data = random.sample(train_data,int(0.05*len(train_data)))
+        val_data = random.sample(val_data,int(0.1*len(val_data)))
+
+        # train_data = train_data[:int(0.05*len(train_data))]
+        # val_data = val_data[:int(0.1*len(val_data))]
     
     ## For CVPR dataset
     '''

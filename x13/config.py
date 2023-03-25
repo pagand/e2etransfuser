@@ -4,20 +4,23 @@ import random
 class GlobalConfig:
     num_worker = 4# for debugging 0
     gpu_id = '0'
-    wandb = False
+    wandb = True
     low_data = True
 
     # TODO: correct the forward path in case of change
-    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt']
+    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt','min_cvt_v2']
 
-    model = 'x13_'+kind if kind is not 'effnet' else 'x13'
+    model = 'x13_small_data_gt_'
+    model += kind+'_v2' if kind is not 'effnet' else ''
     logdir = 'log/'+model #+'_w1' for 1 weather only
+    model = 'x13_small_data' # for wandb
     init_stop_counter = 15
 
     if kind == 'cvt_cnn':
         bottleneck = [350, 695, 350]
     elif kind == 'min_cvt':
         bottleneck = [342, 687, 338]
+        bottleneck = [332, 683, 332]
     else:
         bottleneck = [335, 679, 335]
 
@@ -34,7 +37,10 @@ class GlobalConfig:
         n_fmap_b3 = [[40,32], [64], [192], [96,384], [232,384,1536]] 
     elif kind == 'min_cvt':
         n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
-        n_fmap_b3 = [[32,24], [64], [192], [96,384], [232,384,1536]] 
+        n_fmap_b3 = [[32,24], [64], [192], [96,384], [232,384,1536]]
+        # version 2
+        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,112]] 
+        n_fmap_b3 = [[32,24], [64], [192], [96,384], [232,384,384]]  
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
@@ -77,8 +83,8 @@ class GlobalConfig:
                     break
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.05*len(train_data)))
-        val_data = random.sample(val_data,int(0.1*len(val_data)))
+        train_data = random.sample(train_data,int(0.2*len(train_data)))
+        val_data = random.sample(val_data,int(0.2*len(val_data)))
 
         # train_data = train_data[:int(0.05*len(train_data))]
         # val_data = val_data[:int(0.1*len(val_data))]

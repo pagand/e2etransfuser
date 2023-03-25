@@ -90,7 +90,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 
 		#forward pass
 
-		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity)#,seg_fronts
+		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts)#,seg_fronts
 
 		#compute loss
 		loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -261,7 +261,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity)#, seg_fronts)
+			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts)#, seg_fronts)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)

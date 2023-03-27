@@ -1,10 +1,10 @@
 import os
 
 class GlobalConfig:
-    num_worker = 4# for debugging 0
-    wandb = True
+    num_worker = 2# for debugging 0
+    wandb = False
     gpu_id = '0'
-    model = 'mohammad_3_image_5_march_20th'
+    model = 'mohammad_3_image_8_march_no_swap_24th_solar'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
@@ -25,7 +25,7 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # for the PMLR dataset
+    root_dir = '/localscratch/mmahdavi/transfuser/data'  # for the PMLR dataset
 
     train_data, val_data = [], []
 

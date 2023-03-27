@@ -5,31 +5,41 @@ class GlobalConfig:
 	# Data
     seq_len = 1 # input timesteps
     pred_len = 4 # future waypoints predicted
+    low_data = False
 
-    root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data clear_noon_full_data
-    train_towns = ['Town01']#, 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
-    val_towns = ['Town02']
+    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  #14_weathers_full_data clear_noon_full_data
+    train_towns = ['Town01' 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
+    val_towns = ['Town05']
     # train_towns = ['Town00']
     # val_towns = ['Town00']
     train_data, val_data = [], []
-    for town in train_towns:
-        if not (town == 'Town07' or town == 'Town10'):
-            train_data.append(os.path.join(root_dir, town+'_long'))
-        train_data.append(os.path.join(root_dir, town+'_short'))
-        train_data.append(os.path.join(root_dir, town+'_tiny'))
-        # train_data.append(os.path.join(root_dir, town+'_x'))
-    for town in val_towns:
-        # val_data.append(os.path.join(root_dir, town+'_long'))
-        val_data.append(os.path.join(root_dir, town+'_short'))
-        val_data.append(os.path.join(root_dir, town+'_tiny'))
-        # val_data.append(os.path.join(root_dir, town+'_x'))
+    root_files = os.listdir(root_dir)
+    
+    for dir in root_files:
+        scn_files = os.listdir(os.path.join(root_dir,dir))
+        for routes in scn_files:
+            for t in routes.split("_"):
+                if t[0] != 'T':
+                    continue
+                if t in train_towns:
+                    train_data.append(os.path.join(root_dir,dir, routes))
+                    break
+                elif t in val_towns:
+                    val_data.append(os.path.join(root_dir,dir, routes))
+                    break
+                else:
+                    break
+    if low_data:
+        train_data = train_data[:int(0.1*len(train_data))]
+        val_data = val_data[:int(0.1*len(val_data))]
+
 
     # visualizing transformer attention maps
-    viz_root = '/mnt/qb/geiger/kchitta31/data_06_21'
-    viz_towns = ['Town05_tiny']
-    viz_data = []
-    for town in viz_towns:
-        viz_data.append(os.path.join(viz_root, town))
+    # viz_root = '/mnt/qb/geiger/kchitta31/data_06_21'
+    # viz_towns = ['Town05_tiny']
+    # viz_data = []
+    # for town in viz_towns:
+    #     viz_data.append(os.path.join(viz_root, town))
 
     ignore_sides = True # don't consider side cameras
     ignore_rear = True # don't consider rear cameras

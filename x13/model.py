@@ -12,6 +12,7 @@ from timm.models.layers import DropPath, trunc_normal_
 import time
 import os
 import cv2
+from torchvision.transforms.functional import rotate
 
 #from transformers import CvtModel #, AutoImageProcessor
 
@@ -103,7 +104,6 @@ class Mlp(nn.Module):
         x = self.fc2(x)
         x = self.drop(x)
         return x
-
 
 class Attention_2D(nn.Module):
     def __init__(self,
@@ -440,14 +440,80 @@ class x13(nn.Module): #
         ss_f_1 = self.conv1_ss_f(cat([self.up(ss_f_2), RGB_features2], dim=1))
         ss_f_0 = self.conv0_ss_f(cat([self.up(ss_f_1), RGB_features1], dim=1))
         ss_f = self.final_ss_f(self.up(ss_f_0))
+        bs,ly,wi,hi = ss_f.shape
 
         #------------------------------------------------------------------------------------------------
-        #buat semantic cloud
+        #create a semantic cloud
         if False: #self.show:
-            top_view_sc_show = self.gen_top_view_sc_show(depth_f, ss_f) #  ss_f  ,rgb_f
+            big_top_view = torch.zeros((bs,ly,2*wi,2*hi)).cuda()
+            for i in range(3):
+                if i==0:
+                    width = 224 # 224
+                    depth_f_p = depth_f[:,:,:,:width]
+                    ss_f_p = gt_ss[:,:,:,:width]
+                    rot = 130 #60 # 43.3
+                    height_coverage = 120
+                    width_coverage = 300
+                elif i==1:
+                    width = 224 # 224
+                    depth_f_p = depth_f[:,:,:,-width:]
+                    ss_f_p = gt_ss[:,:,:,-width:]
+                    rot = -65 #-60 # -43.3
+                    height_coverage = 120
+                    width_coverage = 300
+                elif i==2:
+                    width = 320 # 320
+                    depth_f_p = depth_f[:,:,:,224:768-224]
+                    ss_f_p = gt_ss[:,:,:,224:768-224]
+                    rot = 0
+                    height_coverage = 160
+                    width_coverage = 320
+
+                big_top_view = self.gen_top_view_sc_show(big_top_view, depth_f_p, ss_f_p, rot, width, hi,height_coverage,width_coverage) #  ss_f  ,rgb_f
+
+            big_top_view = big_top_view[:,:,0:wi,768-160:768+160]
+            self.save2(gt_ss,big_top_view)
         
-        top_view_sc = self.gen_top_view_sc(depth_f, ss_f) #  ss_f  ,rgb_f
-        #bagian downsampling
+        if True:
+            big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
+            for i in range(3):
+                if i==0:
+                    width = 224 # 224
+                    rot = 130 #60 # 43.3
+                    height_coverage = 120
+                    width_coverage = 300
+                    if ss_f.shape[0]==1:
+                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,:width], ss_f[:,:,:width], rot, width, hi, height_coverage,width_coverage)
+                    else:
+                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
+                elif i==1:
+                    width = 224 # 224
+                    rot = -65 #-60 # -43.3
+                    height_coverage = 120
+                    width_coverage = 300
+                    if ss_f.shape[0]==1:
+                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,-width:], ss_f[:,:,-width:], rot, width, hi, height_coverage,width_coverage)
+                    else:
+                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
+                elif i==2:
+                    width = 320 # 320
+                    rot = 0
+                    height_coverage = 160
+                    width_coverage = 320
+                    if ss_f.shape[0]==1:
+                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
+                    else:
+                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
+
+    #        top_view_sc = big_top_view[:,:,wi:2*wi,768-160:768+160]
+            top_view_sc = big_top_view[:,:,:wi,:]
+
+#            del big_top_view
+#            torch.cuda.empty_cache()
+#            self.save2(gt_ss,top_view_sc)
+    #    top_view_sc = self.gen_top_view_sc_main(depth_f, ss_f)
+
+        #downsampling section
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
         SC_features1 = self.SC_encoder.features[1](SC_features0)
         SC_features2 = self.SC_encoder.features[2](SC_features1)
@@ -522,7 +588,6 @@ class x13(nn.Module): #
         matrix[:,:,2] = red
         return matrix
 
-
     def get_wp_nxr_frame(self):
         frame_dim = self.config.crop - 1 #array mulai dari 0
         area = self.config.coverage_area
@@ -570,7 +635,7 @@ class x13(nn.Module): #
         cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/train_1%06d.png' % frame, imgx) #cetak predicted segmentation
         cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/train_2%06d.png' % frame, imgx2) #cetak predicted segmentation
 
-    def gen_top_view_sc_show(self, depth, semseg):
+    def gen_top_view_sc_show_main(self, depth, semseg):
         #proses awal
         depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
         _, label_img = torch.max(semseg, dim=1) #pada axis C
@@ -589,16 +654,114 @@ class x13(nn.Module): #
         coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
         top_view_sc = torch.zeros_like(semseg) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
         top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
+        bs,lay, w, hi = top_view_sc.shape
+#        top_view_sc[:,:,:,0:224] = torch.zeros((bs,lay,w,224))
         self.save2(semseg,top_view_sc)
 
         return top_view_sc
 
-        
-    def gen_top_view_sc(self, depth, semseg): #gt_seg, rgb_f
+    def gen_top_view_sc_show(self, big_top_view, depth, semseg, rot, im_width, im_height,height_coverage,width_coverage):
+        #proses awal
+        self.x_matrix2 = torch.vstack([torch.arange(-im_width//2, im_width//2)]*self.h) / self.fx
+        self.x_matrix2 = self.x_matrix2.to('cuda')
+
+        depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
+        _, label_img = torch.max(semseg, dim=1) #pada axis C
+        cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*im_width)] for n in range(depth.shape[0])])).to(self.gpu_device)
+        coverage_area = [64/256*height_coverage,64/256*width_coverage] 
+
+        #normalize to frames
+        cloud_data_x = torch.round(((depth_in * self.x_matrix2) + (coverage_area[1]/2)) * (im_width-1) / coverage_area[1]).ravel()
+        cloud_data_z = torch.round((depth_in * -(self.h-1) / coverage_area[0]) + (self.h-1)).ravel()
+
+        #look for index interests
+        bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= im_width-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
+        idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
+
+        #stack n x z cls and plot
+        coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
+        coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
+        top_view_sc = torch.zeros_like(semseg) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
+        top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
+
+        bs, ly, wi, hi = top_view_sc.shape
+        big_top_view[:,:,0:1*wi,im_height-hi//2:im_height+hi//2] = torch.where(top_view_sc != 0, top_view_sc, big_top_view[:,:,0:1*wi,im_height-hi//2:im_height+hi//2])
+        if rot != 0:
+            big_top_view = rotate(big_top_view,rot)
+
+        self.save2(semseg,big_top_view)
+
+        return big_top_view
+    
+    def gen_top_view_sc(self, big_top_view, depth, semseg, rot, im_width, im_height, height_coverage, width_coverage):
+        #proses awal
+        self.x_matrix2 = torch.vstack([torch.arange(-im_width//2, im_width//2)]*self.h) / self.fx
+        self.x_matrix2 = self.x_matrix2.to('cuda')
+
+        depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
+        _, label_img = torch.max(semseg, dim=1) #pada axis C
+        cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*im_width)] for n in range(depth.shape[0])])).to(self.gpu_device)
+        coverage_area = [64/256*height_coverage,64/256*width_coverage] 
+
+        #normalize to frames
+        cloud_data_x = torch.round(((depth_in * self.x_matrix2) + (coverage_area[1]/2)) * (im_width-1) / coverage_area[1]).ravel()
+        cloud_data_z = torch.round((depth_in * -(self.h-1) / coverage_area[0]) + (self.h-1)).ravel()
+
+        #look for index interests
+        bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= im_width-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
+        idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
+
+        #stack n x z cls and plot
+        coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
+        coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
+        top_view_sc = torch.zeros_like(semseg) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
+        top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
+
+        bs, ly, wi, hi = top_view_sc.shape
+        big_top_view[:,:,0:1*wi,(im_height-hi)//2:(im_height+hi)//2] = torch.where(top_view_sc != 0, top_view_sc, big_top_view[:,:,0:1*wi,(im_height-hi)//2:(im_height+hi)//2])
+        if rot != 0:
+            big_top_view = rotate(big_top_view,rot)
+
+        return big_top_view
+
+    # def gen_top_view_sc_show(self, depth, semseg):
+    #     #proses awal
+    #     depth = depth[:,:,:,224:768-224]
+    #     top_view_sc = torch.zeros_like(semseg)
+    #     semseg2 = semseg[:,:,:,224:768-224]
+    #     self.x_matrix2 = torch.vstack([torch.arange(-160, 160)]*self.h) / self.fx
+    #     self.x_matrix2 = self.x_matrix2.to('cuda')
+
+    #     depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
+    #     _, label_img = torch.max(semseg2, dim=1) #pada axis C
+    #     cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*320)] for n in range(depth.shape[0])])).to(self.gpu_device)
+    #     coverage_area = [64/256*160,64/256*320] 
+
+    #     #normalize ke frame 
+    #     cloud_data_x = torch.round(((depth_in * self.x_matrix2) + (coverage_area[1]/2)) * (320-1) / coverage_area[1]).ravel()
+    #     cloud_data_z = torch.round((depth_in * -(self.h-1) / coverage_area[0]) + (self.h-1)).ravel()
+
+    #     #cari index interest
+    #     bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= 320-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
+    #     idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
+
+    #     #stack n x z cls dan plot
+    #     coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
+    #     coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
+    #     top_view_sc_p = torch.zeros_like(semseg2) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
+    #     top_view_sc_p[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
+    #     top_view_sc[:,:,:,224:768-224] = top_view_sc_p
+
+    #     self.save2(semseg,top_view_sc)
+
+    #     return top_view_sc
+  
+    def gen_top_view_sc_main(self, depth, semseg): #gt_seg, rgb_f
         #proses awal
         depth_in = depth * 1000.0 #normalize to 1 - 1000
         _, label_img = torch.max(semseg, dim=1) #pada axis C
         cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*self.w)] for n in range(depth.shape[0])])).to(self.gpu_device)
+
         #normalize to frame
         cloud_data_x = torch.round(((depth_in * self.x_matrix) + (self.cover_area[1]/2)) * (self.w-1) / self.cover_area[1]).ravel()
         cloud_data_z = torch.round((depth_in * -(self.h-1) / self.cover_area[0]) + (self.h-1)).ravel()
@@ -613,9 +776,70 @@ class x13(nn.Module): #
 
         top_view_sc = torch.zeros_like(semseg) #this is faster because automatically the size, data type, and device are the same as those of the input (semseg)
         top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #axis format from NCHW
-        
+
         return top_view_sc
 
+    # def gen_top_view_sc(self, depth, semseg): #gt_seg, rgb_f
+    #     #proses awal
+    #     depth = depth[:,:,:,224:768-224]
+    #     top_view_sc = torch.zeros_like(semseg)
+    #     semseg2 = semseg[:,:,:,224:768-224] 
+    #     self.x_matrix2 = torch.vstack([torch.arange(-160, 160)]*self.h) / self.fx
+    #     self.x_matrix2 = self.x_matrix2.to('cuda')
+
+    #     depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
+    #     _, label_img = torch.max(semseg2, dim=1) #pada axis C
+    #     cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*320)] for n in range(depth.shape[0])])).to(self.gpu_device)
+    #     coverage_area = [64/256*160,64/256*320] 
+
+    #     #normalize ke frame 
+    #     cloud_data_x = torch.round(((depth_in * self.x_matrix2) + (coverage_area[1]/2)) * (320-1) / coverage_area[1]).ravel()
+    #     cloud_data_z = torch.round((depth_in * -(self.h-1) / coverage_area[0]) + (self.h-1)).ravel()
+
+    #     #cari index interest
+    #     bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= 320-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
+    #     idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
+
+    #     #stack n x z cls dan plot
+    #     coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
+    #     coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
+    #     top_view_sc_p = torch.zeros_like(semseg2) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
+    #     top_view_sc_p[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
+
+    #     top_view_sc[:,:,:,224:768-224] = top_view_sc_p
+
+    #     return top_view_sc
+              
+    # def gen_top_view_sc(self, depth, semseg): #gt_seg, rgb_f
+    #     #proses awal
+    #     depth = depth[:,:,:,224:768-224]
+    #     top_view_sc = torch.zeros_like(semseg)
+    #     semseg2 = semseg[:,:,:,224:768-224] 
+    #     self.x_matrix2 = torch.vstack([torch.arange(-160, 160)]*self.h) / self.fx
+    #     self.x_matrix2 = self.x_matrix2.to('cuda')
+
+    #     depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
+    #     _, label_img = torch.max(semseg2, dim=1) #pada axis C
+    #     cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*320)] for n in range(depth.shape[0])])).to(self.gpu_device)
+    #     coverage_area = [64/256*160,64/256*320] 
+
+    #     #normalize ke frame 
+    #     cloud_data_x = torch.round(((depth_in * self.x_matrix2) + (coverage_area[1]/2)) * (320-1) / coverage_area[1]).ravel()
+    #     cloud_data_z = torch.round((depth_in * -(self.h-1) / coverage_area[0]) + (self.h-1)).ravel()
+
+    #     #cari index interest
+    #     bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= 320-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
+    #     idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
+
+    #     #stack n x z cls dan plot
+    #     coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
+    #     coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
+    #     top_view_sc_p = torch.zeros_like(semseg2) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
+    #     top_view_sc_p[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
+
+    #     top_view_sc[:,:,:,224:768-224] = top_view_sc_p
+
+    #     return top_view_sc
 
     def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl, stops, ctrl_opt="one_of"):
         assert(waypoints.size(0)==1)

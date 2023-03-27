@@ -1,10 +1,11 @@
 import os
+import random
 
 class GlobalConfig:
     num_worker = 4# for debugging 0
     wandb = True
     gpu_id = '0'
-    model = 'mohammad_3_image_5_march_20th'
+    model = 'mohammad_3_image_solve_smc_march_24th'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
 
@@ -50,8 +51,9 @@ class GlobalConfig:
                 else:
                     break
     if low_data:
-        train_data = train_data[:int(0.1*len(train_data))]
-        val_data = val_data[:int(0.1*len(val_data))]
+        random.seed(0)
+        train_data = random.sample(train_data,int(0.05*len(train_data)))
+        val_data = random.sample(val_data,int(0.1*len(val_data)))
     
     ## For CVPR dataset
     '''

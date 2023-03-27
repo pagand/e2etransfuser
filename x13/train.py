@@ -63,7 +63,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 	model.train()
 	prog_bar = tqdm(total=len(data_loader))
 
-	#training....
+	#training...
 	total_batch = len(data_loader)
 	batch_ke = 0
 	for data in data_loader:

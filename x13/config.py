@@ -5,7 +5,7 @@ class GlobalConfig:
     num_worker = 4# for debugging 0
     wandb = True
     gpu_id = '0'
-    model = 'march28_effnet_GTredl'
+    model = 'march29_effnet_GTredl_debug'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'large_map_test' # for wandb
@@ -13,7 +13,7 @@ class GlobalConfig:
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 6 #20
+    batch_size = 16 #20
     
     low_data = True
 

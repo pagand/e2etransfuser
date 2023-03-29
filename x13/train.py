@@ -57,8 +57,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			'str_loss': AverageMeter(),
 			'thr_loss': AverageMeter(),
 			'brk_loss': AverageMeter(),
-			'redl_loss': AverageMeter(),
-			'stops_loss': AverageMeter()}
+			'redl_loss': AverageMeter()}
 	
 	model.train()
 	prog_bar = tqdm(total=len(data_loader))
@@ -81,10 +80,9 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_throttle = data['throttle'].to(device, dtype=torch.float)
 		gt_brake = data['brake'].to(device, dtype=torch.float)
 		gt_red_light = data['red_light'].to(device, dtype=torch.float)
-		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 
 		#forward pass
-		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts)
+		pred_seg, pred_wp, steer, throttle, brake, red_light, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts,gt_red_light)
 
 		#compute loss
 		loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -93,8 +91,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		loss_thr = F.l1_loss(throttle, gt_throttle)
 		loss_brk = F.l1_loss(brake, gt_brake)
 		loss_redl = F.l1_loss(red_light, gt_red_light)
-		loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
-		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl + params_lw[6]*loss_stops
+		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl
 
 		optimizer.zero_grad()
 
@@ -106,19 +103,17 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			loss_thr_0 = torch.clone(loss_thr)
 			loss_brk_0 = torch.clone(loss_brk)
 			loss_redl_0 = torch.clone(loss_redl)
-			loss_stops_0 = torch.clone(loss_stops)
 
 		elif 0 < batch_ke < total_batch-1:
 			total_loss.backward() #no need to retain the graph
 
-			if not loss_seg_0*loss_wp_0*loss_str_0*loss_thr_0*loss_brk_0*loss_redl_0*loss_stops_0:
+			if not loss_seg_0*loss_wp_0*loss_str_0*loss_thr_0*loss_brk_0*loss_redl_0:
 				loss_seg_0 = torch.clone(loss_seg) if not loss_seg_0 else loss_seg_0
 				loss_wp_0 = torch.clone(loss_wp) if not loss_wp_0 else loss_wp_0
 				loss_str_0 = torch.clone(loss_str) if not loss_str_0 else loss_str_0
 				loss_thr_0 = torch.clone(loss_thr) if not loss_thr_0 else loss_thr_0
 				loss_brk_0 = torch.clone(loss_brk) if not loss_brk_0 else loss_brk_0
 				loss_redl_0 = torch.clone(loss_redl) if not loss_redl_0 else loss_redl_0
-				loss_stops_0 = torch.clone(loss_stops) if not loss_stops_0 else loss_stops_0
 
 		elif batch_ke == total_batch-1: #berarti batch terakhir, compute update loss weights
 			if config.MGN:
@@ -137,9 +132,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				# G4 = torch.norm(G4R[0], keepdim=True)
 				# G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
 				# G5 = torch.norm(G5R[0][0][0], keepdim=True)
-				# G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				# G6 = torch.norm(G6R[0][0][0], keepdim=True)
-				# G_avg = (G0+G1+G2+G3+G4+G5+G6) / len(config.loss_weights)
+				# G_avg = (G0+G1+G2+G3+G4+G5) / len(config.loss_weights)
 
 
 				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
@@ -154,9 +147,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				G4 = torch.norm(G4R[0], keepdim=True)
 				G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
 				G5 = torch.norm(G5R[0], keepdim=True)
-				G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				G6 = torch.norm(G6R[0], keepdim=True)
-				G_avg = (G0+G1+G2+G3+G4+G5+G6) / len(config.loss_weights)
+
+				G_avg = (G0+G1+G2+G3+G4+G5) / len(config.loss_weights)
 
 
 				#relative loss (zero division handling)
@@ -166,8 +158,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				loss_thr_hat = loss_thr / loss_thr_0  
 				loss_brk_hat = loss_brk / loss_brk_0  
 				loss_redl_hat = loss_redl / loss_redl_0 
-				loss_stops_hat = loss_stops / loss_stops_0 
-				loss_hat_avg = (loss_seg_hat + loss_wp_hat + loss_str_hat + loss_thr_hat + loss_brk_hat + loss_redl_hat + loss_stops_hat) / len(config.loss_weights)
+				loss_hat_avg = (loss_seg_hat + loss_wp_hat + loss_str_hat + loss_thr_hat + loss_brk_hat + loss_redl_hat) / len(config.loss_weights)
 
 				#r_i_(t) relative inverse training rate
 				inv_rate_ss = loss_seg_hat / loss_hat_avg
@@ -176,7 +167,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				inv_rate_thr = loss_thr_hat / loss_hat_avg
 				inv_rate_brk = loss_brk_hat / loss_hat_avg
 				inv_rate_redl = loss_redl_hat / loss_hat_avg
-				inv_rate_stops = loss_stops_hat / loss_hat_avg
 
 				#hitung constant target grad
 				C0 = (G_avg*inv_rate_ss).detach()**config.lw_alpha
@@ -185,8 +175,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				C3 = (G_avg*inv_rate_thr).detach()**config.lw_alpha
 				C4 = (G_avg*inv_rate_brk).detach()**config.lw_alpha
 				C5 = (G_avg*inv_rate_redl).detach()**config.lw_alpha
-				C6 = (G_avg*inv_rate_stops).detach()**config.lw_alpha
-				Lgrad = F.l1_loss(G0, C0) + F.l1_loss(G1, C1) + F.l1_loss(G2, C2) + F.l1_loss(G3, C3) + F.l1_loss(G4, C4) + F.l1_loss(G5, C5) + F.l1_loss(G6, C6)
+				Lgrad = F.l1_loss(G0, C0) + F.l1_loss(G1, C1) + F.l1_loss(G2, C2) + F.l1_loss(G3, C3) + F.l1_loss(G4, C4) + F.l1_loss(G5, C5)
 
 				#hitung gradient loss sesuai Eq. 2 di GradNorm paper
 				Lgrad.backward()
@@ -207,7 +196,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		score['thr_loss'].update(loss_thr.item())
 		score['brk_loss'].update(loss_brk.item())
 		score['redl_loss'].update(loss_redl.item())
-		score['stops_loss'].update(loss_stops.item())
 
 
 		postfix = OrderedDict([('t_total_l', score['total_loss'].avg),
@@ -216,8 +204,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 							('t_str_l', score['str_loss'].avg),
 							('t_thr_l', score['thr_loss'].avg),
 							('t_brk_l', score['brk_loss'].avg),
-							('t_redl_l', score['redl_loss'].avg),
-							('t_stops_l', score['stops_loss'].avg)])
+							('t_redl_l', score['redl_loss'].avg)])
 		
 		writer.add_scalar('t_total_l', total_loss.item(), cur_step)
 		writer.add_scalar('t_ss_l', loss_seg.item(), cur_step)
@@ -226,7 +213,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		writer.add_scalar('t_thr_l', loss_thr.item(), cur_step)
 		writer.add_scalar('t_brk_l', loss_brk.item(), cur_step)
 		writer.add_scalar('t_redl_l', loss_redl.item(), cur_step)
-		writer.add_scalar('t_stops_l', loss_stops.item(), cur_step)
 
 		prog_bar.set_postfix(postfix)
 		prog_bar.update(1)
@@ -245,8 +231,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			'str_loss': AverageMeter(),
 			'thr_loss': AverageMeter(),
 			'brk_loss': AverageMeter(),
-			'redl_loss': AverageMeter(),
-			'stops_loss': AverageMeter()}
+			'redl_loss': AverageMeter()}
 			
 	model.eval()
 
@@ -270,10 +255,9 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			gt_throttle = data['throttle'].to(device, dtype=torch.float)
 			gt_brake = data['brake'].to(device, dtype=torch.float)
 			gt_red_light = data['red_light'].to(device, dtype=torch.float)
-			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts)
+			pred_seg, pred_wp, steer, throttle, brake, red_light, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts, gt_red_light)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -282,8 +266,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			loss_thr = F.l1_loss(throttle, gt_throttle)
 			loss_brk = F.l1_loss(brake, gt_brake)
 			loss_redl = F.l1_loss(red_light, gt_red_light)
-			loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
-			total_loss = loss_seg + loss_wp + loss_str + loss_thr + loss_brk + loss_redl + loss_stops
+			total_loss = loss_seg + loss_wp + loss_str + loss_thr + loss_brk + loss_redl
 
 			score['total_loss'].update(total_loss.item())
 			score['ss_loss'].update(loss_seg.item()) 
@@ -292,7 +275,6 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			score['thr_loss'].update(loss_thr.item())
 			score['brk_loss'].update(loss_brk.item())
 			score['redl_loss'].update(loss_redl.item())
-			score['stops_loss'].update(loss_stops.item())
 
 			postfix = OrderedDict([('v_total_l', score['total_loss'].avg),
 								('v_ss_l', score['ss_loss'].avg),
@@ -300,8 +282,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 								('v_str_l', score['str_loss'].avg),
 								('v_thr_l', score['thr_loss'].avg),
 								('v_brk_l', score['brk_loss'].avg),
-								('v_redl_l', score['redl_loss'].avg),
-								('v_stops_l', score['stops_loss'].avg)])
+								('v_redl_l', score['redl_loss'].avg)])
 			
 			writer.add_scalar('v_total_l', total_loss.item(), cur_step)
 			writer.add_scalar('v_ss_l', loss_seg.item(), cur_step)
@@ -310,7 +291,6 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			writer.add_scalar('v_thr_l', loss_thr.item(), cur_step)
 			writer.add_scalar('v_brk_l', loss_brk.item(), cur_step)
 			writer.add_scalar('v_redl_l', loss_redl.item(), cur_step)
-			writer.add_scalar('v_stops_l', loss_stops.item(), cur_step)
 
 			prog_bar.set_postfix(postfix)
 			prog_bar.update(1)
@@ -325,7 +305,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		wandb.init(project=config.model,  entity="ai-mars",name=config.wandb_name)
+	    wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
@@ -370,7 +350,7 @@ def main():
 		stop_count = int(log_trainval['stop_counter'][-1:])
 		model.load_state_dict(torch.load(os.path.join(config.logdir, 'recent_model.pth')))
 		optima.load_state_dict(torch.load(os.path.join(config.logdir, 'recent_optim.pth')))
-		latest_lw = [float(log_trainval['lw_ss'][-1:]), float(log_trainval['lw_wp'][-1:]), float(log_trainval['lw_str'][-1:]), float(log_trainval['lw_thr'][-1:]), float(log_trainval['lw_brk'][-1:]), float(log_trainval['lw_redl'][-1:]), float(log_trainval['lw_stops'][-1:])]
+		latest_lw = [float(log_trainval['lw_ss'][-1:]), float(log_trainval['lw_wp'][-1:]), float(log_trainval['lw_str'][-1:]), float(log_trainval['lw_thr'][-1:]), float(log_trainval['lw_brk'][-1:]), float(log_trainval['lw_redl'][-1:])]
 		params_lw = [torch.cuda.FloatTensor([latest_lw[i]]).clone().detach().requires_grad_(True) for i in range(len(latest_lw))]
 		optima_lw = optim.SGD(params_lw, lr=float(log_trainval['lrate'][-1:]))
 		config.logdir += "/retrain"
@@ -388,7 +368,6 @@ def main():
 			('val_thr_loss', []),
 			('val_brk_loss', []),
 			('val_redl_loss', []),
-			('val_stops_loss', []),
 			('train_loss', []), 
 			('train_ss_loss', []),
 			('train_wp_loss', []),
@@ -396,7 +375,6 @@ def main():
 			('train_thr_loss', []),
 			('train_brk_loss', []),
 			('train_redl_loss', []),
-			('train_stops_loss', []),
 			('lrate', []),
 			('stop_counter', []), 
 			('lgrad_loss', []),
@@ -406,7 +384,6 @@ def main():
 			('lw_thr', []),
 			('lw_brk', []),
 			('lw_redl', []),
-			('lw_stops', []),
 			('elapsed_time', []),
 		])
 	writer = SummaryWriter(log_dir=config.logdir)
@@ -433,9 +410,9 @@ def main():
 		train_log, new_params_lw, lgrad = train(dataloader_train, model, config, writer, epoch, device, optima, curr_lw, optima_lw)
 		val_log = validate(dataloader_val, model, config, writer, epoch, device)
 		if config.MGN:
-			optima_lw.param_groups[0]['params'] = renormalize_params_lw(new_params_lw, config) #harus diclone supaya benar2 terpisah
+			optima_lw.param_groups[0]['params'] = renormalize_params_lw(new_params_lw, config) #have to be cloned so that they are completely separated
 			print("total loss gradient: "+str(lgrad))
-		scheduler.step(val_log['v_total_l']) #parameter acuan reduce LR adalah val_total_metric
+		scheduler.step(val_log['v_total_l']) #the reference parameter to reduce LR is val_total_metric
 		optima_lw.param_groups[0]['lr'] = optima.param_groups[0]['lr'] #update lr disamakan
 		elapsed_time = time.time() - start_time #hitung elapsedtime
 
@@ -455,8 +432,6 @@ def main():
 		log['val_brk_loss'].append(val_log['v_brk_l'])
 		log['train_redl_loss'].append(train_log['t_redl_l'])
 		log['val_redl_loss'].append(val_log['v_redl_l'])
-		log['train_stops_loss'].append(train_log['t_stops_l'])
-		log['val_stops_loss'].append(val_log['v_stops_l'])
 		log['lgrad_loss'].append(lgrad)
 		log['lw_ss'].append(lws[0])
 		log['lw_wp'].append(lws[1])
@@ -464,10 +439,9 @@ def main():
 		log['lw_thr'].append(lws[3])
 		log['lw_brk'].append(lws[4])
 		log['lw_redl'].append(lws[5])
-		log['lw_stops'].append(lws[6])
 		log['elapsed_time'].append(elapsed_time)
-		print('| t_total_l: %.4f | t_ss_l: %.4f | t_wp_l: %.4f | t_str_l: %.4f | t_thr_l: %.4f | t_brk_l: %.4f | t_redl_l: %.4f | t_stops_l: %.4f |' % (train_log['t_total_l'], train_log['t_ss_l'], train_log['t_wp_l'], train_log['t_str_l'], train_log['t_thr_l'], train_log['t_brk_l'], train_log['t_redl_l'], train_log['t_stops_l']))
-		print('| v_total_l: %.4f | v_ss_l: %.4f | v_wp_l: %.4f | v_str_l: %.4f | v_thr_l: %.4f | v_brk_l: %.4f | v_redl_l: %.4f | v_stops_l: %.4f |' % (val_log['v_total_l'], val_log['v_ss_l'], val_log['v_wp_l'], val_log['v_str_l'], val_log['v_thr_l'], val_log['v_brk_l'], val_log['v_redl_l'], val_log['v_stops_l']))
+		print('| t_total_l: %.4f | t_ss_l: %.4f | t_wp_l: %.4f | t_str_l: %.4f | t_thr_l: %.4f | t_brk_l: %.4f | t_redl_l: %.4f |' % (train_log['t_total_l'], train_log['t_ss_l'], train_log['t_wp_l'], train_log['t_str_l'], train_log['t_thr_l'], train_log['t_brk_l'], train_log['t_redl_l']))
+		print('| v_total_l: %.4f | v_ss_l: %.4f | v_wp_l: %.4f | v_str_l: %.4f | v_thr_l: %.4f | v_brk_l: %.4f | v_redl_l: %.4f |' % (val_log['v_total_l'], val_log['v_ss_l'], val_log['v_wp_l'], val_log['v_str_l'], val_log['v_thr_l'], val_log['v_brk_l'], val_log['v_redl_l']))
 		print('elapsed time: %.4f sec' % (elapsed_time))
 		
 		#save recent model

@@ -3,16 +3,16 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = True
+    wandb = False
     gpu_id = '0'
-    model = 'march27_effnet_8l_solar'
-    wandb_name = model
-    logdir = 'log/'+model 
+    model = 'march29_effnet_redl_solar_debug'
+    wandb_name = model 
+    logdir = 'log/'+model
     model = 'large_map_test' # for wandb
 
     init_stop_counter = 15
     n_class = 23
-    batch_size = 16 #20
+    batch_size = 6 #20
     
     low_data = True
 

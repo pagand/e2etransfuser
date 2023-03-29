@@ -306,13 +306,13 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		"""
 		a = 0
 		# forward pass
-		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pstops, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
+		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pred_sc = #fix stop sign            self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
 		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
 		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)
 
 		# pid_steer, pid_throttle, pid_brake, pid_metadata = self.net.pid_control(pred_wp, gt_velocity) #PID ONLY
-		steer, throttle, brake, metadata = self.net.mlp_pid_control(pred_wp, gt_velocity, mlp_steer, mlp_throttle, mlp_brake, predl, pstops, CONTROL_OPTION) #MIX MLP AND PID
+		steer, throttle, brake, metadata = self.net.mlp_pid_control(pred_wp, gt_velocity, mlp_steer, mlp_throttle, mlp_brake, predl, CONTROL_OPTION) #MIX MLP AND PID
 		# if brake < 0.05: brake = 0.0
 		# if throttle > brake: brake = 0.0
 

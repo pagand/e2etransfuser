@@ -258,7 +258,7 @@ class Fusion_Block(nn.Module):
 
         self.with_cls_token = False
 
-        self.norm1 = norm_layer(dim_in+dim_out)
+        self.norm1 = norm_layer(dim_in)
         self.attn = Attention_2D(
             dim_in, dim_out, num_heads, qkv_bias, attn_drop, drop,
         )
@@ -312,10 +312,10 @@ class x13(nn.Module): #
         self.tls_predictor = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], 1),
+            nn.Linear(config.n_fmap_b3[4][-1], 2),
             nn.ReLU()
         )
-        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
+        self.tls_biasing = nn.Linear(2, config.n_fmap_b3[4][0])
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area
@@ -337,19 +337,19 @@ class x13(nn.Module): #
         self.SC_encoder.apply(kaiming_init)
         #------------------------------------------------------------------------------------------------
         #feature fusion
-        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
+#        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
+#            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+#            nn.AdaptiveAvgPool2d(1),
+#            nn.Flatten(),
+#            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
+#        )
+
+        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
             nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
-
-#        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-#            nn.Conv2d(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
-#            nn.AdaptiveAvgPool2d(1),
-#            nn.Flatten(),
-#            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
-#        )
 
         embed_dim_q = self.config.fusion_embed_dim_q
         embed_dim_kv = self.config.fusion_embed_dim_kv
@@ -403,7 +403,7 @@ class x13(nn.Module): #
         self.blocks = nn.ModuleList(blocks)
         self.input_buffer = {'depth': deque()}
 
-    def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
+    def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss): # 
         #------------------------------------------------------------------------------------------------
         # # CVT and CNN
         # # inputs = self.pre(rgb_f, return_tensors="pt").to(self.gpu_device)
@@ -524,27 +524,28 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8)
-
         red_light = redl_stops[:,0]
-        tls_bias = self.tls_biasing(redl_stops) # redl_stops)
+        stop_sign = redl_stops[:,1]
+        tls_bias = self.tls_biasing(redl_stops)
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
 
-        input = cat([RGB_features8, SC_features8], dim=1)
-        hx = self.necks_net(input) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
+#        input = cat([RGB_features8, SC_features8], dim=1)
+#        hx = self.necks_net(input) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
+        bs,_,H,W =RGB_features8.shape
+        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
+        SC_features8 = rearrange(SC_features8 , 'b c h w-> b (h w) c')
+        features_cat = cat([RGB_features8,SC_features8],dim=2)
+        
+        for i, blk in enumerate(self.blocks):
+            x = blk(features_cat, H, W)
 
-#        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
-#        SC_features8 = rearrange(SC_features8 , 'b c h w-> b (h w) c')
-
-#        for i, blk in enumerate(self.blocks):
-#            x = blk(features_cat, H, W)
-
-#        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
-#        hx = self.attn_neck(x)
+        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
+        hx = self.attn_neck(x)
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
-        # predict delta wp
+        #predict delta wp
         out_wp = list()
         for _ in range(self.config.pred_len):
             ins = torch.cat([xy, next_route, torch.reshape(velo_in, (velo_in.shape[0], 1))], dim=1)
@@ -560,9 +561,8 @@ class x13(nn.Module): #
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
 
-        return ss_f, pred_wp, steer, throttle, brake, red_light , top_view_sc   
-    
-    
+        return ss_f, pred_wp, steer, throttle, brake, red_light, stop_sign, top_view_sc
+
     def scale_and_crop_image_cv(self, image, scale=1, crop=256):
         upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]
         cropped_im = image[upper_left_yx[0]:upper_left_yx[0]+crop[0], upper_left_yx[1]:upper_left_yx[1]+crop[1], :]
@@ -837,10 +837,11 @@ class x13(nn.Module): #
 
     #     return top_view_sc
 
-    def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl, ctrl_opt="one_of"):
+    def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl, stops, ctrl_opt="one_of"):
         assert(waypoints.size(0)==1)
         waypoints = waypoints[0].data.cpu().numpy()
         red_light = True if redl.data.cpu().numpy() > 0.5 else False
+        stop_sign = True if stops.data.cpu().numpy() > 0.5 else False
 
         waypoints[:,1] *= -1
         speed = velocity[0].data.cpu().numpy()
@@ -921,6 +922,7 @@ class x13(nn.Module): #
             'throttle': float(throttle),
             'brake': float(brake),
             'red_light': float(red_light),
+            'stop_sign': float(stop_sign),
             'cw_pid': [float(self.config.cw_pid[0]), float(self.config.cw_pid[1]), float(self.config.cw_pid[2])],
             'pid_steer': float(pid_steer),
             'pid_throttle': float(pid_throttle),

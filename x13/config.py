@@ -12,7 +12,7 @@ class GlobalConfig:
 
     init_stop_counter = 15
     n_class = 23
-    batch_size = 6 #20
+    batch_size = 16 #20
     
     low_data = True
 

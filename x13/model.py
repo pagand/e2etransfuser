@@ -525,8 +525,8 @@ class x13(nn.Module): #
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8)
 
-        red_light = redl_stops[:,0]
-        tls_bias = self.tls_biasing(redl_stops) # redl_stops)
+        red_light = gt_redl
+        tls_bias = self.tls_biasing(gt_redl.unsqueeze(1)) # redl_stops)
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
@@ -560,9 +560,8 @@ class x13(nn.Module): #
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
 
-        return ss_f, pred_wp, steer, throttle, brake, red_light , top_view_sc   
-    
-    
+        return ss_f, pred_wp, steer, throttle, brake, redl_stops[:,0],top_view_sc # red_light , top_view_sc   
+
     def scale_and_crop_image_cv(self, image, scale=1, crop=256):
         upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]
         cropped_im = image[upper_left_yx[0]:upper_left_yx[0]+crop[0], upper_left_yx[1]:upper_left_yx[1]+crop[1], :]

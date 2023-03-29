@@ -4,28 +4,33 @@ import random
 class GlobalConfig:
     num_worker = 4# for debugging 0
     gpu_id = '0'
-    wandb = True
+    wandb = False
     low_data = True
+    wandb_name = 'x13_small_data'
 
     # TODO: correct the forward path in case of change
-    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt','min_cvt_v2']
+    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
 
-    model = 'x13_small_data_gt_'
-    model += kind+'_v2' if kind is not 'effnet' else ''
+    model = 'freezed_'
+    model += kind+'_v1' if kind is not 'effnet' else ''
     logdir = 'log/'+model #+'_w1' for 1 weather only
-    model = 'x13_small_data' # for wandb
+
     init_stop_counter = 15
 
     if kind == 'cvt_cnn':
         bottleneck = [350, 695, 350]
     elif kind == 'min_cvt':
-        bottleneck = [342, 687, 338]
-        bottleneck = [332, 683, 332]
+        # version 1
+        bottleneck = [342, 687, 332]
+        # version 2
+        # bottleneck = [332, 683, 332]
     else:
         bottleneck = [335, 679, 335]
 
     n_class = 23
     batch_size = 20 #20
+    total_epoch = 20
+    cvt_freezed_epoch = 10
 
     if kind == 'cvt_effnet' or kind == 'effnet':
         # parameters for Effnet
@@ -36,11 +41,12 @@ class GlobalConfig:
         n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
         n_fmap_b3 = [[40,32], [64], [192], [96,384], [232,384,1536]] 
     elif kind == 'min_cvt':
+        # version 1
         n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
         n_fmap_b3 = [[32,24], [64], [192], [96,384], [232,384,1536]]
-        # version 2
-        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,112]] 
-        n_fmap_b3 = [[32,24], [64], [192], [96,384], [232,384,384]]  
+        # # version 2
+        # n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,112]] 
+        # n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]]  
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     

@@ -90,7 +90,31 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 
 		#forward pass
 
-		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts)#,seg_fronts
+		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity)#,seg_fronts
+
+		
+		
+		if cur_epoch< config.cvt_freezed_epoch and list(model.named_parameters())[0][1].requires_grad: # freeze CVT
+			if list(model.named_parameters())[0][0][:3] != 'cvt' :
+				raise Exception("The order number of the CVT is changed in the arch, please consider changing accordingly")
+			for name0, param0 in model.named_parameters():
+				if 'cvt' ==name0[:3]:
+					param0.requires_grad = False
+			# # a slightly faster approach, but index might mismatch if the arch. is changed.
+			# for index ,(_, param0) in enumerate(model.named_parameters()):
+			# 	if index<= 337: # all  the CVT layers
+			# 		param0.requires_grad = False
+		elif cur_epoch == config.cvt_freezed_epoch and not list(model.named_parameters())[0][1].requires_grad: # start fine tuning CVT
+			for name0, param0 in model.named_parameters():
+				if 'cvt' ==name0[:3]:
+					param0.requires_grad = True
+			# # a slightly faster approach, but index might mismatch if the arch. is changed.
+			# for index ,(_, param0) in enumerate(model.named_parameters()):
+			# 	if index<= 337: # all  the CVT layers
+			# 		param0.requires_grad = True
+
+
+
 
 		#compute loss
 		loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -131,20 +155,49 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				optimizer_lw.zero_grad()
 				total_loss.backward(retain_graph=True) # retain graph because the graph is still used for calculation
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
-				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[2]], retain_graph=True, create_graph=True)
-				G0 = torch.norm(G0R[0], keepdim=True)
-				G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True ) #, allow_unused=True
-				G1 = torch.norm(G1R[0], keepdim=True)
-				G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				G2 = torch.norm(G2R[0], keepdim=True)
-				G3R = torch.autograd.grad(loss_thr, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				G3 = torch.norm(G3R[0], keepdim=True)
-				G4R = torch.autograd.grad(loss_brk, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				G4 = torch.norm(G4R[0], keepdim=True)
-				G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				G5 = torch.norm(G5R[0], keepdim=True)
-				G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				G6 = torch.norm(G6R[0], keepdim=True)
+				# in case of model freeze, we should change the bottleneck values
+				d = len(list(model.parameters()))-len(params)
+				if d: # we have freezed parameters in the front
+					G0, G1, G2, G3, G4, G5, G6 = None, None,None,None,None,None,None
+					if config.bottleneck[2]-d>=0:
+						G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[2]-d], retain_graph=True, create_graph=True)
+						G0 = torch.norm(G0R[0], keepdim=True)
+					if config.bottleneck[1]-d>=0:
+						G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]-d], retain_graph=True, create_graph=True ) #, allow_unused=True
+						G1 = torch.norm(G1R[0], keepdim=True)
+						G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]-d], retain_graph=True, create_graph=True)
+						G2 = torch.norm(G2R[0], keepdim=True)
+						G3R = torch.autograd.grad(loss_thr, params[config.bottleneck[1]-d], retain_graph=True, create_graph=True)
+						G3 = torch.norm(G3R[0], keepdim=True)
+						G4R = torch.autograd.grad(loss_brk, params[config.bottleneck[1]-d], retain_graph=True, create_graph=True)
+						G4 = torch.norm(G4R[0], keepdim=True)
+					if config.bottleneck[0]-d>=0:
+						G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]-d], retain_graph=True, create_graph=True)
+						G5 = torch.norm(G5R[0], keepdim=True)
+						# G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+						# G6 = torch.norm(G6R[0], keepdim=True)
+					
+					if not G0:
+						G0 = torch.zeros_like(G5)
+					if not G6:
+						G6 = torch.zeros_like(G5) # we don't have stop sign
+				
+				else:
+					G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[2]], retain_graph=True, create_graph=True)
+					G0 = torch.norm(G0R[0], keepdim=True)
+					G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True ) #, allow_unused=True
+					G1 = torch.norm(G1R[0], keepdim=True)
+					G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+					G2 = torch.norm(G2R[0], keepdim=True)
+					G3R = torch.autograd.grad(loss_thr, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+					G3 = torch.norm(G3R[0], keepdim=True)
+					G4R = torch.autograd.grad(loss_brk, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+					G4 = torch.norm(G4R[0], keepdim=True)
+					G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+					G5 = torch.norm(G5R[0], keepdim=True)
+					# G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+					# G6 = torch.norm(G6R[0], keepdim=True)
+					G6 = torch.zeros_like(G5) # we don't have stop sign
 				G_avg = (G0+G1+G2+G3+G4+G5+G6) / len(config.loss_weights)
 
 				#relative loss (zero division handling)
@@ -261,7 +314,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts)#, seg_fronts)
+			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _ = model(fronts, depth_fronts, target_point, gt_velocity)#, seg_fronts)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -313,7 +366,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		wandb.init(project=config.model,  entity="marslab")
+		wandb.init(project=config.wandb_name ,  entity="marslab", name = config.model)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
@@ -403,7 +456,7 @@ def main():
 	# 	wandb.watch(model, log="all")
 
 	epoch = curr_ep
-	while True:
+	while epoch<=config.total_epoch:
 		print("Epoch: {:05d}------------------------------------------------".format(epoch))
 		if config.MGN:
 			curr_lw = optima_lw.param_groups[0]['params']

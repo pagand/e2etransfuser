@@ -90,11 +90,11 @@ class x13(nn.Module): #
             self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
             self.conv1_down = ConvBNRelu(channelx=[3, config.n_fmap_b3[0][-1]],stridex=2)
             # # version2 does not require conv2_down
-            # self.conv2_down = ConvBNRelu(channelx=[config.n_fmap_b3[3][-1], config.n_fmap_b3[4][-1]],stridex=2, kernelx = 1, paddingx =0)
-            # self.conv2_down.apply(kaiming_init)
+            self.conv2_down = ConvBNRelu(channelx=[config.n_fmap_b3[3][-1], config.n_fmap_b3[4][-1]],stridex=2, kernelx = 1, paddingx =0)
             self.conv1_down.apply(kaiming_init)
+            self.conv2_down.apply(kaiming_init)
             
-
+            
         elif config.kind == "cvt_cnn":
             #CVT and conv
             self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
@@ -123,13 +123,21 @@ class x13(nn.Module): #
         self.final_ss_f = ConvBlock(channel=[config.n_fmap_b3[0][0], config.n_class], final=True)
         #------------------------------------------------------------------------------------------------
         #red light and stop sign predictor
+        # option 1 (for min_cvt version 1/2 and Effnet)
         self.tls_predictor = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], 2),
-            nn.ReLU()
+            nn.Linear(config.n_fmap_b3[4][-1], 1), #2 we don't have stop sign
+            nn.Sigmoid()
         )
-        self.tls_biasing = nn.Linear(2, config.n_fmap_b3[4][0])
+        # # option 2 (only for min_cvt version 2)
+        # self.tls_predictor = nn.Sequential( 
+        #     nn.AdaptiveAvgPool2d(2),
+        #     nn.Flatten(),
+        #     nn.Linear(config.n_fmap_b3[3][1], 1),#2 we don't have stop sign
+        #     nn.Sigmoid() #ReLU
+        # )
+        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])  #2 we don't have stop sign
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area
@@ -174,7 +182,7 @@ class x13(nn.Module): #
             nn.ReLU()
         )
 
-    def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss):#, gt_ss):
+    def forward(self, rgb_f, depth_f, next_route, velo_in ):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
         # CVT and conv (approach2) and Min CVT
         in_rgb = self.rgb_normalizer(rgb_f) #[i]
@@ -184,9 +192,11 @@ class x13(nn.Module): #
         RGB_features3 = out[2][1]
         RGB_features5 = out[2][2]
         # # version2 does not require conv2_down
-        # RGB_features8 = self.conv2_down(RGB_features5)
-        RGB_features8 = RGB_features5
+        RGB_features8 = self.conv2_down(RGB_features5) # version 1
+        # RGB_features8 = RGB_features5 # version 2
         # TODO: for Min CVT change upsampling
+        # TODO: for min_CVT version 2 change hx to use SC_features5
+        # TODO: fer version 2, comment conv2_down in init
 
         # # CVT and effnet (approach1)
         # # inputs = self.pre(rgb_f, return_tensors="pt").to(self.gpu_device)
@@ -205,7 +215,7 @@ class x13(nn.Module): #
         # # TODO: change self.necks_net for version 2 and the SC_features after 5
 
 
-        # only CNN
+        # only Effnet
         #in_rgb = self.rgb_normalizer(rgb_f) #[i]
         #RGB_features0 = self.RGB_encoder.features[0](in_rgb)
         #RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
@@ -218,7 +228,7 @@ class x13(nn.Module): #
         #RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
 
         # bagian upsampling
-        #ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
+        # ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
         # # only for Min CVT (both versions)
         ss_f = self.conv3_ss_f(RGB_features5)
 
@@ -228,7 +238,7 @@ class x13(nn.Module): #
         ss_f = self.final_ss_f(self.up(ss_f))
         #------------------------------------------------------------------------------------------------
         #buat semantic cloud
-        top_view_sc = self.gen_top_view_sc(depth_f, gt_ss ) # ss_f gt_ss ,rgb_f
+        top_view_sc = self.gen_top_view_sc(depth_f, ss_f ) # ss_f gt_ss ,rgb_f
         #bagian downsampling
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
         SC_features1 = self.SC_encoder.features[1](SC_features0)
@@ -236,21 +246,23 @@ class x13(nn.Module): #
         SC_features3 = self.SC_encoder.features[3](SC_features2)
         SC_features4 = self.SC_encoder.features[4](SC_features3)
         SC_features5 = self.SC_encoder.features[5](SC_features4)
-        # SC_features6 = self.SC_encoder.features[6](SC_features5)
-        # SC_features7 = self.SC_encoder.features[7](SC_features6)
-        # SC_features8 = self.SC_encoder.features[8](SC_features7)
+        # for min-cvt version 2 should be commented
+        SC_features6 = self.SC_encoder.features[6](SC_features5)
+        SC_features7 = self.SC_encoder.features[7](SC_features6)
+        SC_features8 = self.SC_encoder.features[8](SC_features7)
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
-        redl_stops = self.tls_predictor(RGB_features8)
+        redl_stops = self.tls_predictor(RGB_features8) 
         red_light = redl_stops[:,0]
-        stop_sign = redl_stops[:,1]
-        tls_bias = self.tls_biasing(redl_stops)
+        # stop_sign = redl_stops[:,1]  # we don't have stop sign
+        stop_sign = torch.zeros_like(red_light)
+        tls_bias = self.tls_biasing(redl_stops)   #   gt_redl.unsqueeze(-1)
         #------------------------------------------------------------------------------------------------
         #waypoint prediction: get hidden state dari gabungan kedua bottleneck
 
-        # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
-        # for min_CVT version 2
-        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
+        hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
+        # # for min_CVT version 2
+        # hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         #predict delta wp

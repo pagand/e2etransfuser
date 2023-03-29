@@ -56,17 +56,23 @@ pip install mmcv-full -f  https://download.openmmlab.com/mmcv/dist/cu113/torch1.
 ```Shell
 pip uninstall torch torchvision torchaudio #(run twice)
 ```
-Install the correct version of pytorch given your CUDA from [previous versions](https://pytorch.org/get-started/previous-versions/) or [start locally](https://pytorch.org/get-started/locally/). Replcae the {version} with the correct compatible version.
+3-1- Install the correct version of pytorch given your CUDA from [previous versions](https://pytorch.org/get-started/previous-versions/) or [start locally](https://pytorch.org/get-started/locally/). Replcae the {version} with the correct compatible version.
 ```Shell
 conda install pytorch=={version1} torchvision=={version2} cudatoolkit={version3} -c pytorch
 ```
-Install torch-scatter by finding your closest CUDA/pytroch version in [this address](https://data.pyg.org/whl/). Then replace the {address} with that.
+3-2- Install torch-scatter by finding your closest CUDA/pytroch version in [this address](https://data.pyg.org/whl/). Then replace the {address} with that.
 ```Shell
 pip install torch-scatter -f {adderss}
 ```
 
-Install mmcv-full acording to your pytorch and CUDA choose the correct prebuilt package available in [this address](https://mmcv.readthedocs.io/en/latest/get_started/installation.html)
+3-3- Install mmcv-full acording to your pytorch and CUDA choose the correct prebuilt package available in [this address](https://mmcv.readthedocs.io/en/latest/get_started/installation.html)
 
+
+4- Install Huggingface transformers or follow [the link](https://huggingface.co/docs/transformers/installation)
+
+```Shell
+pip install transformers
+```
 
 ## Dataset
 Our dataset is generated via a privileged agent which we call the autopilot (`/transfuser_pmlr/team_code_autopilot/autopilot.py`) in 8 CARLA towns using the routes and scenario files provided in [this folder](./transfuser_pmlr/leaderboard/data/training/). See the [transfuser_pmlr/tools/dataset](./transfuser_pmlr/tools/dataset) folder for detailed documentation regarding the training routes and scenarios. 

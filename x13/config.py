@@ -5,14 +5,17 @@ class GlobalConfig:
     num_worker = 4# for debugging 0
     wandb = True
     gpu_id = '0'
-    model = 'mohammad_3_image_solve_smc_march_24th'
-    logdir = 'log/'+model #+'_w1' for 1 weather only
+    model = 'march28_effnet_GTredl'
+    wandb_name = model 
+    logdir = 'log/'+model
+    model = 'large_map_test' # for wandb
+
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 16 #20
+    batch_size = 6 #20
     
-    low_data = False
+    low_data = True
 
     # MGN parameter
     MGN = True   ## True

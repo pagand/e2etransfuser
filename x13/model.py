@@ -316,6 +316,15 @@ class x13(nn.Module): #
             nn.ReLU()
         )
         self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
+
+        self.tls_biasing_bypass = nn.Sequential( 
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
+        #    nn.ReLU()
+        )
+        #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
+
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area
@@ -517,7 +526,9 @@ class x13(nn.Module): #
         redl_stops = self.tls_predictor(RGB_features8)
 
         red_light = redl_stops[:,0] #gt_redl
-        tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1)
+       # tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
+        tls_bias = self.tls_biasing_bypass(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
+        
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
@@ -551,7 +562,7 @@ class x13(nn.Module): #
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
 
-        return ss_f, pred_wp, steer, throttle, brake, red_light , top_view_sc # redl_stops[:,0]
+        return ss_f, pred_wp, steer, throttle, brake, red_light,top_view_sc # redl_stops[:,0] , top_view_sc   
 
     def scale_and_crop_image_cv(self, image, scale=1, crop=256):
         upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]

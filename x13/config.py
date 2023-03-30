@@ -3,16 +3,16 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = True
+    wandb = False
     gpu_id = '0'
-    model = 'march30_effnet_redl_bypass_withrelu_solar'
+    model = 'march30_effnet_fusion_5_solar'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
 
     init_stop_counter = 15
     n_class = 23
-    batch_size = 12 #20
+    batch_size = 16 #20
     
     low_data = True
     low_data_rate = 0.2
@@ -149,15 +149,15 @@ class GlobalConfig:
 
 
     ## fusion settings
-    fusion_embed_dim_q = n_fmap_b3[4][-1]
-    fusion_embed_dim_kv = n_fmap_b1[4][-1]
+    fusion_embed_dim_q = n_fmap_b3[3][-1]
+    fusion_embed_dim_kv = n_fmap_b1[3][-1]
     fusion_depth = 1 #1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4
     fusion_qkv = True
     fusion_drop_rate = 0
     fusion_attn_drop_rate = 0
-    fusion_dpr = [0.1,0.2,0.3,0.4]
+    fusion_dpr = [0,0,0,0] # [0.1,0.2,0.3,0.4]
 
     def __init__(self, **kwargs):
         for k,v in kwargs.items():

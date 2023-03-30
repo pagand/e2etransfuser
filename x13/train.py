@@ -19,6 +19,31 @@ from torch.utils.tensorboard import SummaryWriter
 import wandb
 
 
+class RandomSampler(object):
+    def __init__(self, data_source, num_samples=None):
+        self.data_source = data_source
+        self._num_samples = num_samples
+
+        if not isinstance(self.num_samples, int) or self.num_samples <= 0:
+            raise ValueError(
+                "num_samples should be a positive integer "
+                "value, but got num_samples={}".format(self.num_samples)
+            )
+
+    @property
+    def num_samples(self):
+        # dataset size might change at runtime
+        if self._num_samples is None:
+            return len(self.data_source)
+        return self._num_samples
+
+    def __iter__(self):
+        n = len(self.data_source)
+        return iter(torch.randperm(n, dtype=torch.int64)[: self.num_samples].tolist())
+
+    def __len__(self):
+        return self.num_samples
+
 class AverageMeter(object):
     def __init__(self):
         self.val = 0
@@ -64,6 +89,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 
 	#training...
 	total_batch = len(data_loader)
+	print("data amount is:")
+	print(total_batch)
 	batch_ke = 0
 	for data in data_loader:
 		cur_step = cur_epoch*total_batch + batch_ke
@@ -92,7 +119,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		loss_brk = F.l1_loss(brake, gt_brake)
 		loss_redl = F.l1_loss(red_light, gt_red_light)
 		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl
-
 		optimizer.zero_grad()
 
 		if batch_ke == 0: #first batch, calculate the initial loss
@@ -329,7 +355,10 @@ def main():
 		drop_last = True 
 	else: 
 		drop_last = False
-	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
+		
+	total_data_amount = int(170726*config.low_data_rate)
+	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=170726, size=(total_data_amount,)),total_data_amount))
+         
 	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 	
 	if not os.path.exists(config.logdir+"/trainval_log.csv"):

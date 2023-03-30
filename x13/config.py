@@ -3,9 +3,9 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = False
+    wandb = True
     gpu_id = '0'
-    model = 'march29_effnet_redl_solar_debug'
+    model = 'march29_effnet_GTredl_solar'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'large_map_test' # for wandb
@@ -15,6 +15,7 @@ class GlobalConfig:
     batch_size = 16 #20
     
     low_data = True
+    low_data_rate=0.2
 
     # MGN parameter
     MGN = True   ## True
@@ -54,8 +55,7 @@ class GlobalConfig:
                     break
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.05*len(train_data)))
-        val_data = random.sample(val_data,int(0.1*len(val_data)))
+        val_data = random.sample(val_data,int(0.25*len(val_data)))
     
     ## For CVPR dataset
     '''

@@ -18,7 +18,31 @@ from torch.utils.tensorboard import SummaryWriter
 
 import wandb
 
+class RandomSampler(object):
+    def __init__(self, data_source, num_samples=None):
+        self.data_source = data_source
+        self._num_samples = num_samples
 
+        if not isinstance(self.num_samples, int) or self.num_samples <= 0:
+            raise ValueError(
+                "num_samples should be a positive integer "
+                "value, but got num_samples={}".format(self.num_samples)
+            )
+
+    @property
+    def num_samples(self):
+        # dataset size might change at runtime
+        if self._num_samples is None:
+            return len(self.data_source)
+        return self._num_samples
+
+    def __iter__(self):
+        n = len(self.data_source)
+        return iter(torch.randperm(n, dtype=torch.int64)[: self.num_samples].tolist())
+
+    def __len__(self):
+        return self.num_samples
+    
 class AverageMeter(object):
     def __init__(self):
         self.val = 0
@@ -238,12 +262,11 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 	with torch.no_grad():
 		prog_bar = tqdm(total=len(data_loader))
 
-		#validasi....
+		#validation....
 		total_batch = len(data_loader)
 		batch_ke = 0
 		for data in data_loader:
 			cur_step = cur_epoch*total_batch + batch_ke
-
 			fronts = data['fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
 			seg_fronts = data['seg_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
 			depth_fronts = data['depth_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
@@ -329,7 +352,8 @@ def main():
 		drop_last = True 
 	else: 
 		drop_last = False
-	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
+	train_data_size = int(config.low_data_rate*170726)
+	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=170726, size=(train_data_size,)),train_data_size))
 	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 	
 	if not os.path.exists(config.logdir+"/trainval_log.csv"):
@@ -477,7 +501,7 @@ def main():
 
 		# early stopping 
 		if stop_count==0:
-			print("TRAINING BERHENTI KARENA TIDAK ADA PENURUNAN TOTAL LOSS DALAM %d EPOCH TERAKHIR" % (config.init_stop_counter))
+			print("TRAINING STOPPED BECAUSE THERE IS NO DECREASE IN TOTAL LOSS IN THE LAST %d EPOCH" % (config.init_stop_counter))
 			break #loop
 		
 

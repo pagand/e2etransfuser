@@ -479,28 +479,19 @@ class x13(nn.Module): #
                     rot = 130 #60 # 43.3
                     height_coverage = 120
                     width_coverage = 300
-                    if ss_f.shape[0]==1:
-                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
-                    else:
-                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
+                    big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
                 elif i==1:
                     width = 224 # 224
                     rot = -65 #-60 # -43.3
                     height_coverage = 120
                     width_coverage = 300
-                    if ss_f.shape[0]==1:
-                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
-                    else:
-                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
+                    big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
                 elif i==2:
                     width = 320 # 320
                     rot = 0
                     height_coverage = 160
                     width_coverage = 320
-                    if ss_f.shape[0]==1:
-                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
-                    else:
-                        big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
+                    big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
 
     #        top_view_sc = big_top_view[:,:,wi:2*wi,768-160:768+160]
             top_view_sc = big_top_view[:,:,:wi,:]
@@ -525,8 +516,8 @@ class x13(nn.Module): #
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8)
 
-        red_light = gt_redl #redl_stops[:,0]
-        tls_bias = self.tls_biasing(gt_redl.unsqueeze(1)) # redl_stops)
+        red_light = redl_stops[:,0] #gt_redl
+        tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1)
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
@@ -560,7 +551,7 @@ class x13(nn.Module): #
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
 
-        return ss_f, pred_wp, steer, throttle, brake, redl_stops[:,0], top_view_sc # red_light  
+        return ss_f, pred_wp, steer, throttle, brake, red_light , top_view_sc # redl_stops[:,0]
 
     def scale_and_crop_image_cv(self, image, scale=1, crop=256):
         upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]

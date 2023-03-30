@@ -5,14 +5,10 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = True
     gpu_id = '0'
-<<<<<<< HEAD
-    model = 'march29_effnet_GTredl_solar'
-=======
-    model = 'march29_effnet_GTredl_rand02'
->>>>>>> 132247e7c74195ac02334d1e005b55c37626f957
+    model = 'march30_effnet_solar'
     wandb_name = model 
     logdir = 'log/'+model
-    model = 'large_map_test' # for wandb
+    model = 'randomized_low_data' # for wandb
 
     init_stop_counter = 15
     n_class = 23

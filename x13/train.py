@@ -354,10 +354,10 @@ def main():
 	else: 
 		drop_last = False
 	
-        train_data_size = int(config.low_data_rate*170726)
+	train_data_size = int(config.low_data_rate*170726)
 	
-        dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=170726, size=(train_data_size,)),train_data_size))
-        dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
+	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=170726, size=(train_data_size,)),train_data_size))
+	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 	
 	if not os.path.exists(config.logdir+"/trainval_log.csv"):
 		print('TRAIN from the beginning!!!!!!!!!!!!!!!!')

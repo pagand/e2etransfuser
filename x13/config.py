@@ -2,13 +2,13 @@ import os
 import random
 
 class GlobalConfig:
-    num_worker = 4# for debugging 0
+    num_worker = 0# for debugging 0
     wandb = True
     gpu_id = '0'
-    model = 'march29_effnet_GTredl_rand02'
+    model = 'march30_effnet_redl_bypass'
     wandb_name = model 
     logdir = 'log/'+model
-    model = 'large_map_test' # for wandb
+    model = 'randomized_low_data' # for wandb
 
     init_stop_counter = 15
 

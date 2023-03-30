@@ -258,9 +258,7 @@ class Fusion_Block(nn.Module):
 
         self.with_cls_token = False
 
-#        self.norm1 = norm_layer(dim_in+dim_out)
-        self.norm1 = norm_layer(dim_in)
-
+        self.norm1 = norm_layer(dim_in+dim_out)
         self.attn = Attention_2D(
             dim_in, dim_out, num_heads, qkv_bias, attn_drop, drop,
         )
@@ -322,8 +320,8 @@ class x13(nn.Module): #
         self.tls_biasing_bypass = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-        #    nn.ReLU()
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
+            nn.ReLU()
         )
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
 
@@ -348,19 +346,19 @@ class x13(nn.Module): #
         self.SC_encoder.apply(kaiming_init)
         #------------------------------------------------------------------------------------------------
         #feature fusion
-#        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
-#            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
-#            nn.AdaptiveAvgPool2d(1),
-#            nn.Flatten(),
-#            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
-#        )
-
-        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.n_fmap_b3[3][-1]+config.n_fmap_b1[3][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
+            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
+
+#        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
+#            nn.Conv2d(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+#            nn.AdaptiveAvgPool2d(1),
+#            nn.Flatten(),
+#            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
+#        )
 
         embed_dim_q = self.config.fusion_embed_dim_q
         embed_dim_kv = self.config.fusion_embed_dim_kv
@@ -528,26 +526,24 @@ class x13(nn.Module): #
         redl_stops = self.tls_predictor(RGB_features8)
 
         red_light = redl_stops[:,0] #gt_redl
-        tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
-       # tls_bias = self.tls_biasing_bypass(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
+       # tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
+        tls_bias = self.tls_biasing_bypass(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
 
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
 
-#        input = cat([RGB_features8, SC_features8], dim=1)
-#        hx = self.necks_net(input) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
-        bs,_,H,W = RGB_features5.shape
+        input = cat([RGB_features8, SC_features8], dim=1)
+        hx = self.necks_net(input) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
 
-        RGB_features5 = rearrange(RGB_features5 , 'b c h w-> b (h w) c')
-        SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
-        features_cat = cat([RGB_features5,SC_features5],dim=2)
-        
-        for i, blk in enumerate(self.blocks):
-            x = blk(features_cat, H, W)
+#        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
+#        SC_features8 = rearrange(SC_features8 , 'b c h w-> b (h w) c')
 
-        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
-        hx = self.attn_neck(x)
+#        for i, blk in enumerate(self.blocks):
+#            x = blk(features_cat, H, W)
+
+#        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
+#        hx = self.attn_neck(x)
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         # predict delta wp

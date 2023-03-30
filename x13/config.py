@@ -5,7 +5,11 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = True
     gpu_id = '0'
+<<<<<<< HEAD
     model = 'march29_effnet_GTredl_solar'
+=======
+    model = 'march29_effnet_GTredl_rand02'
+>>>>>>> 132247e7c74195ac02334d1e005b55c37626f957
     wandb_name = model 
     logdir = 'log/'+model
     model = 'large_map_test' # for wandb
@@ -15,7 +19,7 @@ class GlobalConfig:
     batch_size = 16 #20
     
     low_data = True
-    low_data_rate=0.2
+    low_data_rate = 0.2
 
     # MGN parameter
     MGN = True   ## True
@@ -53,10 +57,11 @@ class GlobalConfig:
                     break
                 else:
                     break
+
     if low_data:
         random.seed(0)
-        val_data = random.sample(val_data,int(0.25*len(val_data)))
-    
+        val_data = random.sample(val_data,int(low_data_rate*len(val_data)))
+
     ## For CVPR dataset
     '''
     # train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']

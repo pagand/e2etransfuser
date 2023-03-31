@@ -23,6 +23,7 @@ wandb/
 .vscode/
 data/Town*
 log/
+log_pmlr/
 x13_GT/
 *.pyc
 test_codes/

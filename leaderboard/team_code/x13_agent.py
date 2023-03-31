@@ -201,7 +201,6 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		gps = input_data['gps'][1][:2]
 		speed = input_data['speed'][1]['speed']
 		compass = input_data['imu'][1][-1]
-
 		result = {
 				'rgb': rgb, # rgb
 				'depth': depth, # depth
@@ -306,7 +305,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		"""
 		a = 0
 		# forward pass
-		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pred_sc = #fix stop sign            self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
+		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a,a)
 		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
 		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)

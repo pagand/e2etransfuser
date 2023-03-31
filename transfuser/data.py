@@ -207,7 +207,7 @@ class CARLA_Data(Dataset):
       #          data['rears'].append(torch.from_numpy(np.array(
       #              scale_and_crop_image(Image.open(seq_rears[i]), scale=self.scale, crop=self.input_resolution))))
             
-            lidar_unprocessed = np.load(seq_lidars[i],allow_pickle=True)[...,:3] # lidar: XYZI
+            lidar_unprocessed = np.load(seq_lidars[i],allow_pickle=True)[1][...,:3] # lidar: XYZI
             full_lidar.append(lidar_unprocessed)
         
             # fix for theta=nan in some measurements
@@ -220,7 +220,7 @@ class CARLA_Data(Dataset):
 
         # future frames
         for i in range(self.seq_len, self.seq_len + self.pred_len):
-            lidar_unprocessed = np.load(seq_lidars[i],allow_pickle=True)
+            lidar_unprocessed = np.load(seq_lidars[i],allow_pickle=True)[1][...,:3]
             full_lidar.append(lidar_unprocessed)      
 
         # lidar and waypoint processing to local coordinates
@@ -236,7 +236,7 @@ class CARLA_Data(Dataset):
             # process only past lidar point clouds
             if i < self.seq_len:
                 # convert coordinate frame of point cloud
-                full_lidar[i][1][:,1] *= -1 # inverts x, y
+                full_lidar[i][:,1] *= -1 # inverts x, y
                 full_lidar[i] = transform_2d_points(full_lidar[i][1], 
                     np.pi/2-seq_theta[i], -seq_x[i], -seq_y[i], np.pi/2-ego_theta, -ego_x, -ego_y)
                 lidar_processed = lidar_to_histogram_features(full_lidar[i], crop=self.input_resolution)

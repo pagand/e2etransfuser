@@ -4,7 +4,7 @@ import random
 class GlobalConfig:
     num_worker = 4# for debugging 0
     gpu_id = '0'
-    wandb = False
+    wandb = True
     low_data = True
     wandb_name = 'x13_small_data'
 

@@ -13,7 +13,8 @@ torch.backends.cudnn.benchmark = True
 
 from config import GlobalConfig
 from model import TransFuser
-from data import CARLA_Data
+from data_from_pmlr import CARLA_Data
+import wandb
 
 torch.cuda.empty_cache()
 
@@ -26,7 +27,12 @@ parser.add_argument('--val_every', type=int, default=5, help='Validation frequen
 parser.add_argument('--batch_size', type=int, default=20, help='Batch size')
 parser.add_argument('--logdir', type=str, default='log', help='Directory to log data to.')
 
-args = parser.parse_args()
+# Config
+config = GlobalConfig()
+if config.wandb:
+		wandb.init(project=config.wandb_name ,  entity="marslab", name = config.model)
+
+args = parser.parse_args(['--id', config.kind ,'--device','cuda','--epochs',str(config.total_epoch), '--lr', str(config.lr), '--val_every', str(config.val_cycle), '--batch_size', str(config.batch_size) ,'--logdir',config.logdir])
 args.logdir = os.path.join(args.logdir, args.id)
 
 writer = SummaryWriter(log_dir=args.logdir)
@@ -63,9 +69,11 @@ class Engine(object):
 			
 			# create batch and move to GPU
 			fronts_in = data['fronts']
-			lefts_in = data['lefts']
-			rights_in = data['rights']
-			rears_in = data['rears']
+			if not config.ignore_sides:
+				lefts_in = data['lefts']
+				rights_in = data['rights']
+			if not config.ignore_rear:
+				rears_in = data['rears']
 			lidars_in = data['lidars']
 			fronts = []
 			lefts = []
@@ -122,9 +130,11 @@ class Engine(object):
 				
 				# create batch and move to GPU
 				fronts_in = data['fronts']
-				lefts_in = data['lefts']
-				rights_in = data['rights']
-				rears_in = data['rears']
+				if not config.ignore_sides:
+					lefts_in = data['lefts']
+					rights_in = data['rights']
+				if not config.ignore_rear:
+					rears_in = data['rears']
 				lidars_in = data['lidars']
 				fronts = []
 				lefts = []
@@ -190,6 +200,10 @@ class Engine(object):
 		torch.save(model.state_dict(), os.path.join(args.logdir, 'model.pth'))
 		torch.save(optimizer.state_dict(), os.path.join(args.logdir, 'recent_optim.pth'))
 
+		if config.wandb:
+			dic = {x: v[-1] for x,v in log_table.items() if v }
+			wandb.log_table(dic)
+
 		# Log other data corresponding to the recent model
 		with open(os.path.join(args.logdir, 'recent.log'), 'w') as f:
 			f.write(json.dumps(log_table))
@@ -201,8 +215,7 @@ class Engine(object):
 			torch.save(optimizer.state_dict(), os.path.join(args.logdir, 'best_optim.pth'))
 			tqdm.write('====== Overwrote best model ======>')
 
-# Config
-config = GlobalConfig()
+
 
 # Data
 train_set = CARLA_Data(root=config.train_data, config=config)

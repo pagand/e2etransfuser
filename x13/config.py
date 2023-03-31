@@ -5,7 +5,7 @@ class GlobalConfig:
     num_worker = 4# for debugging 0
     wandb = False
     gpu_id = '0'
-    model = 'march31_effnet_redl_concat_debug'
+    model = 'march31_effnet_redl_sumup_debug'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -13,7 +13,7 @@ class GlobalConfig:
     init_stop_counter = 15
 
     n_class = 23
-    batch_size = 16 #20
+    batch_size = 8 #20
     
     low_data = True
     low_data_rate = 0.2

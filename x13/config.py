@@ -3,9 +3,9 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = False
+    wandb = True
     gpu_id = '0'
-    model = 'march30_effnet_fusion_5_solar'
+    model = 'march30_effnet_redl_bypass_sigmoid_solar'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -29,7 +29,7 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/localscratch/pagand/e2e/data'  # for the PMLR dataset
+    root_dir = '/localscratch/mmahdavi/transfuser/data'  # for the PMLR dataset
 
     train_data, val_data = [], []
 

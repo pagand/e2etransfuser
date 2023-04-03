@@ -42,7 +42,7 @@ class RandomSampler(object):
 
     def __len__(self):
         return self.num_samples
-    
+
 class AverageMeter(object):
     def __init__(self):
         self.val = 0
@@ -88,6 +88,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 
 	#training...
 	total_batch = len(data_loader)
+	print("data amount is:")
+	print(total_batch)
 	batch_ke = 0
 	for data in data_loader:
 		cur_step = cur_epoch*total_batch + batch_ke
@@ -116,7 +118,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		loss_brk = F.l1_loss(brake, gt_brake)
 		loss_redl = F.l1_loss(red_light, gt_red_light)
 		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl
-
 		optimizer.zero_grad()
 
 		if batch_ke == 0: #first batch, calculate the initial loss
@@ -328,7 +329,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
+	    wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
@@ -352,7 +353,9 @@ def main():
 		drop_last = True 
 	else: 
 		drop_last = False
+	
 	train_data_size = int(config.low_data_rate*170726)
+	
 	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=170726, size=(train_data_size,)),train_data_size))
 	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 	

@@ -46,7 +46,7 @@ class ConvBlock(nn.Module):
             self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[0]], stridex=1)
             self.conv_block1 = nn.Sequential(
             nn.Conv2d(channel[0], channel[1], kernel_size=1),
-            nn.Sigmoid()
+            nn.ReLU()
             )
         else:
             self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[1]], stridex=1)
@@ -322,8 +322,9 @@ class x13(nn.Module): #
         self.tls_biasing_bypass = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-        #    nn.ReLU()
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
+#            nn.ReLU()
+            nn.Sigmoid()
         )
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
 

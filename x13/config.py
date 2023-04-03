@@ -2,18 +2,17 @@ import os
 import random
 
 class GlobalConfig:
-    num_worker = 4# for debugging 0
-    wandb = False
-    gpu_id = '0'
-    model = 'march31_effnet_redl_sumup_debug'
+    num_worker = 0# for debugging 0
+    wandb = True
+    gpu_id = '3'
+    model = 'march31_effnet_redl_bypass_sigmoid_2_solar'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
 
     init_stop_counter = 15
-
     n_class = 23
-    batch_size = 8 #20
+    batch_size = 16 #20
     
     low_data = True
     low_data_rate = 0.2
@@ -30,7 +29,7 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # for the PMLR dataset
+    root_dir = '/localscratch/mmahdavi/transfuser/data'  # for the PMLR dataset
 
     train_data, val_data = [], []
 

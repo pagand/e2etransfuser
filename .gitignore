@@ -8,6 +8,8 @@ s13/log/*
 data/*
 carla/*
 *.pyc
+cs-venus*
+my_test.sh
 
 !data/README.md
 cvt/DATASET/

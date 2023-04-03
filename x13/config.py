@@ -5,7 +5,7 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = True
     gpu_id = '3'
-    model = 'march31_effnet_redl_concat_solar'
+    model = 'march31_effnet_redl_bypass_sigmoid_2_solar'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb

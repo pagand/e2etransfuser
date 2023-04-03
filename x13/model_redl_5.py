@@ -313,17 +313,14 @@ class x13(nn.Module): #
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][-1], 1),
-        #    nn.ReLU()
-            nn.Sigmoid()
+            nn.ReLU()
         )
 #        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
-        self.tls_biasing_bypass = nn.Sequential( 
+        self.tls_biasing_flatten = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
-            nn.Sigmoid()
+            nn.Flatten()
         )
-#        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
+        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[3][-1], config.n_fmap_b3[4][0])
 
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
 
@@ -519,12 +516,11 @@ class x13(nn.Module): #
 
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
-        redl_stops = self.tls_predictor(RGB_features8)
-
+        redl_stops = self.tls_predictor(RGB_features8) 
         red_light = redl_stops[:,0] #gt_redl
        # tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
-#        tls_bias = self.tls_biasing_flatten(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
-        tls_bias = self.tls_biasing_bypass(RGB_features8)
+        tls_bias = self.tls_biasing_flatten(RGB_features5)  # 5 instead of 8 #redl_stops) #gt_redl.unsqueeze(1))
+        tls_bias = self.tls_biasing_bypass(tls_bias)
 
         #------------------------------------------------------------------------------------------------
         #waypoint prediction

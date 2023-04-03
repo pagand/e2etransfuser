@@ -5,9 +5,9 @@ class GlobalConfig:
     """ base architecture configurations """
     num_worker = 4# for debugging 0
     gpu_id = '0'
-    wandb = False
+    wandb = True
     low_data = True
-    wandb_name = 'transfuser_small_data'
+    wandb_name = 'baseline'
 
     kind = 'baseline' 
 

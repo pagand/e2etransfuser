@@ -103,42 +103,42 @@ class x13Agent(autonomous_agent.AutonomousAgent):
                 return [
 				{
 					'type': 'sensor.camera.rgb',
-                                        'x': 1.3, 'y': 0.0, 'z': 2, #2.3,
+                                        'x': 1.3, 'y': 0.0, 'z':2.3,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
 					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 					'id': 'rgb_front'
 					},
 				{
 					'type': 'sensor.camera.depth',
-					'x': 1.3, 'y': 0.0, 'z':2,# 2.3,
+					'x': 1.3, 'y': 0.0, 'z':2.3,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
 					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 					'id': 'depth_front'
 					},
 				{
 			 	'type': 'sensor.camera.rgb',
-				 	'x': 1.3, 'y': 0.0, 'z':2,# 2.3,
+				 	'x': 1.3, 'y': 0.0, 'z': 2.3,
 				 	'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
 				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 				 	'id': 'rgb_left'
 				 	},
 				{
 				 	'type': 'sensor.camera.rgb',
-				 	'x': 1.3, 'y': 0.0, 'z':2, #2.3,
+				 	'x': 1.3, 'y': 0.0, 'z':2.3,
 				 	'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
 				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 				 	'id': 'rgb_right'
 				 	},
 					{
 							'type': 'sensor.camera.depth',
-							'x': 1.3, 'y': 0.0, 'z':2,#2.3,
+							'x': 1.3, 'y': 0.0, 'z':2.3,
 							'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
 							'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 							'id': 'depth_left'
 							},
 					{
 							'type': 'sensor.camera.depth',
-							'x': 1.3, 'y': 0.0, 'z':2,#2.3,
+							'x': 1.3, 'y': 0.0, 'z':2.3,
 							'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
 							'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 							'id': 'depth_right'

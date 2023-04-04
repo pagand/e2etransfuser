@@ -4,18 +4,18 @@ import random
 class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = True
-    gpu_id = '3'
-    model = 'march31_effnet_redl_bypass_sigmoid_2_solar'
+    gpu_id = '1'
+    model = 'April3rd_effnet_redl_bypass_concat_solar_total'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
 
     init_stop_counter = 15
     n_class = 23
-    batch_size = 16 #20
+    batch_size = 48 #20
     
     low_data = True
-    low_data_rate = 0.2
+    low_data_rate = 1
 
     # MGN parameter
     MGN = True   ## True

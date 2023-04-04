@@ -326,7 +326,7 @@ class x13(nn.Module): #
 #        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
 
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-
+        
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area

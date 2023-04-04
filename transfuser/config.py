@@ -7,7 +7,7 @@ class GlobalConfig:
     gpu_id = '0'
     wandb = True
     low_data = True
-    wandb_name = 'baseline'
+    wandb_name = 'baselines'
 
     kind = 'baseline' 
 
@@ -17,7 +17,7 @@ class GlobalConfig:
 
     total_epoch = 40
     batch_size = 50
-    val_cycle = 2
+    val_cycle = 1
 
 	# Data
     seq_len = 1 # input timesteps
@@ -68,8 +68,8 @@ class GlobalConfig:
                     break
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.02*len(train_data)))
-        val_data = random.sample(val_data,int(0.1*len(val_data)))
+        train_data = random.sample(train_data,int(0.2*len(train_data)))
+        val_data = random.sample(val_data,int(0.2*len(val_data)))
 
     # visualizing transformer attention maps
     # TODO what is viz_data

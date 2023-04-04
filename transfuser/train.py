@@ -224,7 +224,7 @@ class Engine(object):
 		if config.wandb:
 			dic = {x: v[-1] for x,v in log_table.items() if type(v) == list}
 			dic.update({x: v for x,v in log_table.items() if type(v) != list})
-			wandb.log_table(dic)
+			wandb.log(dic)
 
 		# Log other data corresponding to the recent model
 		with open(os.path.join(args.logdir, 'recent.log'), 'w') as f:

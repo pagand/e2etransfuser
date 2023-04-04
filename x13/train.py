@@ -141,14 +141,14 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		elif 0 < batch_ke < total_batch-1:
 			total_loss.backward() #no need to retain the graph
 
-			if not loss_seg_0*loss_wp_0*loss_str_0*loss_thr_0*loss_brk_0*loss_redl_0*loss_stops_0:
-				loss_seg_0 = torch.clone(loss_seg) if not loss_seg_0 else loss_seg_0
-				loss_wp_0 = torch.clone(loss_wp) if not loss_wp_0 else loss_wp_0
-				loss_str_0 = torch.clone(loss_str) if not loss_str_0 else loss_str_0
-				loss_thr_0 = torch.clone(loss_thr) if not loss_thr_0 else loss_thr_0
-				loss_brk_0 = torch.clone(loss_brk) if not loss_brk_0 else loss_brk_0
-				loss_redl_0 = torch.clone(loss_redl) if not loss_redl_0 else loss_redl_0
-				loss_stops_0 = torch.clone(loss_stops) if not loss_stops_0 else loss_stops_0
+			# if not loss_seg_0*loss_wp_0*loss_str_0*loss_thr_0*loss_brk_0*loss_redl_0*loss_stops_0:
+			# 	loss_seg_0 = torch.clone(loss_seg) if not loss_seg_0 else loss_seg_0
+			# 	loss_wp_0 = torch.clone(loss_wp) if not loss_wp_0 else loss_wp_0
+			# 	loss_str_0 = torch.clone(loss_str) if not loss_str_0 else loss_str_0
+			# 	loss_thr_0 = torch.clone(loss_thr) if not loss_thr_0 else loss_thr_0
+			# 	loss_brk_0 = torch.clone(loss_brk) if not loss_brk_0 else loss_brk_0
+			# 	loss_redl_0 = torch.clone(loss_redl) if not loss_redl_0 else loss_redl_0
+			# 	loss_stops_0 = torch.clone(loss_stops) if not loss_stops_0 else loss_stops_0
 
 		elif batch_ke == total_batch-1: #berarti batch terakhir, compute update loss weights
 			if config.MGN:
@@ -201,13 +201,13 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				G_avg = (G0+G1+G2+G3+G4+G5+G6) / len(config.loss_weights)
 
 				#relative loss (zero division handling)
-				loss_seg_hat = loss_seg / loss_seg_0  
-				loss_wp_hat = loss_wp / loss_wp_0 
-				loss_str_hat = loss_str / loss_str_0  
-				loss_thr_hat = loss_thr / loss_thr_0  
-				loss_brk_hat = loss_brk / loss_brk_0  
-				loss_redl_hat = loss_redl / loss_redl_0 
-				loss_stops_hat = loss_stops / loss_stops_0 
+				loss_seg_hat = loss_seg / loss_seg_0  if loss_seg_0 else loss_seg
+				loss_wp_hat = loss_wp / loss_wp_0 if loss_wp_0 else loss_wp
+				loss_str_hat = loss_str / loss_str_0  if loss_str_0 else loss_str
+				loss_thr_hat = loss_thr / loss_thr_0  if loss_thr_0 else loss_thr
+				loss_brk_hat = loss_brk / loss_brk_0  if loss_brk_0 else loss_brk
+				loss_redl_hat = loss_redl / loss_redl_0 if loss_redl_0 else loss_redl
+				loss_stops_hat = loss_stops / loss_stops_0 if loss_stops_0 else loss_stops
 				loss_hat_avg = (loss_seg_hat + loss_wp_hat + loss_str_hat + loss_thr_hat + loss_brk_hat + loss_redl_hat + loss_stops_hat) / len(config.loss_weights)
 
 				#r_i_(t) relative inverse training rate
@@ -220,13 +220,13 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				inv_rate_stops = loss_stops_hat / loss_hat_avg
 
 				#hitung constant target grad
-				C0 = (G_avg*inv_rate_ss).detach()**config.lw_alpha
+				C0 = (G_avg*inv_rate_ss).detach().squeeze(-1).squeeze(-1)**config.lw_alpha
 				C1 = (G_avg*inv_rate_wp).detach()**config.lw_alpha
 				C2 = (G_avg*inv_rate_str).detach()**config.lw_alpha
 				C3 = (G_avg*inv_rate_thr).detach()**config.lw_alpha
 				C4 = (G_avg*inv_rate_brk).detach()**config.lw_alpha
-				C5 = (G_avg*inv_rate_redl).detach()**config.lw_alpha
-				C6 = (G_avg*inv_rate_stops).detach()**config.lw_alpha
+				C5 = (G_avg*inv_rate_redl).detach().squeeze(-1).squeeze(-1)**config.lw_alpha
+				C6 = (G_avg*inv_rate_stops).detach().squeeze(-1).squeeze(-1)**config.lw_alpha
 				Lgrad = F.l1_loss(G0, C0) + F.l1_loss(G1, C1) + F.l1_loss(G2, C2) + F.l1_loss(G3, C3) + F.l1_loss(G4, C4) + F.l1_loss(G5, C5) + F.l1_loss(G6, C6)
 
 				#hitung gradient loss sesuai Eq. 2 di GradNorm paper

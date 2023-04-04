@@ -90,9 +90,9 @@ class x13(nn.Module): #
             self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
             self.conv1_down = ConvBNRelu(channelx=[3, config.n_fmap_b3[0][-1]],stridex=2)
             # # version2 does not require conv2_down
-            self.conv2_down = ConvBNRelu(channelx=[config.n_fmap_b3[3][-1], config.n_fmap_b3[4][-1]],stridex=2, kernelx = 1, paddingx =0)
+            # self.conv2_down = ConvBNRelu(channelx=[config.n_fmap_b3[3][-1], config.n_fmap_b3[4][-1]],stridex=2, kernelx = 1, paddingx =0)
             self.conv1_down.apply(kaiming_init)
-            self.conv2_down.apply(kaiming_init)
+            # self.conv2_down.apply(kaiming_init)
             
             
         elif config.kind == "cvt_cnn":
@@ -192,8 +192,8 @@ class x13(nn.Module): #
         RGB_features3 = out[2][1]
         RGB_features5 = out[2][2]
         # # version2 does not require conv2_down
-        RGB_features8 = self.conv2_down(RGB_features5) # version 1
-        # RGB_features8 = RGB_features5 # version 2
+        # RGB_features8 = self.conv2_down(RGB_features5) # version 1
+        RGB_features8 = RGB_features5 # version 2
         # TODO: for Min CVT change upsampling
         # TODO: for min_CVT version 2 change hx to use SC_features5
         # TODO: fer version 2, comment conv2_down in init
@@ -247,9 +247,9 @@ class x13(nn.Module): #
         SC_features4 = self.SC_encoder.features[4](SC_features3)
         SC_features5 = self.SC_encoder.features[5](SC_features4)
         # for min-cvt version 2 should be commented
-        SC_features6 = self.SC_encoder.features[6](SC_features5)
-        SC_features7 = self.SC_encoder.features[7](SC_features6)
-        SC_features8 = self.SC_encoder.features[8](SC_features7)
+        # SC_features6 = self.SC_encoder.features[6](SC_features5)
+        # SC_features7 = self.SC_encoder.features[7](SC_features6)
+        # SC_features8 = self.SC_encoder.features[8](SC_features7)
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8) 
@@ -260,9 +260,9 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #waypoint prediction: get hidden state dari gabungan kedua bottleneck
 
-        hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
+        # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
-        # hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
+        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         #predict delta wp

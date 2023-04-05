@@ -14,7 +14,7 @@ import os
 import cv2
 from torchvision.transforms.functional import rotate
 
-#from transformers import CvtModel #, AutoImageProcessor
+from transformers import CvtModel #, AutoImageProcessor
 
 
 def kaiming_init_layer(layer):
@@ -292,17 +292,42 @@ class x13(nn.Module): #
         self.gpu_device = device
         #------------------------------------------------------------------------------------------------
         #CVT
-        # # self.pre = AutoImageProcessor.from_pretrained("microsoft/cvt-13")
-        # self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
-        # self.avgpool = nn.AvgPool2d(2, stride=2)
+        if config.kind == "min_cvt":
+            self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
+            self.conv1_down = ConvBNRelu(channelx=[3, config.n_fmap_b3[0][-1]],stridex=2)
+            # # version2 does not require conv2_down
+            # self.conv2_down = ConvBNRelu(channelx=[config.n_fmap_b3[3][-1], config.n_fmap_b3[4][-1]],stridex=2, kernelx = 1, paddingx =0)
+            self.conv1_down.apply(kaiming_init)
+            # self.conv2_down.apply(kaiming_init)
+            
+            
+        elif config.kind == "cvt_cnn":
+            #CVT and conv
+            self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
+            self.conv1_down =  ConvBlock(channel=[3, config.n_fmap_b3[0][-1]],stridex=2)
+            self.conv2_down =  ConvBlock(channel=[config.n_fmap_b3[3][-1], config.n_fmap_b3[4][-1]],stridex=2)
+
+        elif config.kind == "cvt_effnet":
+            self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
+            self.avgpool = nn.AvgPool2d(2, stride=2)
+
+        elif config.kind == "cvt_effnet" or config.kind == "effnet":
+            #RGB
+            self.RGB_encoder = models.efficientnet_b3(pretrained=True) #efficientnet_b4
+            self.RGB_encoder.classifier = nn.Sequential()
+            self.RGB_encoder.avgpool = nn.Sequential()  
+
         #RGB
         self.rgb_normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        self.RGB_encoder = models.efficientnet_b3(pretrained=True) #efficientnet_b4
-        self.RGB_encoder.classifier = nn.Sequential()
-        self.RGB_encoder.avgpool = nn.Sequential()  
+
         #SS
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True) 
-        self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[4][-1]+config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
+
+        if config.kind == "min_cvt":
+            self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
+        else:
+            self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[4][-1]+config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
+
         self.conv2_ss_f = ConvBlock(channel=[config.n_fmap_b3[3][-1]+config.n_fmap_b3[2][-1], config.n_fmap_b3[2][-1]])
         self.conv1_ss_f = ConvBlock(channel=[config.n_fmap_b3[2][-1]+config.n_fmap_b3[1][-1], config.n_fmap_b3[1][-1]])
         self.conv0_ss_f = ConvBlock(channel=[config.n_fmap_b3[1][-1]+config.n_fmap_b3[0][-1], config.n_fmap_b3[0][0]])
@@ -313,7 +338,6 @@ class x13(nn.Module): #
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][-1], 1),
-        #    nn.ReLU()
             nn.Sigmoid()
         )
 #        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
@@ -326,7 +350,7 @@ class x13(nn.Module): #
 #        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
 
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-        
+
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area
@@ -416,7 +440,24 @@ class x13(nn.Module): #
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
         #------------------------------------------------------------------------------------------------
-        # # CVT and CNN
+        # CVT and conv (approach2) and Min CVT
+        in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        out = self.cvt(in_rgb, output_hidden_states=True)
+        RGB_features1 = self.conv1_down(in_rgb)
+        RGB_features2 = out[2][0]
+        RGB_features3 = out[2][1]
+        RGB_features5 = out[2][2]
+        # # version2 does not require conv2_down
+        # RGB_features8 = self.conv2_down(RGB_features5) # version 1
+        RGB_features8 = RGB_features5 # version 2
+        # TODO: for Min CVT change upsampling
+        # TODO: for min_CVT version 2 change hx to use SC_features5
+        # TODO: fer version 2, comment conv2_down in init
+
+
+        ######## new approach for CvT
+
+        # # CVT and effnet (approach1)
         # # inputs = self.pre(rgb_f, return_tensors="pt").to(self.gpu_device)
         # # out = self.cvt(**inputs, output_hidden_states=True)
         # embed_dim = [24, 32, 48, 136]
@@ -429,25 +470,36 @@ class x13(nn.Module): #
         # RGB_features9 = self.RGB_encoder.features[8](out[2][2])
         # RGB_features8 = self.avgpool(RGB_features9)
         # ss_f_3 = self.conv3_ss_f(cat([RGB_features9, RGB_features5], dim=1))
+        # # TODO: Comment next conv0_ss_f
+        # # TODO: change self.necks_net for version 2 and the SC_features after 5
 
-        # # only CNN
-        in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        RGB_features0 = self.RGB_encoder.features[0](in_rgb)
-        RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
-        RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
-        RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
-        RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
-        RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
-        RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
-        RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
-        RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
+
+        ######## EfficientNet
+
+
+        # # # only CNN
+        # in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        # RGB_features0 = self.RGB_encoder.features[0](in_rgb)
+        # RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
+        # RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
+        # RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
+        # RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
+        # RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
+        # RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
+        # RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
+        # RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
+       
        
         # bagian upsampling
-        ss_f_3 = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
-        ss_f_2 = self.conv2_ss_f(cat([self.up(ss_f_3), RGB_features3], dim=1))
-        ss_f_1 = self.conv1_ss_f(cat([self.up(ss_f_2), RGB_features2], dim=1))
-        ss_f_0 = self.conv0_ss_f(cat([self.up(ss_f_1), RGB_features1], dim=1))
-        ss_f = self.final_ss_f(self.up(ss_f_0))
+        # ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))  ## for Effnet
+        # # only for Min CVT (both versions)
+        ss_f = self.conv3_ss_f(RGB_features5)  ## for CvT
+
+
+        ss_f = self.conv2_ss_f(cat([self.up(ss_f), RGB_features3], dim=1))
+        ss_f = self.conv1_ss_f(cat([self.up(ss_f), RGB_features2], dim=1))
+        ss_f = self.conv0_ss_f(cat([self.up(ss_f), RGB_features1], dim=1))
+        ss_f = self.final_ss_f(self.up(ss_f))
         bs,ly,wi,hi = ss_f.shape
 
         #------------------------------------------------------------------------------------------------
@@ -513,9 +565,10 @@ class x13(nn.Module): #
         SC_features3 = self.SC_encoder.features[3](SC_features2)
         SC_features4 = self.SC_encoder.features[4](SC_features3)
         SC_features5 = self.SC_encoder.features[5](SC_features4)
-        SC_features6 = self.SC_encoder.features[6](SC_features5)
-        SC_features7 = self.SC_encoder.features[7](SC_features6)
-        SC_features8 = self.SC_encoder.features[8](SC_features7)
+        # for min-cvt version 2 should be commented
+        # SC_features6 = self.SC_encoder.features[6](SC_features5)
+        # SC_features7 = self.SC_encoder.features[7](SC_features6)
+        # SC_features8 = self.SC_encoder.features[8](SC_features7)
 
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
@@ -530,8 +583,9 @@ class x13(nn.Module): #
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
 
-        input = cat([RGB_features8, SC_features8], dim=1)
-        hx = self.necks_net(input) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
+        # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
+        # # for min_CVT version 2
+        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
 
 #        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
 #        SC_features8 = rearrange(SC_features8 , 'b c h w-> b (h w) c')

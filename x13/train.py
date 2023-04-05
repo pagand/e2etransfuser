@@ -145,7 +145,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				optimizer_lw.zero_grad()
 				total_loss.backward(retain_graph=True) # retain graph because the graph is still used for calculation
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
-				# G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+				# G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[2]], retain_graph=True, create_graph=True)
 				# G0 = torch.norm(G0R[0][0][0], keepdim=True)
 				# G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
 				# G1 = torch.norm(G1R[0], keepdim=True)
@@ -160,7 +160,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				# G_avg = (G0+G1+G2+G3+G4+G5) / len(config.loss_weights)
 
 
-				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[2]], retain_graph=True, create_graph=True)
 				G0 = torch.norm(G0R[0], keepdim=True)
 				G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
 				G1 = torch.norm(G1R[0], keepdim=True)
@@ -419,7 +419,7 @@ def main():
 	# 	wandb.watch(model, log="all")
 
 	epoch = curr_ep
-	while True:
+	while epoch<=config.total_epoch:
 		print("Epoch: {:05d}------------------------------------------------".format(epoch))
 		if config.MGN:
 			curr_lw = optima_lw.param_groups[0]['params']

@@ -11,7 +11,7 @@ class GlobalConfig:
     # TODO: correct the forward path in case of change
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
 
-    model = 'control'
+    model = 'speed'
     model += kind+'_v2'
     logdir = 'log/'+model #+'_w1' for 1 weather only
 
@@ -30,7 +30,7 @@ class GlobalConfig:
     n_class = 23
     batch_size = 20 #20
     total_epoch = 20
-    random_data_len = int(188660 *0.002)# 20% of the dataloade each epoch 170740 
+    random_data_len = int(188660 *0.2)# 20% of the dataloade each epoch 170740 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
@@ -54,7 +54,7 @@ class GlobalConfig:
 
     # MGN parameter
     MGN = True
-    loss_weights = [1, 1, 1, 1, 1, 1, 1]
+    loss_weights = [1, 1, 1, 1, 1, 1, 1, 1]
     lw_alpha = 1.5
     
 
@@ -96,30 +96,6 @@ class GlobalConfig:
         # train_data = train_data[:int(0.05*len(train_data))]
         # val_data = val_data[:int(0.1*len(val_data))]
     
-    ## For CVPR dataset
-    '''
-    # train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
-    train_towns = ['Town02']
-    val_towns = ['Town02'] # 'Town05'
-    for town in train_towns:
-        # if not (town == 'Town07' or town == 'Town10'):
-        #     train_data.append(os.path.join(root_dir, town+'_long'))
-        train_data.append(os.path.join(root_dir, town+'_short'))
-        # train_data.append(os.path.join(root_dir, town+'_tiny'))
-    for town in val_towns:
-        ## val_data.append(os.path.join(root_dir, town+'_long')) #long is for testing
-        val_data.append(os.path.join(root_dir, town+'_short'))
-        # val_data.append(os.path.join(root_dir, town+'_tiny'))
-
-    
-    #buat prediksi expert, test
-    test_data = []
-    test_weather = 'Run3_ClearNoon' #ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset, Run1_ClearNoon, Run2_ClearNoon, Run3_ClearNoon
-    test_scenario = 'ADVERSARIAL' #NORMAL ADVERSARIAL
-    expert_dir = '/media/aisl/data/XTRANSFUSER/EXPERIMENT_RUN/8T1W/EXPERT/'+test_scenario+'/'+test_weather  #8T1W 8T14W
-    for town in val_towns: 
-        test_data.append(os.path.join(expert_dir, 'Expert')) #Expert OR Expert_w1 for 1 weather only scenario
-    '''
 
     
 

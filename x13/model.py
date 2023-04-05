@@ -167,6 +167,18 @@ class x13(nn.Module): #
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
         #------------------------------------------------------------------------------------------------
+        #Speed predictor
+        self.speed_head = nn.Sequential(
+                            nn.AdaptiveAvgPool2d(1),
+                            nn.Flatten(),
+							nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
+							nn.ReLU(inplace=True),
+							# nn.Linear(256, 256),
+							# nn.Dropout2d(p=0.5),
+							# nn.ReLU(inplace=True),
+							nn.Linear(config.n_fmap_b3[3][0], 1),
+						)
+        #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
         self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
         self.pred_dwp = nn.Linear(config.n_fmap_b3[4][0], 2)
@@ -251,6 +263,9 @@ class x13(nn.Module): #
         # SC_features7 = self.SC_encoder.features[7](SC_features6)
         # SC_features8 = self.SC_encoder.features[8](SC_features7)
         #------------------------------------------------------------------------------------------------
+        #Speed prediction
+        speed = self.speed_head(RGB_features8) #out[1].squeeze(-2)
+        #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8) 
         red_light = redl_stops[:,0]
@@ -281,7 +296,7 @@ class x13(nn.Module): #
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
 
-        return ss_f, pred_wp, steer, throttle, brake, red_light, stop_sign, top_view_sc
+        return ss_f, pred_wp, steer, throttle, brake, red_light, stop_sign, top_view_sc, speed
 
     def gen_top_view_sc_show(self, depth, semseg):
         #proses awal

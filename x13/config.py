@@ -30,6 +30,7 @@ class GlobalConfig:
     n_class = 23
     batch_size = 20 #20
     total_epoch = 20
+    random_data_len = int(188660 *0.002)# 20% of the dataloade each epoch 170740 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
@@ -70,7 +71,7 @@ class GlobalConfig:
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:
@@ -89,7 +90,7 @@ class GlobalConfig:
                     break
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.02*len(train_data)))
+        # train_data = random.sample(train_data,int(0.02*len(train_data)))
         val_data = random.sample(val_data,int(0.1*len(val_data)))
 
         # train_data = train_data[:int(0.05*len(train_data))]

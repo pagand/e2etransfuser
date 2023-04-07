@@ -589,7 +589,7 @@ class x13(nn.Module): #
 
         # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
-        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
+        hx = self.necks_net(cat([self.norm1(RGB_features8), self.norm2(SC_features5)], dim=1))
         bs,_,H,W = RGB_features8.shape
 
 #        RGB_features8 = self.norm1(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))

@@ -3,8 +3,8 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = False
-    gpu_id = '0'
+    wandb = True
+    gpu_id = '1'
     model = 'April7_cvt_normalized_redl_selfattn_02_solar'
     wandb_name = model 
     logdir = 'log/'+model
@@ -14,7 +14,7 @@ class GlobalConfig:
     init_stop_counter = 15
     n_class = 23
     
-    batch_size = 16 #20
+    batch_size = 48 #20
     total_epoch = 30
     
     low_data = True
@@ -42,7 +42,7 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir =  '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # '/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
+    root_dir =  '/localscratch/mmahdavi/transfuser/data' # '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
 
     train_data, val_data = [], []
 

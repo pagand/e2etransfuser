@@ -372,19 +372,19 @@ class x13(nn.Module): #
         self.SC_encoder.apply(kaiming_init)
         #------------------------------------------------------------------------------------------------
         #feature fusion
-#        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
-#            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
-#            nn.AdaptiveAvgPool2d(1),
-#            nn.Flatten(),
-#            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
-#        )
-
-        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
+            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
+
+        # self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
+        #     nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+        #     nn.AdaptiveAvgPool2d(1),
+        #     nn.Flatten(),
+        #     nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
+        # )
 
         #------------------------------------------------------------------------------------------------
         embed_dim_q = self.config.fusion_embed_dim_q
@@ -594,18 +594,18 @@ class x13(nn.Module): #
 
         # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
-#        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
+        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
 
 #        RGB_features8 = self.norm1(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))
 #        SC_features5 = self.norm2(rearrange(SC_features5 , 'b c h w-> b (h w) c'))
 
-        features_cat = cat([RGB_features8, SC_features5], dim=2)
+#        features_cat = cat([RGB_features8, SC_features5], dim=2)
 
-        for i, blk in enumerate(self.blocks):
-            x = blk(features_cat, H, W)
+#        for i, blk in enumerate(self.blocks):
+#            x = blk(features_cat, H, W)
 
-        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
-        hx = self.attn_neck(x)
+#        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
+#        hx = self.attn_neck(x)
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         # predict delta wp

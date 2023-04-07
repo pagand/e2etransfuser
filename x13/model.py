@@ -586,8 +586,8 @@ class x13(nn.Module): #
         bs,_,H,W = RGB_features8.shape
         RGB_features8 = self.norm1(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))
         SC_features5 = self.norm2(rearrange(SC_features5 , 'b c h w-> b (h w) c'))
-        RGB_features8 = rearrange(RGB_features8 , 'b (h w) c-> b c h w',h=H,w=W)
-        SC_features5 = rearrange(SC_features5 , 'b (h w) c-> b c h w',h=H,w=W)
+#        RGB_features8 = rearrange(RGB_features8 , 'b (h w) c-> b c h w',h=H,w=W)
+#        SC_features5 = rearrange(SC_features5 , 'b (h w) c-> b c h w',h=H,w=W)
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck

@@ -2,22 +2,22 @@ import os
 import random
 
 class GlobalConfig:
-    num_worker = 4# for debugging 0
+    num_worker = 0# for debugging 0
     wandb = True
     gpu_id = '0'
-    model = 'April4th_CvT'
+    model = 'April4th_effnet_redl_bypass_concat_total'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
 
-    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+    kind = 'effnet'# 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
     n_class = 23
     batch_size = 16 #20
     total_epoch = 20
     
     low_data = True
-    low_data_rate = 0.02
+    low_data_rate = 1
 
     # MGN parameter
     MGN = True   ## True

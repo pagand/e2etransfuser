@@ -258,9 +258,8 @@ class Fusion_Block(nn.Module):
 
         self.with_cls_token = False
 
-#        self.norm1 = norm_layer(dim_in+dim_out)
         self.norm1 = norm_layer(dim_in)
-
+        self.norm2 = norm_layer(dim_out)
         self.attn = Attention_2D(
             dim_in, dim_out, num_heads, qkv_bias, attn_drop, drop,
         )
@@ -277,11 +276,13 @@ class Fusion_Block(nn.Module):
             drop=drop
         )
 
-    def forward(self, features, h, w):
-        res = features
+    def forward(self, RGB, SC, h, w):
+        res = RGB
 
-        x = self.norm1(features)
-        attn = self.attn(x, x, h, w)
+        RGB = self.norm1(RGB)
+        SC = self.norm2(SC)
+
+        attn = self.attn(RGB, SC, h, w)
         x = res + self.drop_path(attn)
         x = x + self.drop_path(self.mlp(self.norm3(x)))
 
@@ -315,16 +316,18 @@ class x13(nn.Module): #
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][-1], 1),
-            nn.ReLU()
+        #    nn.ReLU()
+            nn.Sigmoid()
         )
-        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
-
+#        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
         self.tls_biasing_bypass = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-        #    nn.ReLU()
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
+            nn.Sigmoid()
         )
+#        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
+
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
 
         #------------------------------------------------------------------------------------------------
@@ -356,7 +359,7 @@ class x13(nn.Module): #
 #        )
 
         self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.n_fmap_b3[3][-1]+config.n_fmap_b1[3][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+            nn.Conv2d(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
@@ -399,8 +402,8 @@ class x13(nn.Module): #
         for j in range(depth):
             blocks.append(
                 Fusion_Block(
-                    dim_in=embed_dim_q+embed_dim_kv,
-                    dim_out=embed_dim_q+embed_dim_kv,
+                    dim_in=embed_dim_q,
+                    dim_out=embed_dim_kv,
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
@@ -412,7 +415,6 @@ class x13(nn.Module): #
                 )
             )
         self.blocks = nn.ModuleList(blocks)
-        self.input_buffer = {'depth': deque()}
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
         #------------------------------------------------------------------------------------------------
@@ -482,35 +484,29 @@ class x13(nn.Module): #
             big_top_view = big_top_view[:,:,0:wi,768-160:768+160]
             self.save2(gt_ss,big_top_view)
         
-        if True:
-            big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
-            for i in range(3):
-                if i==0:
-                    width = 224 # 224
-                    rot = 130 #60 # 43.3
-                    height_coverage = 120
-                    width_coverage = 300
-                    big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
-                elif i==1:
-                    width = 224 # 224
-                    rot = -65 #-60 # -43.3
-                    height_coverage = 120
-                    width_coverage = 300
-                    big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
-                elif i==2:
-                    width = 320 # 320
-                    rot = 0
-                    height_coverage = 160
-                    width_coverage = 320
-                    big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
+        big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
+        for i in range(3):
+            if i==0:
+                width = 224 # 224
+                rot = 130 #60 # 43.3
+                height_coverage = 120
+                width_coverage = 300
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
+            elif i==1:
+                width = 224 # 224
+                rot = -65 #-60 # -43.3
+                height_coverage = 120
+                width_coverage = 300
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
+            elif i==2:
+                width = 320 # 320
+                rot = 0
+                height_coverage = 160
+                width_coverage = 320
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
 
-    #        top_view_sc = big_top_view[:,:,wi:2*wi,768-160:768+160]
-            top_view_sc = big_top_view[:,:,:wi,:]
-
-#            del big_top_view
-#            torch.cuda.empty_cache()
-#            self.save2(gt_ss,top_view_sc)
-    #    top_view_sc = self.gen_top_view_sc_main(depth_f, ss_f)
+#        top_view_sc = big_top_view[:,:,wi:2*wi,768-160:768+160]
+        top_view_sc = big_top_view[:,:,:wi,:]
 
         #downsampling section
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
@@ -528,23 +524,23 @@ class x13(nn.Module): #
         redl_stops = self.tls_predictor(RGB_features8)
 
         red_light = redl_stops[:,0] #gt_redl
-        tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
-       # tls_bias = self.tls_biasing_bypass(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
+       # tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
+#        tls_bias = self.tls_biasing_flatten(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
+        tls_bias = self.tls_biasing_bypass(RGB_features8)
 
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
 
-#        input = cat([RGB_features8, SC_features8], dim=1)
-#        hx = self.necks_net(input) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
-        bs,_,H,W = RGB_features5.shape
+        #input = cat([RGB_features8, SC_features8], dim=1)
+        #hx = self.necks_net(input) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
+        bs,_,H,W = RGB_features8.shape
 
-        RGB_features5 = rearrange(RGB_features5 , 'b c h w-> b (h w) c')
-        SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
-        features_cat = cat([RGB_features5,SC_features5],dim=2)
-        
+        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
+        SC_features8 = rearrange(SC_features8 , 'b c h w-> b (h w) c')
+
         for i, blk in enumerate(self.blocks):
-            x = blk(features_cat, H, W)
+            x = blk(RGB_features8,SC_features8, H, W)
 
         x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
         hx = self.attn_neck(x)
@@ -724,38 +720,6 @@ class x13(nn.Module): #
             big_top_view = rotate(big_top_view,rot)
 
         return big_top_view
-
-    # def gen_top_view_sc_show(self, depth, semseg):
-    #     #proses awal
-    #     depth = depth[:,:,:,224:768-224]
-    #     top_view_sc = torch.zeros_like(semseg)
-    #     semseg2 = semseg[:,:,:,224:768-224]
-    #     self.x_matrix2 = torch.vstack([torch.arange(-160, 160)]*self.h) / self.fx
-    #     self.x_matrix2 = self.x_matrix2.to('cuda')
-
-    #     depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
-    #     _, label_img = torch.max(semseg2, dim=1) #pada axis C
-    #     cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*320)] for n in range(depth.shape[0])])).to(self.gpu_device)
-    #     coverage_area = [64/256*160,64/256*320] 
-
-    #     #normalize ke frame 
-    #     cloud_data_x = torch.round(((depth_in * self.x_matrix2) + (coverage_area[1]/2)) * (320-1) / coverage_area[1]).ravel()
-    #     cloud_data_z = torch.round((depth_in * -(self.h-1) / coverage_area[0]) + (self.h-1)).ravel()
-
-    #     #cari index interest
-    #     bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= 320-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
-    #     idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
-
-    #     #stack n x z cls dan plot
-    #     coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
-    #     coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
-    #     top_view_sc_p = torch.zeros_like(semseg2) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
-    #     top_view_sc_p[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
-    #     top_view_sc[:,:,:,224:768-224] = top_view_sc_p
-
-    #     self.save2(semseg,top_view_sc)
-
-    #     return top_view_sc
   
     def gen_top_view_sc_main(self, depth, semseg): #gt_seg, rgb_f
         #proses awal
@@ -779,68 +743,6 @@ class x13(nn.Module): #
         top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #axis format from NCHW
 
         return top_view_sc
-
-    # def gen_top_view_sc(self, depth, semseg): #gt_seg, rgb_f
-    #     #proses awal
-    #     depth = depth[:,:,:,224:768-224]
-    #     top_view_sc = torch.zeros_like(semseg)
-    #     semseg2 = semseg[:,:,:,224:768-224] 
-    #     self.x_matrix2 = torch.vstack([torch.arange(-160, 160)]*self.h) / self.fx
-    #     self.x_matrix2 = self.x_matrix2.to('cuda')
-
-    #     depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
-    #     _, label_img = torch.max(semseg2, dim=1) #pada axis C
-    #     cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*320)] for n in range(depth.shape[0])])).to(self.gpu_device)
-    #     coverage_area = [64/256*160,64/256*320] 
-
-    #     #normalize ke frame 
-    #     cloud_data_x = torch.round(((depth_in * self.x_matrix2) + (coverage_area[1]/2)) * (320-1) / coverage_area[1]).ravel()
-    #     cloud_data_z = torch.round((depth_in * -(self.h-1) / coverage_area[0]) + (self.h-1)).ravel()
-
-    #     #cari index interest
-    #     bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= 320-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
-    #     idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
-
-    #     #stack n x z cls dan plot
-    #     coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
-    #     coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
-    #     top_view_sc_p = torch.zeros_like(semseg2) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
-    #     top_view_sc_p[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
-
-    #     top_view_sc[:,:,:,224:768-224] = top_view_sc_p
-
-    #     return top_view_sc
-              
-    # def gen_top_view_sc(self, depth, semseg): #gt_seg, rgb_f
-    #     #proses awal
-    #     depth = depth[:,:,:,224:768-224]
-    #     top_view_sc = torch.zeros_like(semseg)
-    #     semseg2 = semseg[:,:,:,224:768-224] 
-    #     self.x_matrix2 = torch.vstack([torch.arange(-160, 160)]*self.h) / self.fx
-    #     self.x_matrix2 = self.x_matrix2.to('cuda')
-
-    #     depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
-    #     _, label_img = torch.max(semseg2, dim=1) #pada axis C
-    #     cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*320)] for n in range(depth.shape[0])])).to(self.gpu_device)
-    #     coverage_area = [64/256*160,64/256*320] 
-
-    #     #normalize ke frame 
-    #     cloud_data_x = torch.round(((depth_in * self.x_matrix2) + (coverage_area[1]/2)) * (320-1) / coverage_area[1]).ravel()
-    #     cloud_data_z = torch.round((depth_in * -(self.h-1) / coverage_area[0]) + (self.h-1)).ravel()
-
-    #     #cari index interest
-    #     bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= 320-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
-    #     idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
-
-    #     #stack n x z cls dan plot
-    #     coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
-    #     coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
-    #     top_view_sc_p = torch.zeros_like(semseg2) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
-    #     top_view_sc_p[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
-
-    #     top_view_sc[:,:,:,224:768-224] = top_view_sc_p
-
-    #     return top_view_sc
 
     def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl, ctrl_opt="one_of"):
         assert(waypoints.size(0)==1)

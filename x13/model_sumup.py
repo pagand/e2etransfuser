@@ -320,8 +320,7 @@ class x13(nn.Module): #
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
-#            nn.Sigmoid()
-            nn.ReLU()
+            nn.Sigmoid()
         )
 
 

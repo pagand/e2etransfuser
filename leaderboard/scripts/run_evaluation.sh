@@ -18,13 +18,13 @@ export RESUME=True
 export WEATHER=ClearNoon # ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset
 export MODEL=x13 #transfuser geometric_fusion late_fusion aim cilrs s13 x13
 export CONTROL_OPTION=one_of #one_of both_must pid_only mlp_only, control option is only for s13 and x13 
-export SAVE_PATH=data/ADVERSARIAL2/${WEATHER}/${MODEL}-${CONTROL_OPTION} # ADVERSARIAL NORMAL
+export SAVE_PATH=data/ADVERSARIAL/${WEATHER}/${MODEL}-${CONTROL_OPTION} # ADVERSARIAL NORMAL
 export ROUTES=leaderboard/data/all_routes/routes_town05_long.xml #look at leaderboard/data/all_routes
 export SCENARIOS=leaderboard/data/scenarios/town05_all_scenarios.json #look at leaderboard/data/scenarios town05_all_scenarios OR no_scenarios.json
 export PORT=2000 # same as the carla server port
 export TM_PORT=2050 # port for traffic manager, required when spawning multiple servers/clients
 #export TEAM_CONFIG=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/log/mohammad_3_image_solve_smc_march_24th
-export TEAM_CONFIG=/home/mohammad/Desktop
+export TEAM_CONFIG=/home/mohammad/Desktop/
 export CHECKPOINT_ENDPOINT=${SAVE_PATH}/eval_result.json # results file
 export TEAM_AGENT=leaderboard/team_code/${MODEL}_agent.py
 

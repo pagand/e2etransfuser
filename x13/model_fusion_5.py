@@ -322,9 +322,9 @@ class x13(nn.Module): #
         self.tls_biasing_bypass = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
 #            nn.ReLU()
-#            nn.Sigmoid()
+            nn.Sigmoid()
         )
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
 

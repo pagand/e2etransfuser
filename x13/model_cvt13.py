@@ -415,12 +415,8 @@ class x13(nn.Module): #
         # )
         self.controller = nn.Sequential(
             nn.Linear(config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
-            nn.Linear(config.n_fmap_b3[3][-1], 2),
+            nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
-        )
-        self.brake = nn.Sequential(
-            nn.Linear(config.n_fmap_b3[4][0],1),
-            nn.Sigmoid()
         )
 
         blocks = []
@@ -615,8 +611,7 @@ class x13(nn.Module): #
         control_pred = self.controller(hx+tls_bias) 
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
-        #brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
-        brake = self.brake(hx+tls_bias)
+        brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
 
         return ss_f, pred_wp, steer, throttle, brake, red_light,top_view_sc # redl_stops[:,0] , top_view_sc   
 

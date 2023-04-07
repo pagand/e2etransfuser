@@ -74,6 +74,7 @@ def main():
     parser.add_argument('--use_disk_cache', type=int, default=0, help='0: Do not cache the dataset 1: Cache the dataset on the disk pointed to by the SCRATCH enironment variable. Useful if the dataset is stored on slow HDDs and can be temporarily stored on faster SSD storage.')
 
     parser.add_argument('--wandb', action="store_true", default=True, help='True to log to wandb otherwise False')
+    parser.add_argument('--gpu_id', type=int, default=2, help='The GPU number to use')
 
     args = parser.parse_args()
 
@@ -119,7 +120,7 @@ def main():
         torch.distributed.barrier(device_ids=[local_rank])
     else:
         rank       = 0
-        local_rank = 0
+        local_rank = 0 #args.gpu_id # 0
         world_size = 1
         device = torch.device('cuda:{}'.format(local_rank))
 

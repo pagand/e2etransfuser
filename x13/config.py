@@ -3,14 +3,14 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = True
+    wandb = False
     gpu_id = '0'
-    model = 'April6_effnet_redlsig_crossattn_solar'
+    model = 'April7_cvt_selfattn_debug'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
 
-    kind = 'effnet' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
     n_class = 23
     
@@ -42,7 +42,7 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/localscratch/mmahdavi/transfuser/data' #'/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # for the PMLR dataset
+    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' #  # for the PMLR dataset
 
     train_data, val_data = [], []
 
@@ -150,11 +150,10 @@ class GlobalConfig:
         n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]] 
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
-    
 
     ## fusion settings
-    fusion_embed_dim_q = n_fmap_b3[4][-1]
-    fusion_embed_dim_kv = n_fmap_b1[4][-1]
+    fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
+    fusion_embed_dim_kv = n_fmap_b1[3][-1]
     fusion_depth = 4 #1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4

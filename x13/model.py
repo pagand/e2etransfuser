@@ -372,19 +372,19 @@ class x13(nn.Module): #
         self.SC_encoder.apply(kaiming_init)
         #------------------------------------------------------------------------------------------------
         #feature fusion
-#        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
-#            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
-#            nn.AdaptiveAvgPool2d(1),
-#            nn.Flatten(),
-#            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
-#        )
-
-        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
+            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
+
+        # self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
+        #     nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+        #     nn.AdaptiveAvgPool2d(1),
+        #     nn.Flatten(),
+        #     nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
+        # )
 
         #------------------------------------------------------------------------------------------------
         embed_dim_q = self.config.fusion_embed_dim_q
@@ -443,6 +443,8 @@ class x13(nn.Module): #
         self.input_buffer = {'depth': deque()}
         self.norm1 = norm_layer(embed_dim_q)
         self.norm2 = norm_layer(embed_dim_kv)
+        self.norm3 = norm_layer(config.n_fmap_b3[4][0])
+        self.norm4 = norm_layer(config.n_fmap_b3[4][0])
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
         #------------------------------------------------------------------------------------------------
@@ -584,8 +586,8 @@ class x13(nn.Module): #
         tls_bias = self.tls_biasing_bypass(RGB_features8)
 
         bs,_,H,W = RGB_features8.shape
-        RGB_features8 = self.norm1(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))
-        SC_features5 = self.norm2(rearrange(SC_features5 , 'b c h w-> b (h w) c'))
+#        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
+#        SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
 #        RGB_features8 = rearrange(RGB_features8 , 'b (h w) c-> b c h w',h=H,w=W)
 #        SC_features5 = rearrange(SC_features5 , 'b (h w) c-> b c h w',h=H,w=W)
         #------------------------------------------------------------------------------------------------
@@ -594,18 +596,18 @@ class x13(nn.Module): #
 
         # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
-#        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
+        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
 
 #        RGB_features8 = self.norm1(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))
 #        SC_features5 = self.norm2(rearrange(SC_features5 , 'b c h w-> b (h w) c'))
 
-        features_cat = cat([RGB_features8, SC_features5], dim=2)
+#        features_cat = cat([RGB_features8, SC_features5], dim=2)
 
-        for i, blk in enumerate(self.blocks):
-            x = blk(features_cat, H, W)
+#        for i, blk in enumerate(self.blocks):
+#            x = blk(features_cat, H, W)
 
-        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
-        hx = self.attn_neck(x)
+#        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
+#        hx = self.attn_neck(x)
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         # predict delta wp
@@ -619,7 +621,8 @@ class x13(nn.Module): #
         pred_wp = torch.stack(out_wp, dim=1)
         #------------------------------------------------------------------------------------------------
         #control decoder
-        control_pred = self.controller(hx+tls_bias)
+
+        control_pred = self.controller(self.norm3(hx)+self.norm4(tls_bias))
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0

@@ -5,19 +5,20 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = True
     gpu_id = '0'
-    model = 'April4th_effnet_redl_bypass_concat_total'
+    model = 'April6_effnet_redlsig_crossattn_solar'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
 
-    kind = 'effnet'# 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+    kind = 'effnet' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
     n_class = 23
+    
     batch_size = 16 #20
-    total_epoch = 20
+    total_epoch = 30
     
     low_data = True
-    low_data_rate = 1
+    low_data_rate = 0.2
 
     # MGN parameter
     MGN = True   ## True
@@ -41,7 +42,7 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # for the PMLR dataset
+    root_dir = '/localscratch/mmahdavi/transfuser/data' #'/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # for the PMLR dataset
 
     train_data, val_data = [], []
 
@@ -68,7 +69,7 @@ class GlobalConfig:
 
     if low_data:
         random.seed(0)
-        val_data = random.sample(val_data,int(0.1*len(val_data)))
+        val_data = random.sample(val_data,int(low_data_rate*len(val_data)))
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
@@ -132,7 +133,7 @@ class GlobalConfig:
                             'Dynamic', 'Water', 'Terrain']
     }
 
-    if kind == 'cvt_effnet' or kind == 'effnet':
+    if kind == 'cvt_effnet' or kind == 'effnet' or kind == 'rest':
         # parameters for Effnet
         n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
         n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] 
@@ -146,15 +147,15 @@ class GlobalConfig:
         # n_fmap_b3 = [[32,24], [64], [192], [96,384], [232,384,1536]]
         # # version 2
         n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,112]] 
-        n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]]  
+        n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]] 
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
 
     ## fusion settings
-    fusion_embed_dim_q = n_fmap_b3[3][-1]
-    fusion_embed_dim_kv = n_fmap_b1[3][-1]
-    fusion_depth = 1 #1
+    fusion_embed_dim_q = n_fmap_b3[4][-1]
+    fusion_embed_dim_kv = n_fmap_b1[4][-1]
+    fusion_depth = 4 #1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4
     fusion_qkv = True

@@ -333,7 +333,7 @@ def main():
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
-	os.environ["CUDA_VISIBLE_DEVICES"]=config.gpu_id#visible_gpu #"0" "1" "0,1"
+	os.environ["CUDA_VISIBLE_DEVICES"]=config.gpu_id   #visible_gpu #"0" "1" "0,1"
 
 	#IMPORT MODEL
 	print("IMPORT ARSITEKTUR DL DAN COMPILE")

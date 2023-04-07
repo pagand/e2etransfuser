@@ -258,7 +258,8 @@ class Fusion_Block(nn.Module):
 
         self.with_cls_token = False
 
-        self.norm1 = norm_layer(dim_in+dim_out)
+        self.norm1 = norm_layer(dim_in)
+        self.norm2 = norm_layer(dim_out)
         self.attn = Attention_2D(
             dim_in, dim_out, num_heads, qkv_bias, attn_drop, drop,
         )
@@ -275,11 +276,13 @@ class Fusion_Block(nn.Module):
             drop=drop
         )
 
-    def forward(self, features, h, w):
-        res = features
+    def forward(self, RGB, SC, h, w):
+        res = RGB
 
-        x = self.norm1(features)
-        attn = self.attn(x, x, h, w)
+        RGB = self.norm1(RGB)
+        SC = self.norm2(SC)
+
+        attn = self.attn(RGB, SC, h, w)
         x = res + self.drop_path(attn)
         x = x + self.drop_path(self.mlp(self.norm3(x)))
 
@@ -313,14 +316,17 @@ class x13(nn.Module): #
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][-1], 1),
-            nn.ReLU()
+        #    nn.ReLU()
+            nn.Sigmoid()
         )
-        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
-        self.tls_biasing_flatten = nn.Sequential( 
+#        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
+        self.tls_biasing_bypass = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
-            nn.Flatten()
+            nn.Flatten(),
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
+            nn.Sigmoid()
         )
-        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1]+1, config.n_fmap_b3[4][0])
+#        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
 
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
 
@@ -345,19 +351,19 @@ class x13(nn.Module): #
         self.SC_encoder.apply(kaiming_init)
         #------------------------------------------------------------------------------------------------
         #feature fusion
-        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
-            nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
-        )
-
-#        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-#            nn.Conv2d(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+#        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
+#            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
 #            nn.AdaptiveAvgPool2d(1),
 #            nn.Flatten(),
 #            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
 #        )
+
+        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
+            nn.Conv2d(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
+        )
 
         embed_dim_q = self.config.fusion_embed_dim_q
         embed_dim_kv = self.config.fusion_embed_dim_kv
@@ -388,20 +394,16 @@ class x13(nn.Module): #
         # )
         self.controller = nn.Sequential(
             nn.Linear(config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
-            nn.Linear(config.n_fmap_b3[3][-1], 2),
+            nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
-        )
-        self.brake = nn.Sequential(
-            nn.Linear(config.n_fmap_b3[4][0],1),
-            nn.Sigmoid()
         )
 
         blocks = []
         for j in range(depth):
             blocks.append(
                 Fusion_Block(
-                    dim_in=embed_dim_q+embed_dim_kv,
-                    dim_out=embed_dim_q+embed_dim_kv,
+                    dim_in=embed_dim_q,
+                    dim_out=embed_dim_kv,
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
@@ -413,7 +415,6 @@ class x13(nn.Module): #
                 )
             )
         self.blocks = nn.ModuleList(blocks)
-        self.input_buffer = {'depth': deque()}
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
         #------------------------------------------------------------------------------------------------
@@ -520,28 +521,29 @@ class x13(nn.Module): #
 
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
-        redl_stops = self.tls_predictor(RGB_features5)
+        redl_stops = self.tls_predictor(RGB_features8)
 
         red_light = redl_stops[:,0] #gt_redl
        # tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
-        tls_bias = self.tls_biasing_bypass(RGB_features5)
+#        tls_bias = self.tls_biasing_flatten(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
+        tls_bias = self.tls_biasing_bypass(RGB_features8)
 
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
 
-        # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
-        # # for min_CVT version 2
-        hx = self.necks_net(cat([RGB_features5, SC_features5], dim=1))
+        #input = cat([RGB_features8, SC_features8], dim=1)
+        #hx = self.necks_net(input) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
+        bs,_,H,W = RGB_features8.shape
 
-#        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
-#        SC_features8 = rearrange(SC_features8 , 'b c h w-> b (h w) c')
+        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
+        SC_features8 = rearrange(SC_features8 , 'b c h w-> b (h w) c')
 
-#        for i, blk in enumerate(self.blocks):
-#            x = blk(features_cat, H, W)
+        for i, blk in enumerate(self.blocks):
+            x = blk(RGB_features8,SC_features8, H, W)
 
-#        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
-#        hx = self.attn_neck(x)
+        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
+        hx = self.attn_neck(x)
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         # predict delta wp
@@ -558,8 +560,7 @@ class x13(nn.Module): #
         control_pred = self.controller(hx+tls_bias) 
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
-        #brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
-        brake = self.brake(hx+tls_bias)
+        brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
 
         return ss_f, pred_wp, steer, throttle, brake, red_light,top_view_sc # redl_stops[:,0] , top_view_sc   
 

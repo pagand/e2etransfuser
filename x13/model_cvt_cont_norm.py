@@ -441,6 +441,10 @@ class x13(nn.Module): #
             )
         self.blocks = nn.ModuleList(blocks)
         self.input_buffer = {'depth': deque()}
+        self.norm1 = norm_layer(embed_dim_q)
+        self.norm2 = norm_layer(embed_dim_kv)
+        self.norm3 = norm_layer(config.n_fmap_b3[4][0])
+        self.norm4 = norm_layer(config.n_fmap_b3[4][0])
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
         #------------------------------------------------------------------------------------------------
@@ -618,7 +622,7 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #control decoder
 
-        control_pred = self.controller(hx+tls_bias)
+        control_pred = self.controller(self.norm3(hx)+self.norm4(tls_bias))
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0

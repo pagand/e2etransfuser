@@ -114,10 +114,11 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_brake = data['brake'].to(device, dtype=torch.float)
 		gt_red_light = data['red_light'].to(device, dtype=torch.float)
 		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
+		gt_command = data['command'].to(device, dtype=torch.float)
 
 		#forward pass
 
-		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _, speed = model(fronts, depth_fronts, target_point, gt_velocity)#,seg_fronts
+		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _, speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)#,seg_fronts
 
 		
 		
@@ -352,9 +353,10 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			gt_brake = data['brake'].to(device, dtype=torch.float)
 			gt_red_light = data['red_light'].to(device, dtype=torch.float)
 			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
+			gt_command = data['command'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _, speed = model(fronts, depth_fronts, target_point, gt_velocity)#, seg_fronts)
+			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _, speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)#, seg_fronts)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -434,9 +436,9 @@ def main():
 		drop_last = True 
 	else: 
 		drop_last = False
-	# dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
-	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=170726, size=(config.random_data_len,)),config.random_data_len))
-
+	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
+	# dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=170726, size=(config.random_data_len,)),config.random_data_len))
+	
 	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 	
 	if not os.path.exists(config.logdir+"/trainval_log.csv"):

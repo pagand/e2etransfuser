@@ -76,8 +76,6 @@ class PIDController(object):
         out_control = self._K_P * error + self._K_I * integral + self._K_D * derivative
         return out_control
 
-
-
 class x13(nn.Module): #
     def __init__(self, config, device):
         super(x13, self).__init__()
@@ -168,9 +166,18 @@ class x13(nn.Module): #
         )
         #------------------------------------------------------------------------------------------------
         #Speed predictor
+        # self.speed_head = nn.Sequential(
+        #                     nn.AdaptiveAvgPool2d(1),
+        #                     nn.Flatten(),
+		# 					nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
+		# 					nn.ReLU(inplace=True),
+		# 					# nn.Linear(256, 256),
+		# 					# nn.Dropout2d(p=0.5),
+		# 					# nn.ReLU(inplace=True),
+		# 					nn.Linear(config.n_fmap_b3[3][0], 1),
+		# 				)
+        
         self.speed_head = nn.Sequential(
-                            nn.AdaptiveAvgPool2d(1),
-                            nn.Flatten(),
 							nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
 							nn.ReLU(inplace=True),
 							# nn.Linear(256, 256),
@@ -180,7 +187,7 @@ class x13(nn.Module): #
 						)
         #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
-        self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
+        self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
         self.pred_dwp = nn.Linear(config.n_fmap_b3[4][0], 2)
         #PID Controller
         self.turn_controller = PIDController(K_P=config.turn_KP, K_I=config.turn_KI, K_D=config.turn_KD, n=config.turn_n)
@@ -194,7 +201,7 @@ class x13(nn.Module): #
             nn.ReLU()
         )
 
-    def forward(self, rgb_f, depth_f, next_route, velo_in ):#, gt_ss, gt_redl:
+    def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command ):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
         # CVT and conv (approach2) and Min CVT
         in_rgb = self.rgb_normalizer(rgb_f) #[i]
@@ -264,7 +271,7 @@ class x13(nn.Module): #
         # SC_features8 = self.SC_encoder.features[8](SC_features7)
         #------------------------------------------------------------------------------------------------
         #Speed prediction
-        speed = self.speed_head(RGB_features8) #out[1].squeeze(-2)
+        speed = self.speed_head(out[1].squeeze(-2)) # RGB_features8
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8) 
@@ -282,8 +289,14 @@ class x13(nn.Module): #
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         #predict delta wp
         out_wp = list()
+
+        # x = torch.zeros(size=(hx.shape[0], 6), dtype=torch.int64).to(self.gpu_device)
+        # indices = (torch.LongTensor(torch.arange(hx.shape[0])).to(self.gpu_device), (gt_command-1).to(torch.int64))
+        # value = torch.ones([20], dtype=torch.int64).to(self.gpu_device)
+        # x.index_put_(indices, value)
+
         for _ in range(self.config.pred_len):
-            ins = torch.cat([xy, next_route, torch.reshape(velo_in, (velo_in.shape[0], 1))], dim=1)
+            ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
             hx = self.gru(ins, hx)
             d_xy = self.pred_dwp(hx+tls_bias)
             xy = xy + d_xy

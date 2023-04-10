@@ -11,7 +11,7 @@ class GlobalConfig:
     # TODO: correct the forward path in case of change
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
 
-    model = 'speed'
+    model = 'speed_cmd(out1cvt)'
     model += kind+'_v2'
     logdir = 'log/'+model #+'_w1' for 1 weather only
 
@@ -71,7 +71,7 @@ class GlobalConfig:
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10'] #HD
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:
@@ -90,8 +90,8 @@ class GlobalConfig:
                     break
     if low_data:
         random.seed(0)
-        # train_data = random.sample(train_data,int(0.02*len(train_data)))
-        val_data = random.sample(val_data,int(0.1*len(val_data)))
+        train_data = random.sample(train_data,int(0.02*len(train_data)))
+        val_data = random.sample(val_data,int(0.2*len(val_data)))
 
         # train_data = train_data[:int(0.05*len(train_data))]
         # val_data = val_data[:int(0.1*len(val_data))]

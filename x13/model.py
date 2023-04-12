@@ -5,6 +5,10 @@ from torch import torch, cat, add, nn
 import torch.nn.functional as F
 import torchvision.models as models
 import torchvision.transforms as transforms
+from transformers import CvtModel #, AutoImageProcessor
+
+
+# can be ignored
 import matplotlib.pyplot as plt
 from einops import rearrange
 from einops.layers.torch import Rearrange
@@ -13,8 +17,9 @@ import time
 import os
 import cv2
 from torchvision.transforms.functional import rotate
+# can be ignored
 
-from transformers import CvtModel #, AutoImageProcessor
+
 
 
 def kaiming_init_layer(layer):

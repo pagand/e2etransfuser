@@ -386,17 +386,18 @@ class x13(nn.Module): #
         # )
 
         #------------------------------------------------------------------------------------------------
-        embed_dim_q = self.config.fusion_embed_dim_q
-        embed_dim_kv = self.config.fusion_embed_dim_kv
-        depth = self.config.fusion_depth
-        num_heads = self.config.fusion_num_heads
-        mlp_ratio = self.config.fusion_mlp_ratio
-        qkv_bias = self.config.fusion_qkv
-        drop_rate = self.config.fusion_drop_rate
-        attn_drop_rate = self.config.fusion_attn_drop_rate
-        dpr = self.config.fusion_dpr
-        act_layer=nn.GELU
-        norm_layer =nn.LayerNorm
+	if config.attn:
+		embed_dim_q = self.config.fusion_embed_dim_q
+		embed_dim_kv = self.config.fusion_embed_dim_kv
+		depth = self.config.fusion_depth
+		num_heads = self.config.fusion_num_heads
+		mlp_ratio = self.config.fusion_mlp_ratio
+		qkv_bias = self.config.fusion_qkv
+		drop_rate = self.config.fusion_drop_rate
+		attn_drop_rate = self.config.fusion_attn_drop_rate
+		dpr = self.config.fusion_dpr
+		act_layer=nn.GELU
+		norm_layer =nn.LayerNorm
         #------------------------------------------------------------------------------------------------
         #Speed predictor
         # self.speed_head = nn.Sequential(

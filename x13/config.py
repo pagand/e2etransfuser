@@ -32,9 +32,9 @@ class GlobalConfig:
 
     n_class = 23
     batch_size = 20 #20
-    total_epoch = 30
+    total_epoch = 20 #30
 
-    random_data_len = int(170740 * 0.2 ) #int(188660 *0.2)# 20% of the dataloade each epoch 170740 
+    random_data_len = int(188660 *0.2) #int(170740 * 0.2 )  # 20% of the dataloade each epoch 170740 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':

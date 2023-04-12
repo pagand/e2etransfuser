@@ -2,12 +2,12 @@ import os
 import random
 
 class GlobalConfig:
-    num_worker = 0# for debugging 0
+    num_worker = 4# for debugging 0
     gpu_id = '0'
-    wandb = True
+    wandb = False
     low_data = True
-#    wandb_name = 'x13_small_data'
-    wandb_name = 'randomized_low_data'
+    wandb_name = 'x13_small_data'
+    #wandb_name = 'randomized_low_data'
 
     # TODO: correct the forward path in case of change
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
@@ -32,9 +32,9 @@ class GlobalConfig:
 
     n_class = 23
     batch_size = 20 #20
-    total_epoch = 30
+    total_epoch = 20 #30
 
-    random_data_len = int(170740 * 0.2 ) #int(188660 *0.2)# 20% of the dataloade each epoch 170740 
+    random_data_len = int(188660 *0.2) #int(170740 * 0.2 )  # 20% of the dataloade each epoch 170740 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
@@ -68,7 +68,8 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     #root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'#  '/localscratch/mmahdavi/transfuser/data' #  for the PAMI dataset
+    #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'#  '/localscratch/mmahdavi/transfuser/data' #  for the PAMI dataset
+    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data' # for the PAMI dataset
 
     train_data, val_data = [], []
 
@@ -180,7 +181,7 @@ class GlobalConfig:
                             'Dynamic', 'Water', 'Terrain']
     }
         
-
+    attn = False
     ## fusion settings
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]

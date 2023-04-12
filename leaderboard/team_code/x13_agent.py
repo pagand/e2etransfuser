@@ -170,29 +170,25 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 					'id': 'speed'
 					}
 				]
-
+		
 	def tick(self, input_data):
 		self.step += 1
-
-		rgb1 = cv2.cvtColor(input_data['rgb_front'][1][:, :, :3], cv2.COLOR_BGR2RGB)
 		rgb = []
 		for pos in ['left', 'front', 'right']:
-#		for pos in [ 'front']:
-                    rgb_cam = 'rgb_' + pos
-                    rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
-                    rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
-                    rgb.append(rgb_pos)
+			rgb_cam = 'rgb_' + pos
+			rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
+			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
+			rgb.append(rgb_pos)
 		rgb = np.concatenate(rgb, axis=1)
 #		cv2.imwrite('rgb.png', rgb)
-#		depth1 = cv2.cvtColor(input_data['depth_front'][1][:, :, :3], cv2.COLOR_BGR2RGB)
 
 		depth = []
 		for pos in ['left', 'front', 'right']:
-#		for pos in [ 'front']:
-                    depth_cam = 'depth_' + pos
-                    depth_pos = cv2.cvtColor(input_data[depth_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
-                    depth_pos = self.scale_crop(Image.fromarray(depth_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
-                    depth.append(depth_pos)
+
+			depth_cam = 'depth_' + pos
+			depth_pos = cv2.cvtColor(input_data[depth_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
+			depth_pos = self.scale_crop(Image.fromarray(depth_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
+			depth.append(depth_pos)
 		depth = np.concatenate(depth, axis=1)
 
 	#prv	rgb_left = cv2.cvtColor(input_data['rgb_left'][1][:, :, :3], cv2.COLOR_BGR2RGB)
@@ -272,7 +268,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 
 		# encoding = []
 		rgb = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb']), scale=self.config.scale, crop=self.config.input_resolution)).unsqueeze(0)
-		
+		# torch.save(rgb, 'rgb.pt')
 		self.input_buffer['rgb'] = rgb.to('cuda', dtype=torch.float32)
 		
 		# self.input_buffer['rgb'].popleft()
@@ -280,6 +276,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		# encoding.append(self.net.image_encoder(list(self.input_buffer['rgb'])))
 
 		depth = torch.from_numpy(np.array(rgb_to_depth(scale_and_crop_image_cv(swap_RGB2BGR(tick_data['depth']), scale=self.config.scale, crop=self.config.input_resolution))))
+		# torch.save(depth, 'depth.pt')
 		self.input_buffer['depth'] = depth.to('cuda', dtype=torch.float32)
 
 		# self.input_buffer['depth'].popleft()
@@ -305,7 +302,8 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		"""
 		a = 0
 		# forward pass
-		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a,a)
+		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl,stop_sign, pred_sc,speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
+
 		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
 		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)

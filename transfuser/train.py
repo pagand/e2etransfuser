@@ -13,7 +13,8 @@ torch.backends.cudnn.benchmark = True
 
 from config import GlobalConfig
 from model import TransFuser
-from data import CARLA_Data
+from data_from_pmlr import CARLA_Data
+import wandb
 
 torch.cuda.empty_cache()
 
@@ -26,7 +27,12 @@ parser.add_argument('--val_every', type=int, default=5, help='Validation frequen
 parser.add_argument('--batch_size', type=int, default=20, help='Batch size')
 parser.add_argument('--logdir', type=str, default='log', help='Directory to log data to.')
 
-args = parser.parse_args()
+# Config
+config = GlobalConfig()
+if config.wandb:
+		wandb.init(project=config.wandb_name ,  entity="marslab", name = config.model)
+
+args = parser.parse_args(['--id', config.kind ,'--device','cuda','--epochs',str(config.total_epoch), '--lr', str(config.lr), '--val_every', str(config.val_cycle), '--batch_size', str(config.batch_size) ,'--logdir',config.logdir])
 args.logdir = os.path.join(args.logdir, args.id)
 
 writer = SummaryWriter(log_dir=args.logdir)
@@ -54,18 +60,27 @@ class Engine(object):
 		num_batches = 0
 		model.train()
 
+		#1
+		prog_bar = tqdm(total=len(dataloader_train))
+
 		# Train loop
-		for data in tqdm(dataloader_train):
+		
+		for data in dataloader_train:
+			
 			
 			# efficiently zero gradients
 			for p in model.parameters():
 				p.grad = None
 			
+			
+			
 			# create batch and move to GPU
 			fronts_in = data['fronts']
-			lefts_in = data['lefts']
-			rights_in = data['rights']
-			rears_in = data['rears']
+			if not config.ignore_sides:
+				lefts_in = data['lefts']
+				rights_in = data['rights']
+			if not config.ignore_rear:
+				rears_in = data['rears']
 			lidars_in = data['lidars']
 			fronts = []
 			lefts = []
@@ -73,6 +88,7 @@ class Engine(object):
 			rears = []
 			lidars = []
 			for i in range(config.seq_len):
+				
 				fronts.append(fronts_in[i].to(args.device, dtype=torch.float32))
 				if not config.ignore_sides:
 					lefts.append(lefts_in[i].to(args.device, dtype=torch.float32))
@@ -90,8 +106,11 @@ class Engine(object):
 
 			# target point
 			target_point = torch.stack(data['target_point'], dim=1).to(args.device, dtype=torch.float32)
+
+			
 			
 			pred_wp = model(fronts+lefts+rights+rears, lidars, target_point, gt_velocity)
+			
 			
 			gt_waypoints = [torch.stack(data['waypoints'][i], dim=1).to(args.device, dtype=torch.float32) for i in range(config.seq_len, len(data['waypoints']))]
 			gt_waypoints = torch.stack(gt_waypoints, dim=1).to(args.device, dtype=torch.float32)
@@ -104,6 +123,10 @@ class Engine(object):
 
 			writer.add_scalar('train_loss', loss.item(), self.cur_iter)
 			self.cur_iter += 1
+
+			#2
+			prog_bar.update(1)
+		prog_bar.close()	
 		
 		
 		loss_epoch = loss_epoch / num_batches
@@ -117,14 +140,19 @@ class Engine(object):
 			num_batches = 0
 			wp_epoch = 0.
 
+			#1
+			prog_bar = tqdm(total=len(dataloader_train))
+
 			# Validation loop
-			for batch_num, data in enumerate(tqdm(dataloader_val), 0):
+			for batch_num, data in enumerate(dataloader_val, 0):
 				
 				# create batch and move to GPU
 				fronts_in = data['fronts']
-				lefts_in = data['lefts']
-				rights_in = data['rights']
-				rears_in = data['rears']
+				if not config.ignore_sides:
+					lefts_in = data['lefts']
+					rights_in = data['rights']
+				if not config.ignore_rear:
+					rears_in = data['rears']
 				lidars_in = data['lidars']
 				fronts = []
 				lefts = []
@@ -157,6 +185,9 @@ class Engine(object):
 				wp_epoch += float(F.l1_loss(pred_wp, gt_waypoints, reduction='none').mean())
 
 				num_batches += 1
+				#2
+				prog_bar.update(1)
+			prog_bar.close()	
 					
 			wp_loss = wp_epoch / float(num_batches)
 			tqdm.write(f'Epoch {self.cur_epoch:03d}, Batch {batch_num:03d}:' + f' Wp: {wp_loss:3.3f}')
@@ -190,6 +221,11 @@ class Engine(object):
 		torch.save(model.state_dict(), os.path.join(args.logdir, 'model.pth'))
 		torch.save(optimizer.state_dict(), os.path.join(args.logdir, 'recent_optim.pth'))
 
+		if config.wandb:
+			dic = {x: v[-1] for x,v in log_table.items() if type(v) == list}
+			dic.update({x: v for x,v in log_table.items() if type(v) != list})
+			wandb.log(dic)
+
 		# Log other data corresponding to the recent model
 		with open(os.path.join(args.logdir, 'recent.log'), 'w') as f:
 			f.write(json.dumps(log_table))
@@ -201,15 +237,14 @@ class Engine(object):
 			torch.save(optimizer.state_dict(), os.path.join(args.logdir, 'best_optim.pth'))
 			tqdm.write('====== Overwrote best model ======>')
 
-# Config
-config = GlobalConfig()
+
 
 # Data
 train_set = CARLA_Data(root=config.train_data, config=config)
 val_set = CARLA_Data(root=config.val_data, config=config)
 
-dataloader_train = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
-dataloader_val = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
+dataloader_train = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True)
+dataloader_val = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 
 # Model
 model = TransFuser(config, args.device)

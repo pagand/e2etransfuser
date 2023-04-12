@@ -11,6 +11,7 @@ carla/*
 cs-venus*
 my_test.sh
 
+x13/model_*
 !data/README.md
 cvt/DATASET/
 cvt/OUTPUT/

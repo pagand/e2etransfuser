@@ -40,16 +40,16 @@ class ConvBNRelu(nn.Module):
         return y
 
 class ConvBlock(nn.Module):
-    def __init__(self, channel, final=False): #up, 
+    def __init__(self, channel, final=False, stridex=1): #up, 
         super(ConvBlock, self).__init__()
         if final:
-            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[0]], stridex=1)
+            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[0]], stridex=stridex)
             self.conv_block1 = nn.Sequential(
             nn.Conv2d(channel[0], channel[1], kernel_size=1),
             nn.Sigmoid()
             )
         else:
-            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[1]], stridex=1)
+            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[1]], stridex=stridex)
             self.conv_block1 = ConvBNRelu(channelx=[channel[1], channel[1]], stridex=1)
         self.conv_block0.apply(kaiming_init)
         self.conv_block1.apply(kaiming_init)
@@ -291,7 +291,8 @@ class x13(nn.Module): #
         self.config = config
         self.gpu_device = device
         #------------------------------------------------------------------------------------------------
-        #CVT
+        # CVT and effnet
+        # self.pre = AutoImageProcessor.from_pretrained("microsoft/cvt-13")
         if config.kind == "min_cvt":
             self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
             self.conv1_down = ConvBNRelu(channelx=[3, config.n_fmap_b3[0][-1]],stridex=2)
@@ -316,40 +317,33 @@ class x13(nn.Module): #
             self.RGB_encoder = models.efficientnet_b3(pretrained=True) #efficientnet_b4
             self.RGB_encoder.classifier = nn.Sequential()
             self.RGB_encoder.avgpool = nn.Sequential()  
-
-        #RGB
         self.rgb_normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-
         #SS
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True) 
-
         if config.kind == "min_cvt":
             self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
         else:
             self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[4][-1]+config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
-
+        
         self.conv2_ss_f = ConvBlock(channel=[config.n_fmap_b3[3][-1]+config.n_fmap_b3[2][-1], config.n_fmap_b3[2][-1]])
         self.conv1_ss_f = ConvBlock(channel=[config.n_fmap_b3[2][-1]+config.n_fmap_b3[1][-1], config.n_fmap_b3[1][-1]])
         self.conv0_ss_f = ConvBlock(channel=[config.n_fmap_b3[1][-1]+config.n_fmap_b3[0][-1], config.n_fmap_b3[0][0]])
         self.final_ss_f = ConvBlock(channel=[config.n_fmap_b3[0][0], config.n_class], final=True)
         #------------------------------------------------------------------------------------------------
         #red light and stop sign predictor
+        # option 1 (for min_cvt version 1/2 and Effnet)
         self.tls_predictor = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][-1], 1),
             nn.Sigmoid()
         )
-#        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
         self.tls_biasing_bypass = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
             nn.Sigmoid()
         )
-#        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-
-        #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
 
         #------------------------------------------------------------------------------------------------
         #SDC
@@ -399,7 +393,29 @@ class x13(nn.Module): #
         act_layer=nn.GELU
         norm_layer =nn.LayerNorm
         #------------------------------------------------------------------------------------------------
+        #Speed predictor
+        # self.speed_head = nn.Sequential(
+        #                     nn.AdaptiveAvgPool2d(1),
+        #                     nn.Flatten(),
+		# 					nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
+		# 					nn.ReLU(inplace=True),
+		# 					# nn.Linear(256, 256),
+		# 					# nn.Dropout2d(p=0.5),
+		# 					# nn.ReLU(inplace=True),
+		# 					nn.Linear(config.n_fmap_b3[3][0], 1),
+		# 				)
+        
+        self.speed_head = nn.Sequential(
+                nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
+                nn.ReLU(inplace=True),
+                # nn.Linear(256, 256),
+                # nn.Dropout2d(p=0.5),
+                # nn.ReLU(inplace=True),
+                nn.Linear(config.n_fmap_b3[3][0], 1),
+            )
+        #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
+        #self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
         self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
         self.pred_dwp = nn.Linear(config.n_fmap_b3[4][0], 2)
         #PID Controller
@@ -417,10 +433,6 @@ class x13(nn.Module): #
             nn.Linear(config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
-        )
-        self.brake = nn.Sequential(
-            nn.Linear(config.n_fmap_b3[4][0],1),
-            nn.Sigmoid()
         )
 
         blocks = []
@@ -442,7 +454,7 @@ class x13(nn.Module): #
         self.blocks = nn.ModuleList(blocks)
         self.input_buffer = {'depth': deque()}
 
-    def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
+    def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command ):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
         # CVT and conv (approach2) and Min CVT
         in_rgb = self.rgb_normalizer(rgb_f) #[i]
@@ -457,9 +469,6 @@ class x13(nn.Module): #
         # TODO: for Min CVT change upsampling
         # TODO: for min_CVT version 2 change hx to use SC_features5
         # TODO: fer version 2, comment conv2_down in init
-
-
-        ######## new approach for CvT
 
         # # CVT and effnet (approach1)
         # # inputs = self.pre(rgb_f, return_tensors="pt").to(self.gpu_device)
@@ -477,33 +486,29 @@ class x13(nn.Module): #
         # # TODO: Comment next conv0_ss_f
         # # TODO: change self.necks_net for version 2 and the SC_features after 5
 
+        # only Effnet
+        #in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        #RGB_features0 = self.RGB_encoder.features[0](in_rgb)
+        #RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
+        #RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
+        #RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
+        #RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
+        #RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
+        #RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
+        #RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
+        #RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
 
-        ######## EfficientNet
-
-
-        # # # only CNN
-        # in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        # RGB_features0 = self.RGB_encoder.features[0](in_rgb)
-        # RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
-        # RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
-        # RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
-        # RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
-        # RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
-        # RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
-        # RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
-        # RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
-       
         # bagian upsampling
-        # ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))  ## for Effnet
+        # ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
         # # only for Min CVT (both versions)
-        ss_f = self.conv3_ss_f(RGB_features5)  ## for CvT
+        ss_f = self.conv3_ss_f(RGB_features5)
 
         ss_f = self.conv2_ss_f(cat([self.up(ss_f), RGB_features3], dim=1))
         ss_f = self.conv1_ss_f(cat([self.up(ss_f), RGB_features2], dim=1))
         ss_f = self.conv0_ss_f(cat([self.up(ss_f), RGB_features1], dim=1))
         ss_f = self.final_ss_f(self.up(ss_f))
-        bs,ly,wi,hi = ss_f.shape
 
+        bs,ly,wi,hi = ss_f.shape
         #------------------------------------------------------------------------------------------------
         #create a semantic cloud
         if False: #self.show:
@@ -557,10 +562,13 @@ class x13(nn.Module): #
                 width_coverage = 320
                 big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
 
-#        top_view_sc = big_top_view[:,:,wi:2*wi,768-160:768+160]
         top_view_sc = big_top_view[:,:,:wi,:]
 
         #downsampling section
+        #------------------------------------------------------------------------------------------------
+        #buat semantic cloud
+        #top_view_sc = self.gen_top_view_sc(depth_f, ss_f ) # ss_f gt_ss ,rgb_f
+        #bagian downsampling
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
         SC_features1 = self.SC_encoder.features[1](SC_features0)
         SC_features2 = self.SC_encoder.features[2](SC_features1)
@@ -575,20 +583,19 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8)
-
         red_light = redl_stops[:,0] #gt_redl
-       # tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
-       # tls_bias = self.tls_biasing_flatten(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
         tls_bias = self.tls_biasing_bypass(RGB_features8)
-
         bs,_,H,W = RGB_features8.shape
-#        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
-#        SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
-#        RGB_features8 = rearrange(RGB_features8 , 'b (h w) c-> b c h w',h=H,w=W)
-#        SC_features5 = rearrange(SC_features5 , 'b (h w) c-> b c h w',h=H,w=W)
         #------------------------------------------------------------------------------------------------
-        #waypoint prediction
-        #get hidden state dari gabungan kedua bottleneck
+        #Speed prediction
+        speed = self.speed_head(out[1].squeeze(-2)) # RGB_features8
+        #------------------------------------------------------------------------------------------------
+        #red light and stop sign detection
+        # stop_sign = redl_stops[:,1]  # we don't have stop sign
+        stop_sign = torch.zeros_like(red_light)
+        #tls_bias = self.tls_biasing(redl_stops)   #   gt_redl.unsqueeze(-1)
+        #------------------------------------------------------------------------------------------------
+        #waypoint prediction: get hidden state dari gabungan kedua bottleneck
 
         # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
@@ -596,20 +603,24 @@ class x13(nn.Module): #
 
 #        RGB_features8 = self.norm1(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))
 #        SC_features5 = self.norm2(rearrange(SC_features5 , 'b c h w-> b (h w) c'))
-
 #        features_cat = cat([RGB_features8, SC_features5], dim=2)
-
 #        for i, blk in enumerate(self.blocks):
 #            x = blk(features_cat, H, W)
-
 #        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
 #        hx = self.attn_neck(x)
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         # predict delta wp
         out_wp = list()
+
+        # x = torch.zeros(size=(hx.shape[0], 6), dtype=torch.int64).to(self.gpu_device)
+        # indices = (torch.LongTensor(torch.arange(hx.shape[0])).to(self.gpu_device), (gt_command-1).to(torch.int64))
+        # value = torch.ones([20], dtype=torch.int64).to(self.gpu_device)
+        # x.index_put_(indices, value)
+
         for _ in range(self.config.pred_len):
-            ins = torch.cat([xy, next_route, torch.reshape(velo_in, (velo_in.shape[0], 1))], dim=1)
+            #ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
+            ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1)], dim=1) # x
             hx = self.gru(ins, hx)
             d_xy = self.pred_dwp(hx+tls_bias)
             xy = xy + d_xy
@@ -617,14 +628,13 @@ class x13(nn.Module): #
         pred_wp = torch.stack(out_wp, dim=1)
         #------------------------------------------------------------------------------------------------
         #control decoder
-
         control_pred = self.controller(hx+tls_bias)
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
 #        brake = self.brake(hx+tls_bias)
 
-        return ss_f, pred_wp, steer, throttle, brake, red_light, top_view_sc # redl_stops[:,0] , top_view_sc   
+        return ss_f, pred_wp, steer, throttle, brake, red_light, stop_sign, top_view_sc, speed # redl_stops[:,0] , top_view_sc       
 
     def scale_and_crop_image_cv(self, image, scale=1, crop=256):
         upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]
@@ -694,31 +704,6 @@ class x13(nn.Module): #
         cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/train_1%06d.png' % frame, imgx) #cetak predicted segmentation
         cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/train_2%06d.png' % frame, imgx2) #cetak predicted segmentation
 
-    def gen_top_view_sc_show_main(self, depth, semseg):
-        #proses awal
-        depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
-        _, label_img = torch.max(semseg, dim=1) #pada axis C
-        cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*self.w)] for n in range(depth.shape[0])])).to(self.gpu_device)
-
-        #normalize ke frame 
-        cloud_data_x = torch.round(((depth_in * self.x_matrix) + (self.cover_area[1]/2)) * (self.w-1) / self.cover_area[1]).ravel()
-        cloud_data_z = torch.round((depth_in * -(self.h-1) / self.cover_area[0]) + (self.h-1)).ravel()
-
-        #cari index interest
-        bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= self.w-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
-        idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
-
-        #stack n x z cls dan plot
-        coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
-        coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
-        top_view_sc = torch.zeros_like(semseg) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
-        top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
-        bs,lay, w, hi = top_view_sc.shape
-#        top_view_sc[:,:,:,0:224] = torch.zeros((bs,lay,w,224))
-        self.save2(semseg,top_view_sc)
-
-        return top_view_sc
-
     def gen_top_view_sc_show(self, big_top_view, depth, semseg, rot, im_width, im_height,height_coverage,width_coverage):
         #proses awal
         self.x_matrix2 = torch.vstack([torch.arange(-im_width//2, im_width//2)]*self.h) / self.fx
@@ -783,7 +768,7 @@ class x13(nn.Module): #
 
         return big_top_view
   
-    def gen_top_view_sc_main(self, depth, semseg): #gt_seg, rgb_f
+    def gen_top_view_sc_old(self, depth, semseg): #,rgb_f
         #proses awal
         depth_in = depth * 1000.0 #normalize to 1 - 1000
         _, label_img = torch.max(semseg, dim=1) #pada axis C

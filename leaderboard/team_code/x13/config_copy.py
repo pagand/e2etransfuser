@@ -1,19 +1,23 @@
 import os
-import random
 
 class GlobalConfig:
-    num_worker = 0# for debugging 0
     gpu_id = '0'
-    wandb = True
-    low_data = True
-#    wandb_name = 'x13_small_data'
-    wandb_name = 'randomized_low_data'
+    model = 'mohammad_3_image_5_ma_20th'
+    logdir = 'log/'+model#+'_w1'
+    init_stop_counter = 15
 
-    # TODO: correct the forward path in case of change
+    n_class = 23
+    batch_size = 20
+
+    #parameter untuk MGN
+    MGN = True
+    loss_weights = [1, 1, 1, 1, 1, 1, 1]
+    lw_alpha = 1.5
+    bottleneck = [335, 679]
+
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-
 #    model = 'speed_cmd(out1cvt)'  # run name
-    model = 'test_with_SpeedandCommand_'  # run name
+    model = 'test'  # run name
 
     model += kind+'_v2'
     logdir = 'log/'+model #+'_w1' for 1 weather only
@@ -28,14 +32,10 @@ class GlobalConfig:
         # version 2
         bottleneck = [332, 683, 332]
     else:
-        bottleneck = [335, 679, 335]
+        bottleneck = [335, 679, 335]    
+    
 
-    n_class = 23
-    batch_size = 20 #20
-    total_epoch = 30
 
-    random_data_len = int(170740 * 0.2 ) #int(188660 *0.2)# 20% of the dataloade each epoch 170740 
-    cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
         # parameters for Effnet
@@ -54,52 +54,31 @@ class GlobalConfig:
         n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]]  
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
-    
 
 
-    # MGN parameter
-    MGN = True
-    loss_weights = [1, 1, 1, 1, 1, 1, 1, 1]
-    lw_alpha = 1.5
 
-	# for Data
+	# Data
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
-    # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'#  '/localscratch/mmahdavi/transfuser/data' #  for the PAMI dataset
-
+    root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data clear_noon_full_data
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
+    val_towns = ['Town05']
+    # train_towns = ['Town00']
+    # val_towns = ['Town00']
     train_data, val_data = [], []
-
-    ## For PMLR dataset
-    root_files = os.listdir(root_dir)
-    # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10'] # HD
-    val_towns = ['Town05'] # 'Town05'
-
-    for dir in root_files:
-        scn_files = os.listdir(os.path.join(root_dir,dir))
-        for routes in scn_files:
-            for t in routes.split("_"):
-                if t[0] != 'T':
-                    continue
-                if t in train_towns:
-                    train_data.append(os.path.join(root_dir,dir, routes))
-                    break
-                elif t in val_towns:
-                    val_data.append(os.path.join(root_dir,dir, routes))
-                    break
-                else:
-                    break
-    if low_data:
-        random.seed(0)
-#        train_data = random.sample(train_data,int(0.02*len(train_data)))
-        val_data = random.sample(val_data,int(0.2*len(val_data)))
-
-        # train_data = train_data[:int(0.05*len(train_data))]
-        # val_data = val_data[:int(0.1*len(val_data))]
-
+    for town in train_towns:
+        if not (town == 'Town07' or town == 'Town10HD'):
+            train_data.append(os.path.join(root_dir, town+'_long'))
+        train_data.append(os.path.join(root_dir, town+'_short'))
+        train_data.append(os.path.join(root_dir, town+'_tiny'))
+        # train_data.append(os.path.join(root_dir, town+'_x'))
+    for town in val_towns:
+        # val_data.append(os.path.join(root_dir, town+'_long'))
+        val_data.append(os.path.join(root_dir, town+'_short'))
+        val_data.append(os.path.join(root_dir, town+'_tiny'))
+        # val_data.append(os.path.join(root_dir, town+'_x'))
+    
     #buat prediksi expert, test
     test_data = []
     test_weather = 'Run3_ClearNoon' #ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset, Run1_ClearNoon, Run2_ClearNoon, Run3_ClearNoon
@@ -111,30 +90,28 @@ class GlobalConfig:
     ignore_sides = True # don't consider side cameras
     ignore_rear = True # don't consider rear cameras
 
-    # input_resolution = [256,256] # CVPR dataset
-    # input_resolution = 160 # PMLR dataset
-    input_resolution = [160,768] # PMLR dataset #768
-    # input_resolution = [160,160] # PMLR dataset #512
-  #  coverage_area = [64,64]
-    coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
-
     camera_width = 960
     camera_height = 480
+    fov = 120
+    scale = 1
     img_width_cut = 320
     img_resolution = (160,704)
 
-    # camera intrinsic
+    ## camera info
     img_width = 352
     img_height = 160
-    fov = 2*60
-    
-    scale = 1 # image pre-processing
-    # crop = 256 # image pre-processing # CVPR dataset
-    crop = 160 # image pre-processing # CVPR dataset
-    lr = 1e-4 # learning rate AdamW
+
+    input_resolution = [160,768] # March 15th# 256
+ #   coverage_area = [64,64]
+    coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #March 15th
+
+    crop = 160 # image pre-processing   should be two values
+
+    lr = 1e-4 # learning rate #pakai AdamW
     weight_decay = 1e-3
 
     # Controller
+    # control_option = 4 #1-one_of 2-both_must 3-pid_only 4-mlp_only 5-pid_def
     #control weights untuk PID dan MLP dari tuningan MGN
     #urutan steer, throttle, brake
     #baca dulu trainval_log.csv setelah training selesai, dan normalize bobotnya 0-1
@@ -162,7 +139,7 @@ class GlobalConfig:
     brake_speed = 0.4 # desired speed below which brake is triggered
     brake_ratio = 1.1 # ratio of speed to desired speed at which brake is triggered
     clip_delta = 0.25 # maximum change in speed input to logitudinal controller
-    min_act_thrt = 0.2 #minimum throttle
+    min_act_thrt = 0.2 #minimum nilai suatu throttle dianggap aktif diinjak
 
     #ORDER DALAM RGB!!!!!!!!
     SEG_CLASSES = {
@@ -177,7 +154,14 @@ class GlobalConfig:
                             'Bridge', 'RailTrack', 'GuardRail', 'TrafficLight', 'Static',
                             'Dynamic', 'Water', 'Terrain']
     }
-        
+
+    # n_fmap_b0 = [[32,16], [24], [40], [80,112], [192,320,1280]]
+    # n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] #sama dengan b0
+    # n_fmap_b2 = [[32,16], [24], [48], [88,120], [208,352,1408]]
+    # n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] #lihat underdevelopment/efficientnet.py
+    # n_fmap_b4 = [[48,24], [32], [56], [112,160], [272,448,1792]]
+    # #jangan lupa untuk mengganti model torchvision di init model.py
+
 
     ## fusion settings
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]

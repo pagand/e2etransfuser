@@ -3,27 +3,22 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = False
     gpu_id = '0'
-    model = 'April10_cvt_redl_debug'
-    wandb_name = model 
-    logdir = 'log/'+model
-    model = 'randomized_low_data' # for wandb
-
-    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    init_stop_counter = 15
-    n_class = 23
-    
-    batch_size = 16 #20
-    total_epoch = 30
-    
+    wandb = True
     low_data = True
-    low_data_rate = 0.2
+#    wandb_name = 'x13_small_data'
+    wandb_name = 'randomized_low_data'
 
-    # MGN parameter
-    MGN = True   ## True
-    loss_weights = [1, 1, 1, 1, 1, 1, 1]
-    lw_alpha = 1.5
+    # TODO: correct the forward path in case of change
+    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+
+#    model = 'speed_cmd(out1cvt)'  # run name
+    model = 'test_with_SpeedandCommand_'  # run name
+
+    model += kind+'_v2'
+    logdir = 'log/'+model #+'_w1' for 1 weather only
+
+    init_stop_counter = 15
 
     if kind == 'cvt_cnn':
         bottleneck = [350, 695, 350]
@@ -35,6 +30,37 @@ class GlobalConfig:
     else:
         bottleneck = [335, 679, 335]
 
+    n_class = 23
+    batch_size = 20 #20
+    total_epoch = 30
+
+    random_data_len = int(170740 * 0.2 ) #int(188660 *0.2)# 20% of the dataloade each epoch 170740 
+    cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
+
+    if kind == 'cvt_effnet' or kind == 'effnet':
+        # parameters for Effnet
+        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
+        n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] 
+    elif kind == 'cvt_cnn':
+    # parameters for CVT
+        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
+        n_fmap_b3 = [[40,32], [64], [192], [96,384], [232,384,1536]] 
+    elif kind == 'min_cvt':
+        # version 1
+        # n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
+        # n_fmap_b3 = [[32,24], [64], [192], [96,384], [232,384,1536]]
+        # # version 2
+        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,112]] 
+        n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]]  
+    else:
+        raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
+    
+
+
+    # MGN parameter
+    MGN = True
+    loss_weights = [1, 1, 1, 1, 1, 1, 1, 1]
+    lw_alpha = 1.5
 
 	# for Data
     seq_len = 1 # jumlah input seq
@@ -49,7 +75,7 @@ class GlobalConfig:
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10'] # HD
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:
@@ -66,10 +92,24 @@ class GlobalConfig:
                     break
                 else:
                     break
-
     if low_data:
         random.seed(0)
-        val_data = random.sample(val_data,int(low_data_rate*len(val_data)))
+#        train_data = random.sample(train_data,int(0.02*len(train_data)))
+        val_data = random.sample(val_data,int(0.2*len(val_data)))
+
+        # train_data = train_data[:int(0.05*len(train_data))]
+        # val_data = val_data[:int(0.1*len(val_data))]
+
+    #buat prediksi expert, test
+    test_data = []
+    test_weather = 'Run3_ClearNoon' #ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset, Run1_ClearNoon, Run2_ClearNoon, Run3_ClearNoon
+    test_scenario = 'ADVERSARIAL' #NORMAL ADVERSARIAL
+    expert_dir = '/media/aisl/data/XTRANSFUSER/EXPERIMENT_RUN/8T1W/EXPERT/'+test_scenario+'/'+test_weather  #8T1W 8T14W
+    for town in val_towns: #test town = val town
+        test_data.append(os.path.join(expert_dir, 'Expert_w1')) #Expert Expert_w1
+
+    ignore_sides = True # don't consider side cameras
+    ignore_rear = True # don't consider rear cameras
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
@@ -77,6 +117,13 @@ class GlobalConfig:
     # input_resolution = [160,160] # PMLR dataset #512
   #  coverage_area = [64,64]
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
+
+    camera_width = 960
+    camera_height = 480
+    img_width_cut = 320
+    img_resolution = (160,704)
+
+
 
     # camera intrinsic
     img_width = 352
@@ -132,24 +179,7 @@ class GlobalConfig:
                             'Bridge', 'RailTrack', 'GuardRail', 'TrafficLight', 'Static',
                             'Dynamic', 'Water', 'Terrain']
     }
-
-    if kind == 'cvt_effnet' or kind == 'effnet' or kind == 'rest':
-        # parameters for Effnet
-        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
-        n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] 
-    elif kind == 'cvt_cnn':
-    # parameters for CVT
-        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
-        n_fmap_b3 = [[40,32], [64], [192], [96,384], [232,384,1536]] 
-    elif kind == 'min_cvt':
-        # version 1
-        # n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
-        # n_fmap_b3 = [[32,24], [64], [192], [96,384], [232,384,1536]]
-        # # version 2
-        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,112]] 
-        n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]] 
-    else:
-        raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
+        
 
     ## fusion settings
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]

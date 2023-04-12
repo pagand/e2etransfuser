@@ -1,6 +1,6 @@
 #!/bin/bash
-export CARLA_ROOT=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/carla
-#export CARLA_ROOT=/localhome/pagand/projects/e2etransfuser/carla/
+#export CARLA_ROOT=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/carla
+export CARLA_ROOT=/localhome/pagand/projects/e2etransfuser/carla/
 export CARLA_SERVER=${CARLA_ROOT}/CarlaUE4.sh
 export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI
 export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI/carla

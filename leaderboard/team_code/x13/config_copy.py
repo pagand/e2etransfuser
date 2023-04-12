@@ -2,7 +2,7 @@ import os
 
 class GlobalConfig:
     gpu_id = '0'
-    model = 'mohammad_3_image_5_ma_20th'
+    model = 'wandbname'
     logdir = 'log/'+model#+'_w1'
     init_stop_counter = 15
 

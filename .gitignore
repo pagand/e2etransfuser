@@ -5,7 +5,7 @@ aim/log/*
 cilrs/log/*
 x13/log/*
 s13/log/*
-data/*
+./data/*
 carla/*
 *.pyc
 cs-venus*

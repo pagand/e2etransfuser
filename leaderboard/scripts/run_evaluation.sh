@@ -24,8 +24,8 @@ export ROUTES=leaderboard/data/all_routes/routes_town05_long.xml #look at leader
 export SCENARIOS=leaderboard/data/scenarios/town05_all_scenarios.json #look at leaderboard/data/scenarios town05_all_scenarios OR no_scenarios.json
 export PORT=2000 # same as the carla server port
 export TM_PORT=2050 # port for traffic manager, required when spawning multiple servers/clients
-#export TEAM_CONFIG=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/log/mohammad_3_image_solve_smc_march_24th
-export TEAM_CONFIG=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/log/testmin_cvt_v2/retrain
+#export TEAM_CONFIG=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/log/testmin_cvt_v2/retrain
+export TEAM_CONFIG=${MODEL}/log/${MODEL}
 export CHECKPOINT_ENDPOINT=${SAVE_PATH}/eval_result.json # results file
 export TEAM_AGENT=leaderboard/team_code/${MODEL}_agent.py
 

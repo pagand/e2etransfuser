@@ -2,12 +2,12 @@ import os
 import random
 
 class GlobalConfig:
-    num_worker = 0# for debugging 0
+    num_worker = 4# for debugging 0
     gpu_id = '0'
-    wandb = True
+    wandb = False
     low_data = True
-#    wandb_name = 'x13_small_data'
-    wandb_name = 'randomized_low_data'
+    wandb_name = 'x13_small_data'
+    #wandb_name = 'randomized_low_data'
 
     # TODO: correct the forward path in case of change
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config

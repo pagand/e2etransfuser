@@ -439,25 +439,25 @@ class x13(nn.Module): #
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
         )
-
-        blocks = []
-        for j in range(depth):
-            blocks.append(
-                Fusion_Block(
-                    dim_in=embed_dim_q+embed_dim_kv,
-                    dim_out=embed_dim_q+embed_dim_kv,
-                    num_heads=num_heads,
-                    mlp_ratio=mlp_ratio,
-                    qkv_bias=qkv_bias,
-                    drop=drop_rate,
-                    attn_drop=attn_drop_rate,
-                    drop_path=dpr[j],
-                    act_layer=act_layer,
-                    norm_layer=norm_layer,
-                )
-            )
-        self.blocks = nn.ModuleList(blocks)
-        self.input_buffer = {'depth': deque()}
+	if config.attn:
+		blocks = []
+		for j in range(depth):
+		    blocks.append(
+			Fusion_Block(
+			    dim_in=embed_dim_q+embed_dim_kv,
+			    dim_out=embed_dim_q+embed_dim_kv,
+			    num_heads=num_heads,
+			    mlp_ratio=mlp_ratio,
+			    qkv_bias=qkv_bias,
+			    drop=drop_rate,
+			    attn_drop=attn_drop_rate,
+			    drop_path=dpr[j],
+			    act_layer=act_layer,
+			    norm_layer=norm_layer,
+			)
+		    )
+		self.blocks = nn.ModuleList(blocks)
+		self.input_buffer = {'depth': deque()}
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command ):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------

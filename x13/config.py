@@ -181,7 +181,7 @@ class GlobalConfig:
                             'Dynamic', 'Water', 'Terrain']
     }
         
-
+    attn = False
     ## fusion settings
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]

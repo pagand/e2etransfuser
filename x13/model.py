@@ -355,6 +355,12 @@ class x13(nn.Module): #
         self.cover_area = config.coverage_area
         self.n_class = config.n_class
         self.h, self.w = config.input_resolution[0], config.input_resolution[1]
+	
+	#fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
+        #fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
+
+        # fx = 160# 160 (for fov 86 deg, 300 image size)
+        #self.x_matrix = torch.vstack([torch.arange(-self.w/2, self.w/2)]*self.h) / fx
 
         fovh = np.rad2deg(2.0 * np.arctan((self.config.img_height / self.config.img_width) * np.tan(0.5 * np.radians(self.config.fov))))
 #        self.fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
@@ -386,17 +392,18 @@ class x13(nn.Module): #
         # )
 
         #------------------------------------------------------------------------------------------------
-        embed_dim_q = self.config.fusion_embed_dim_q
-        embed_dim_kv = self.config.fusion_embed_dim_kv
-        depth = self.config.fusion_depth
-        num_heads = self.config.fusion_num_heads
-        mlp_ratio = self.config.fusion_mlp_ratio
-        qkv_bias = self.config.fusion_qkv
-        drop_rate = self.config.fusion_drop_rate
-        attn_drop_rate = self.config.fusion_attn_drop_rate
-        dpr = self.config.fusion_dpr
-        act_layer=nn.GELU
-        norm_layer =nn.LayerNorm
+	if config.attn:
+		embed_dim_q = self.config.fusion_embed_dim_q
+		embed_dim_kv = self.config.fusion_embed_dim_kv
+		depth = self.config.fusion_depth
+		num_heads = self.config.fusion_num_heads
+		mlp_ratio = self.config.fusion_mlp_ratio
+		qkv_bias = self.config.fusion_qkv
+		drop_rate = self.config.fusion_drop_rate
+		attn_drop_rate = self.config.fusion_attn_drop_rate
+		dpr = self.config.fusion_dpr
+		act_layer=nn.GELU
+		norm_layer =nn.LayerNorm
         #------------------------------------------------------------------------------------------------
         #Speed predictor
         # self.speed_head = nn.Sequential(
@@ -800,6 +807,7 @@ class x13(nn.Module): #
         assert(waypoints.size(0)==1)
         waypoints = waypoints[0].data.cpu().numpy()
         red_light = True if redl.data.cpu().numpy() > 0.5 else False
+	stop_sign = True if stops.data.cpu().numpy() > 0.5 else False
 
         waypoints[:,1] *= -1
         speed = velocity[0].data.cpu().numpy()
@@ -880,6 +888,7 @@ class x13(nn.Module): #
             'throttle': float(throttle),
             'brake': float(brake),
             'red_light': float(red_light),
+	    'stop_sign': float(stop_sign),
             'cw_pid': [float(self.config.cw_pid[0]), float(self.config.cw_pid[1]), float(self.config.cw_pid[2])],
             'pid_steer': float(pid_steer),
             'pid_throttle': float(pid_throttle),

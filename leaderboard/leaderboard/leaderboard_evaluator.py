@@ -487,6 +487,10 @@ def main():
     parser.add_argument("--weather", type=str, help="Weather yang diinginkan, lihat utilx/environmentx.py", default='ClearNoon')
 
     arguments = parser.parse_args()
+    # arguments = parser.parse_args(["--scenarios","","--routes","","--repetitions","","--track","","--checkpoint","","--agent","","--agent-config",""
+                                #    "--debug","","--record","","--resume","","--port","","--trafficManagerPort","","--weather",""])
+
+
 
     statistics_manager = StatisticsManager()
 

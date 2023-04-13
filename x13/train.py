@@ -11,13 +11,12 @@ import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
 from model import x13
-from data_from_pmlr import CARLA_Data
+from data import CARLA_Data
 # from data import CARLA_Data
 from config import GlobalConfig
 from torch.utils.tensorboard import SummaryWriter
 
 import wandb
-
 
 class RandomSampler(object):
     def __init__(self, data_source, num_samples=None):
@@ -43,10 +42,6 @@ class RandomSampler(object):
 
     def __len__(self):
         return self.num_samples
-
-
-
-
 
 class AverageMeter(object):
     def __init__(self):
@@ -93,13 +88,13 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 	model.train()
 	prog_bar = tqdm(total=len(data_loader))
 
-	#training....
+	#training...
 	total_batch = len(data_loader)
+	print("data amount is:")
+	print(total_batch)
 	batch_ke = 0
 	for data in data_loader:
 		cur_step = cur_epoch*total_batch + batch_ke
-
-
 		fronts = data['fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
 		seg_fronts = data['seg_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
 		depth_fronts = data['depth_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
@@ -120,8 +115,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 
 		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _, speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)#,seg_fronts
 
-		
-		
 		if cur_epoch< config.cvt_freezed_epoch and list(model.named_parameters())[0][1].requires_grad: # freeze CVT
 			if list(model.named_parameters())[0][0][:3] != 'cvt' :
 				raise Exception("The order number of the CVT is changed in the arch, please consider changing accordingly")
@@ -140,8 +133,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			# for index ,(_, param0) in enumerate(model.named_parameters()):
 			# 	if index<= 337: # all  the CVT layers
 			# 		param0.requires_grad = True
-
-
 
 
 		#compute loss
@@ -185,7 +176,10 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				optimizer_lw.zero_grad()
 				total_loss.backward(retain_graph=True) # retain graph because the graph is still used for calculation
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
-				# in case of model freeze, we should change the bottleneck values
+				
+
+
+                                # in case of model freeze, we should change the bottleneck values
 				d = len(list(model.parameters()))-len(params)
 				if d: # we have freezed parameters in the front
 					G0, G1, G2, G3, G4, G5, G6 = None, None,None,None,None,None,None
@@ -288,7 +282,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		score['stops_loss'].update(loss_stops.item())
 		score['speed_loss'].update(loss_speed.item())
 
-
 		postfix = OrderedDict([('t_total_l', score['total_loss'].avg),
 							('t_ss_l', score['ss_loss'].avg),
 							('t_wp_l', score['wp_loss'].avg),
@@ -335,12 +328,11 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 	with torch.no_grad():
 		prog_bar = tqdm(total=len(data_loader))
 
-		#validasi....
+		#validation....
 		total_batch = len(data_loader)
 		batch_ke = 0
 		for data in data_loader:
 			cur_step = cur_epoch*total_batch + batch_ke
-
 			fronts = data['fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
 			seg_fronts = data['seg_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
 			depth_fronts = data['depth_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
@@ -367,6 +359,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			loss_redl = F.l1_loss(red_light, gt_red_light)
 			loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
 			loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)
+
 			total_loss = loss_seg + loss_wp + loss_str + loss_thr + loss_brk + loss_redl + loss_stops + loss_speed
 
 			score['total_loss'].update(total_loss.item())
@@ -416,7 +409,7 @@ def main():
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
-	os.environ["CUDA_VISIBLE_DEVICES"]=config.gpu_id#visible_gpu #"0" "1" "0,1"
+	os.environ["CUDA_VISIBLE_DEVICES"]=config.gpu_id   #visible_gpu #"0" "1" "0,1"
 
 	#IMPORT MODEL
 	print("IMPORT ARSITEKTUR DL DAN COMPILE")
@@ -429,16 +422,18 @@ def main():
 	optima = optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
 	scheduler = optim.lr_scheduler.ReduceLROnPlateau(optima, mode='min', factor=0.5, patience=3, min_lr=1e-6)
 
-	#BUAT DATA BATCH
+	#CREATE DATA BATCH
 	train_set = CARLA_Data(root=config.train_data, config=config)
 	val_set = CARLA_Data(root=config.val_data, config=config)
 	if len(train_set)%config.batch_size == 1:
 		drop_last = True 
 	else: 
 		drop_last = False
+
+
 	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
-	# dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=170726, size=(config.random_data_len,)),config.random_data_len))
-	
+	#dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=170726, size=(config.random_data_len,)),config.random_data_len))
+
 	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 	
 	if not os.path.exists(config.logdir+"/trainval_log.csv"):
@@ -525,9 +520,9 @@ def main():
 		train_log, new_params_lw, lgrad = train(dataloader_train, model, config, writer, epoch, device, optima, curr_lw, optima_lw)
 		val_log = validate(dataloader_val, model, config, writer, epoch, device)
 		if config.MGN:
-			optima_lw.param_groups[0]['params'] = renormalize_params_lw(new_params_lw, config) #harus diclone supaya benar2 terpisah
+			optima_lw.param_groups[0]['params'] = renormalize_params_lw(new_params_lw, config) #have to be cloned so that they are completely separated
 			print("total loss gradient: "+str(lgrad))
-		scheduler.step(val_log['v_total_l']) #parameter acuan reduce LR adalah val_total_metric
+		scheduler.step(val_log['v_total_l']) #the reference parameter to reduce LR is val_total_metric
 		optima_lw.param_groups[0]['lr'] = optima.param_groups[0]['lr'] #update lr disamakan
 		elapsed_time = time.time() - start_time #hitung elapsedtime
 
@@ -598,7 +593,7 @@ def main():
 
 		# early stopping 
 		if stop_count==0:
-			print("TRAINING BERHENTI KARENA TIDAK ADA PENURUNAN TOTAL LOSS DALAM %d EPOCH TERAKHIR" % (config.init_stop_counter))
+			print("TRAINING STOPPED BECAUSE THERE IS NO DECREASE IN TOTAL LOSS IN THE LAST %d EPOCH" % (config.init_stop_counter))
 			break #loop
 		
 

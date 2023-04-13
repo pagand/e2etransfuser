@@ -7,11 +7,14 @@ class GlobalConfig:
     wandb = False
     low_data = True
     wandb_name = 'x13_small_data'
+    #wandb_name = 'randomized_low_data'
 
     # TODO: correct the forward path in case of change
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
 
-    model = 'speed_cmd(out1cvt)'
+#    model = 'speed_cmd(out1cvt)'  # run name
+    model = 'test_with_SpeedandCommand_'  # run name
+
     model += kind+'_v2'
     logdir = 'log/'+model #+'_w1' for 1 weather only
 
@@ -29,8 +32,9 @@ class GlobalConfig:
 
     n_class = 23
     batch_size = 20 #20
-    total_epoch = 20
-    random_data_len = int(188660 *0.2)# 20% of the dataloade each epoch 170740 
+    total_epoch = 20 #30
+
+    random_data_len = int(188660 *0.2) #int(170740 * 0.2 )  # 20% of the dataloade each epoch 170740 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
@@ -52,26 +56,27 @@ class GlobalConfig:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
 
+
     # MGN parameter
     MGN = True
     loss_weights = [1, 1, 1, 1, 1, 1, 1, 1]
     lw_alpha = 1.5
-    
 
 	# for Data
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
-    # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'  # for the PMLR dataset
+    #root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
+    #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'#  '/localscratch/mmahdavi/transfuser/data' #  for the PAMI dataset
+    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data' # for the PAMI dataset
 
     train_data, val_data = [], []
 
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10'] #HD
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10'] # HD
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:
@@ -90,21 +95,35 @@ class GlobalConfig:
                     break
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.02*len(train_data)))
+#        train_data = random.sample(train_data,int(0.02*len(train_data)))
         val_data = random.sample(val_data,int(0.2*len(val_data)))
 
         # train_data = train_data[:int(0.05*len(train_data))]
         # val_data = val_data[:int(0.1*len(val_data))]
-    
 
-    
+    #buat prediksi expert, test
+    test_data = []
+    test_weather = 'Run3_ClearNoon' #ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset, Run1_ClearNoon, Run2_ClearNoon, Run3_ClearNoon
+    test_scenario = 'ADVERSARIAL' #NORMAL ADVERSARIAL
+    expert_dir = '/media/aisl/data/XTRANSFUSER/EXPERIMENT_RUN/8T1W/EXPERT/'+test_scenario+'/'+test_weather  #8T1W 8T14W
+    for town in val_towns: #test town = val town
+        test_data.append(os.path.join(expert_dir, 'Expert_w1')) #Expert Expert_w1
+
+    ignore_sides = True # don't consider side cameras
+    ignore_rear = True # don't consider rear cameras
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
     input_resolution = [160,768] # PMLR dataset #768
     # input_resolution = [160,160] # PMLR dataset #512
-    # coverage_area = 64
+  #  coverage_area = [64,64]
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
+
+    camera_width = 960
+    camera_height = 480
+    img_width_cut = 320
+    img_resolution = (160,704)
+
 
 
     # camera intrinsic
@@ -112,8 +131,6 @@ class GlobalConfig:
     img_height = 160
     fov = 2*60
     
-   
-
     scale = 1 # image pre-processing
     # crop = 256 # image pre-processing # CVPR dataset
     crop = 160 # image pre-processing # CVPR dataset
@@ -164,7 +181,17 @@ class GlobalConfig:
                             'Dynamic', 'Water', 'Terrain']
     }
         
-
+    attn = False
+    ## fusion settings
+    fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
+    fusion_embed_dim_kv = n_fmap_b1[3][-1]
+    fusion_depth = 4 #1
+    fusion_num_heads = 8 #1
+    fusion_mlp_ratio = 4
+    fusion_qkv = True
+    fusion_drop_rate = 0
+    fusion_attn_drop_rate = 0
+    fusion_dpr = [0,0,0,0] # [0.1,0.2,0.3,0.4]
 
     def __init__(self, **kwargs):
         for k,v in kwargs.items():

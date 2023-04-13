@@ -22,9 +22,9 @@ class CARLA_Data(Dataset):
 
         self.lidar = []
         self.front = []
-        self.left = []
-        self.right = []
-        self.rear = []
+  #      self.left = []
+  #      self.right = []
+  #      self.rear = []
         self.x = []
         self.y = []
         self.x_command = []
@@ -42,9 +42,9 @@ class CARLA_Data(Dataset):
             # dump to npy if no preload
             if not os.path.exists(preload_file):
                 preload_front = []
-                preload_left = []
-                preload_right = []
-                preload_rear = []
+         #       preload_left = []
+         #       preload_right = []
+         #       preload_rear = []
                 preload_lidar = []
                 preload_x = []
                 preload_y = []
@@ -66,13 +66,13 @@ class CARLA_Data(Dataset):
                     # subtract final frames (pred_len) since there are no future waypoints
                     # first frame of sequence not used
                     
-                    num_seq = (len(os.listdir(route_dir+"/rgb_front/"))-self.pred_len-2)//self.seq_len
+                    num_seq = (len(os.listdir(route_dir+"/rgb/"))-self.pred_len-2)//self.seq_len
                     
                     for seq in range(num_seq):
                         fronts = []
-                        lefts = []
-                        rights = []
-                        rears = []
+              #          lefts = []
+              #          rights = []
+              #          rears = []
                         lidars = []
                         xs = []
                         ys = []
@@ -82,10 +82,10 @@ class CARLA_Data(Dataset):
                         for i in range(self.seq_len):
                             # images
                             filename = f"{str(seq*self.seq_len+1+i).zfill(4)}.png"
-                            fronts.append(route_dir+"/rgb_front/"+filename)
-                            lefts.append(route_dir+"/rgb_left/"+filename)
-                            rights.append(route_dir+"/rgb_right/"+filename)
-                            rears.append(route_dir+"/rgb_rear/"+filename)
+                            fronts.append(route_dir+"/rgb/"+filename)
+                   #         lefts.append(route_dir+"/rgb_left/"+filename)
+                   #         rights.append(route_dir+"/rgb_right/"+filename)
+                   #         rears.append(route_dir+"/rgb_rear/"+filename)
 
                             # point cloud
                             lidars.append(route_dir + f"/lidar/{str(seq*self.seq_len+1+i).zfill(4)}.npy")
@@ -124,9 +124,9 @@ class CARLA_Data(Dataset):
                                 thetas.append(data['theta'])
 
                         preload_front.append(fronts)
-                        preload_left.append(lefts)
-                        preload_right.append(rights)
-                        preload_rear.append(rears)
+           #             preload_left.append(lefts)
+           #             preload_right.append(rights)
+           #             preload_rear.append(rears)
                         preload_lidar.append(lidars)
                         preload_x.append(xs)
                         preload_y.append(ys)
@@ -135,9 +135,9 @@ class CARLA_Data(Dataset):
                 # dump to npy
                 preload_dict = {}
                 preload_dict['front'] = preload_front
-                preload_dict['left'] = preload_left
-                preload_dict['right'] = preload_right
-                preload_dict['rear'] = preload_rear
+        #        preload_dict['left'] = preload_left
+        #        preload_dict['right'] = preload_right
+        #        preload_dict['rear'] = preload_rear
                 preload_dict['lidar'] = preload_lidar
                 preload_dict['x'] = preload_x
                 preload_dict['y'] = preload_y
@@ -154,9 +154,9 @@ class CARLA_Data(Dataset):
             # load from npy if available
             preload_dict = np.load(preload_file, allow_pickle=True)
             self.front += preload_dict.item()['front']
-            self.left += preload_dict.item()['left']
-            self.right += preload_dict.item()['right']
-            self.rear += preload_dict.item()['rear']
+    #        self.left += preload_dict.item()['left']
+    #        self.right += preload_dict.item()['right']
+    #        self.rear += preload_dict.item()['rear']
             self.lidar += preload_dict.item()['lidar']
             self.x += preload_dict.item()['x']
             self.y += preload_dict.item()['y']
@@ -178,15 +178,15 @@ class CARLA_Data(Dataset):
         """Returns the item at index idx. """
         data = dict()
         data['fronts'] = []
-        data['lefts'] = []
-        data['rights'] = []
-        data['rears'] = []
+  #      data['lefts'] = []
+  #      data['rights'] = []
+  #      data['rears'] = []
         data['lidars'] = []
 
         seq_fronts = self.front[index]
-        seq_lefts = self.left[index]
-        seq_rights = self.right[index]
-        seq_rears = self.rear[index]
+    #    seq_lefts = self.left[index]
+    #    seq_rights = self.right[index]
+    #    seq_rears = self.rear[index]
         seq_lidars = self.lidar[index]
         seq_x = self.x[index]
         seq_y = self.y[index]
@@ -198,16 +198,16 @@ class CARLA_Data(Dataset):
         for i in range(self.seq_len):
             data['fronts'].append(torch.from_numpy(np.array(
                 scale_and_crop_image(Image.open(seq_fronts[i]), scale=self.scale, crop=self.input_resolution))))
-            if not self.ignore_sides:
-                data['lefts'].append(torch.from_numpy(np.array(
-                    scale_and_crop_image(Image.open(seq_lefts[i]), scale=self.scale, crop=self.input_resolution))))
-                data['rights'].append(torch.from_numpy(np.array(
-                    scale_and_crop_image(Image.open(seq_rights[i]), scale=self.scale, crop=self.input_resolution))))
-            if not self.ignore_rear:
-                data['rears'].append(torch.from_numpy(np.array(
-                    scale_and_crop_image(Image.open(seq_rears[i]), scale=self.scale, crop=self.input_resolution))))
+      #      if not self.ignore_sides:
+      #          data['lefts'].append(torch.from_numpy(np.array(
+      #              scale_and_crop_image(Image.open(seq_lefts[i]), scale=self.scale, crop=self.input_resolution))))
+      #          data['rights'].append(torch.from_numpy(np.array(
+      #              scale_and_crop_image(Image.open(seq_rights[i]), scale=self.scale, crop=self.input_resolution))))
+      #      if not self.ignore_rear:
+      #          data['rears'].append(torch.from_numpy(np.array(
+      #              scale_and_crop_image(Image.open(seq_rears[i]), scale=self.scale, crop=self.input_resolution))))
             
-            lidar_unprocessed = np.load(seq_lidars[i])[...,:3] # lidar: XYZI
+            lidar_unprocessed = np.load(seq_lidars[i],allow_pickle=True)[1][...,:3] # lidar: XYZI
             full_lidar.append(lidar_unprocessed)
         
             # fix for theta=nan in some measurements
@@ -220,7 +220,7 @@ class CARLA_Data(Dataset):
 
         # future frames
         for i in range(self.seq_len, self.seq_len + self.pred_len):
-            lidar_unprocessed = np.load(seq_lidars[i])
+            lidar_unprocessed = np.load(seq_lidars[i],allow_pickle=True)[1][...,:3]
             full_lidar.append(lidar_unprocessed)      
 
         # lidar and waypoint processing to local coordinates
@@ -237,7 +237,7 @@ class CARLA_Data(Dataset):
             if i < self.seq_len:
                 # convert coordinate frame of point cloud
                 full_lidar[i][:,1] *= -1 # inverts x, y
-                full_lidar[i] = transform_2d_points(full_lidar[i], 
+                full_lidar[i] = transform_2d_points(full_lidar[i][1], 
                     np.pi/2-seq_theta[i], -seq_x[i], -seq_y[i], np.pi/2-ego_theta, -ego_x, -ego_y)
                 lidar_processed = lidar_to_histogram_features(full_lidar[i], crop=self.input_resolution)
                 data['lidars'].append(lidar_processed)

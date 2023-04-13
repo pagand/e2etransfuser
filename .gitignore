@@ -5,9 +5,14 @@ aim/log/*
 cilrs/log/*
 x13/log/*
 s13/log/*
-data/*
+./data/*
 carla/*
+*.pyc
+cs-venus*
+my_test.sh
 
+x13/model_*
+x13/wandb
 !data/README.md
 cvt/DATASET/
 cvt/OUTPUT/
@@ -22,8 +27,10 @@ wandb/
 .vscode/
 data/Town*
 log/
+log_pmlr/
 x13_GT/
 *.pyc
+test_codes/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

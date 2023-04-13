@@ -1,12 +1,23 @@
-from collections import deque
+from collections import deque, OrderedDict
 import sys
 import numpy as np
 from torch import torch, cat, add, nn
 import torch.nn.functional as F
 import torchvision.models as models
 import torchvision.transforms as transforms
-
 from transformers import CvtModel #, AutoImageProcessor
+
+
+# can be ignored
+import matplotlib.pyplot as plt
+from einops import rearrange
+from einops.layers.torch import Rearrange
+from timm.models.layers import DropPath, trunc_normal_
+import time
+import os
+import cv2
+from torchvision.transforms.functional import rotate
+# can be ignored
 
 
 
@@ -75,7 +86,210 @@ class PIDController(object):
             derivative = 0.0
         out_control = self._K_P * error + self._K_I * integral + self._K_D * derivative
         return out_control
+    
+class Mlp(nn.Module):
+    def __init__(self,
+                 in_features,
+                 hidden_features=None,
+                 out_features=None,
+                 act_layer=nn.GELU,
+                 drop=0.):
+        super().__init__()
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+        self.fc1 = nn.Linear(in_features, hidden_features)
+        self.act = act_layer()
+        self.fc2 = nn.Linear(hidden_features, out_features)
+        self.drop = nn.Dropout(drop)
 
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.act(x)
+        x = self.drop(x)
+        x = self.fc2(x)
+        x = self.drop(x)
+        return x
+
+class Attention_2D(nn.Module):
+    def __init__(self,
+                 dim_q,
+                 dim_kv,
+                 num_heads,
+                 qkv_bias=False,
+                 attn_drop=0.,
+                 proj_drop=0.,
+                 method='dw_bn',
+                 kernel_size=3,
+                 stride_kv=1,
+                 stride_q=1,
+                 padding_kv=1,
+                 padding_q=1,
+                 with_cls_token=False,
+                 ):
+        super().__init__()
+        self.stride_kv = stride_kv
+        self.stride_q = stride_q
+        self.dim = dim_q
+        self.num_heads = num_heads
+        # head_dim = self.qkv_dim // num_heads
+        self.scale = dim_q ** -0.5
+        self.with_cls_token = with_cls_token
+
+        self.conv_proj_q = self._build_projection(
+            dim_q, dim_q, kernel_size, padding_q,
+            1, 'linear' if method == 'avg' else method
+        )
+        self.conv_proj_k = self._build_projection(
+            dim_kv, dim_q, kernel_size, padding_kv,
+            1, method
+        )
+        self.conv_proj_v = self._build_projection(
+            dim_kv, dim_q, kernel_size, padding_kv,
+            1, method
+        )
+
+        self.proj_q = nn.Linear(dim_q, dim_q, bias=qkv_bias)
+        self.proj_k = nn.Linear(dim_q, dim_q, bias=qkv_bias)
+        self.proj_v = nn.Linear(dim_q, dim_q, bias=qkv_bias)
+
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.proj = nn.Linear(dim_q, dim_q)
+        self.proj_drop = nn.Dropout(proj_drop)
+
+    def _build_projection(self,
+                          dim_in,
+                          dim_out,
+                          kernel_size,
+                          padding,
+                          stride,
+                          method):
+        if method == 'dw_bn':
+            proj = nn.Sequential(OrderedDict([
+                ('conv', nn.Conv2d(
+                    dim_in,
+                    dim_out,
+                    kernel_size=kernel_size,
+                    padding=padding,
+                    stride=stride,
+                    bias=False,
+                    groups=1 #dim_in
+                )),
+                ('bn', nn.BatchNorm2d(dim_out)),
+                ('rearrage', Rearrange('b c h w -> b (h w) c')),
+            ]))
+        elif method == 'avg':
+            proj = nn.Sequential(OrderedDict([
+                ('avg', nn.AvgPool2d(
+                    kernel_size=kernel_size,
+                    padding=padding,
+                    stride=stride,
+                    ceil_mode=True
+                )),
+                ('rearrage', Rearrange('b c h w -> b (h w) c')),
+            ]))
+        elif method == 'linear':
+            proj = None
+        else:
+            raise ValueError('Unknown method ({})'.format(method))
+
+        return proj
+
+    def forward_conv(self, x, y, h, w):
+        if self.with_cls_token:
+            cls_token, x = torch.split(x, [1, h*w], 1)
+
+        x = rearrange(x, 'b (h w) c -> b c h w', h=h, w=w)
+        y = rearrange(y, 'b (h w) c -> b c h w', h=h, w=w)
+
+        if self.conv_proj_q is not None:
+            q = self.conv_proj_q(x)
+        else:
+            q = rearrange(x, 'b c h w -> b (h w) c')
+
+        if self.conv_proj_k is not None:
+            k = self.conv_proj_k(y)
+        else:
+            k = rearrange(y, 'b c h w -> b (h w) c')
+
+        if self.conv_proj_v is not None:
+            v = self.conv_proj_v(y)
+        else:
+            v = rearrange(y, 'b c h w -> b (h w) c')
+
+        if self.with_cls_token:
+            q = torch.cat((cls_token, q), dim=1)
+            k = torch.cat((cls_token, k), dim=1)
+            v = torch.cat((cls_token, v), dim=1)
+
+        return q, k, v
+
+    def forward(self, x, y, h, w):
+        if (
+            self.conv_proj_q is not None
+            or self.conv_proj_k is not None
+            or self.conv_proj_v is not None
+        ):
+            q, k, v = self.forward_conv(x, y, h, w)
+
+        q = rearrange(self.proj_q(q), 'b t (h d) -> b h t d', h=self.num_heads)
+        k = rearrange(self.proj_k(k), 'b t (h d) -> b h t d', h=self.num_heads)
+        v = rearrange(self.proj_v(v), 'b t (h d) -> b h t d', h=self.num_heads)
+
+        attn_score = torch.einsum('bhlk,bhtk->bhlt', [q, k]) * self.scale
+        attn = F.softmax(attn_score, dim=-1)
+        attn = self.attn_drop(attn)
+
+        x = torch.einsum('bhlt,bhtv->bhlv', [attn, v])
+        x = rearrange(x, 'b h t d -> b t (h d)')
+
+        x = self.proj(x)
+        x = self.proj_drop(x)
+
+        return x
+    
+class Fusion_Block(nn.Module):
+    def __init__(self,
+                 dim_in,
+                 dim_out,
+                 num_heads,
+                 mlp_ratio=4.,
+                 qkv_bias=False,
+                 drop=0.,
+                 attn_drop=0.,
+                 drop_path=0.,
+                 act_layer=nn.GELU,
+                 norm_layer=nn.LayerNorm):
+        super().__init__()
+
+        self.with_cls_token = False
+
+        self.norm1 = norm_layer(dim_in)
+        self.attn = Attention_2D(
+            dim_in, dim_out, num_heads, qkv_bias, attn_drop, drop,
+        )
+
+        self.drop_path = DropPath(drop_path) \
+            if drop_path > 0. else nn.Identity()
+        self.norm3 = norm_layer(dim_in)
+
+        dim_mlp_hidden = int(dim_out * mlp_ratio)
+        self.mlp = Mlp(
+            in_features=dim_in,
+            hidden_features=dim_mlp_hidden,
+            act_layer=act_layer,
+            drop=drop
+        )
+
+    def forward(self, features, h, w):
+        res = features
+
+        x = self.norm1(features)
+        attn = self.attn(x, x, h, w)
+        x = res + self.drop_path(attn)
+        x = x + self.drop_path(self.mlp(self.norm3(x)))
+
+        return x
+    
 class x13(nn.Module): #
     def __init__(self, config, device):
         super(x13, self).__init__()
@@ -115,6 +329,7 @@ class x13(nn.Module): #
             self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
         else:
             self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[4][-1]+config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
+        
         self.conv2_ss_f = ConvBlock(channel=[config.n_fmap_b3[3][-1]+config.n_fmap_b3[2][-1], config.n_fmap_b3[2][-1]])
         self.conv1_ss_f = ConvBlock(channel=[config.n_fmap_b3[2][-1]+config.n_fmap_b3[1][-1], config.n_fmap_b3[1][-1]])
         self.conv0_ss_f = ConvBlock(channel=[config.n_fmap_b3[1][-1]+config.n_fmap_b3[0][-1], config.n_fmap_b3[0][0]])
@@ -125,30 +340,34 @@ class x13(nn.Module): #
         self.tls_predictor = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], 1), #2 we don't have stop sign
+            nn.Linear(config.n_fmap_b3[4][-1], 1),
             nn.Sigmoid()
         )
-        # # option 2 (only for min_cvt version 2)
-        # self.tls_predictor = nn.Sequential( 
-        #     nn.AdaptiveAvgPool2d(2),
-        #     nn.Flatten(),
-        #     nn.Linear(config.n_fmap_b3[3][1], 1),#2 we don't have stop sign
-        #     nn.Sigmoid() #ReLU
-        # )
-        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])  #2 we don't have stop sign
+        self.tls_biasing_bypass = nn.Sequential( 
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
+            nn.Sigmoid()
+        )
+
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area
         self.n_class = config.n_class
         self.h, self.w = config.input_resolution[0], config.input_resolution[1]
-
-
-        fovh = np.rad2deg(2.0 * np.arctan((self.config.img_height / self.config.img_width) * np.tan(0.5 * np.radians(self.config.fov))))
-        fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
-        fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
+	
+	#fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
+        #fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
 
         # fx = 160# 160 (for fov 86 deg, 300 image size)
-        self.x_matrix = torch.vstack([torch.arange(-self.w/2, self.w/2)]*self.h) / fx
+        #self.x_matrix = torch.vstack([torch.arange(-self.w/2, self.w/2)]*self.h) / fx
+
+        fovh = np.rad2deg(2.0 * np.arctan((self.config.img_height / self.config.img_width) * np.tan(0.5 * np.radians(self.config.fov))))
+#        self.fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
+        fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
+
+        self.fx = 160  # 160 
+        self.x_matrix = torch.vstack([torch.arange(-self.w/2, self.w/2)]*self.h) / self.fx
         self.x_matrix = self.x_matrix.to(device)
         #SC
         self.SC_encoder = models.efficientnet_b1(pretrained=False) 
@@ -161,9 +380,30 @@ class x13(nn.Module): #
         self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
             nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
-             nn.Flatten(),
+            nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
+
+        # self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
+        #     nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+        #     nn.AdaptiveAvgPool2d(1),
+        #     nn.Flatten(),
+        #     nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
+        # )
+
+        #------------------------------------------------------------------------------------------------
+	if config.attn:
+		embed_dim_q = self.config.fusion_embed_dim_q
+		embed_dim_kv = self.config.fusion_embed_dim_kv
+		depth = self.config.fusion_depth
+		num_heads = self.config.fusion_num_heads
+		mlp_ratio = self.config.fusion_mlp_ratio
+		qkv_bias = self.config.fusion_qkv
+		drop_rate = self.config.fusion_drop_rate
+		attn_drop_rate = self.config.fusion_attn_drop_rate
+		dpr = self.config.fusion_dpr
+		act_layer=nn.GELU
+		norm_layer =nn.LayerNorm
         #------------------------------------------------------------------------------------------------
         #Speed predictor
         # self.speed_head = nn.Sequential(
@@ -178,16 +418,17 @@ class x13(nn.Module): #
 		# 				)
         
         self.speed_head = nn.Sequential(
-							nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
-							nn.ReLU(inplace=True),
-							# nn.Linear(256, 256),
-							# nn.Dropout2d(p=0.5),
-							# nn.ReLU(inplace=True),
-							nn.Linear(config.n_fmap_b3[3][0], 1),
-						)
+                nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
+                nn.ReLU(inplace=True),
+                # nn.Linear(256, 256),
+                # nn.Dropout2d(p=0.5),
+                # nn.ReLU(inplace=True),
+                nn.Linear(config.n_fmap_b3[3][0], 1),
+            )
         #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
-        self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
+        #self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
+        self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
         self.pred_dwp = nn.Linear(config.n_fmap_b3[4][0], 2)
         #PID Controller
         self.turn_controller = PIDController(K_P=config.turn_KP, K_I=config.turn_KI, K_D=config.turn_KD, n=config.turn_n)
@@ -195,11 +436,35 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #controller
         #MLP Controller
+        # self.controller = nn.Sequential(
+        #     nn.Linear(config.n_fmap_b3[3][0], config.n_fmap_b3[3][0]//2),
+        #     nn.Linear(config.n_fmap_b3[3][0]//2, 3),
+        #     nn.ReLU()
+        # )
         self.controller = nn.Sequential(
             nn.Linear(config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
         )
+	if config.attn:
+		blocks = []
+		for j in range(depth):
+		    blocks.append(
+			Fusion_Block(
+			    dim_in=embed_dim_q+embed_dim_kv,
+			    dim_out=embed_dim_q+embed_dim_kv,
+			    num_heads=num_heads,
+			    mlp_ratio=mlp_ratio,
+			    qkv_bias=qkv_bias,
+			    drop=drop_rate,
+			    attn_drop=attn_drop_rate,
+			    drop_path=dpr[j],
+			    act_layer=act_layer,
+			    norm_layer=norm_layer,
+			)
+		    )
+		self.blocks = nn.ModuleList(blocks)
+		self.input_buffer = {'depth': deque()}
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command ):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
@@ -233,7 +498,6 @@ class x13(nn.Module): #
         # # TODO: Comment next conv0_ss_f
         # # TODO: change self.necks_net for version 2 and the SC_features after 5
 
-
         # only Effnet
         #in_rgb = self.rgb_normalizer(rgb_f) #[i]
         #RGB_features0 = self.RGB_encoder.features[0](in_rgb)
@@ -255,9 +519,67 @@ class x13(nn.Module): #
         ss_f = self.conv1_ss_f(cat([self.up(ss_f), RGB_features2], dim=1))
         ss_f = self.conv0_ss_f(cat([self.up(ss_f), RGB_features1], dim=1))
         ss_f = self.final_ss_f(self.up(ss_f))
+
+        bs,ly,wi,hi = ss_f.shape
+        #------------------------------------------------------------------------------------------------
+        #create a semantic cloud
+        if False: #self.show:
+            big_top_view = torch.zeros((bs,ly,2*wi,2*hi)).cuda()
+            for i in range(3):
+                if i==0:
+                    width = 224 # 224
+                    depth_f_p = depth_f[:,:,:,:width]
+                    ss_f_p = gt_ss[:,:,:,:width]
+                    rot = 130 #60 # 43.3
+                    height_coverage = 120
+                    width_coverage = 300
+                elif i==1:
+                    width = 224 # 224
+                    depth_f_p = depth_f[:,:,:,-width:]
+                    ss_f_p = gt_ss[:,:,:,-width:]
+                    rot = -65 #-60 # -43.3
+                    height_coverage = 120
+                    width_coverage = 300
+                elif i==2:
+                    width = 320 # 320
+                    depth_f_p = depth_f[:,:,:,224:768-224]
+                    ss_f_p = gt_ss[:,:,:,224:768-224]
+                    rot = 0
+                    height_coverage = 160
+                    width_coverage = 320
+
+                big_top_view = self.gen_top_view_sc_show(big_top_view, depth_f_p, ss_f_p, rot, width, hi,height_coverage,width_coverage) #  ss_f  ,rgb_f
+
+            big_top_view = big_top_view[:,:,0:wi,768-160:768+160]
+            self.save2(gt_ss,big_top_view)
+        
+        big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
+        for i in range(3):
+            if i==0:
+                width = 224 # 224
+                rot = 130 #60 # 43.3
+                height_coverage = 120
+                width_coverage = 300
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
+            elif i==1:
+                width = 224 # 224
+                rot = -65 #-60 # -43.3
+                height_coverage = 120
+                width_coverage = 300
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
+            elif i==2:
+                width = 320 # 320
+                rot = 0
+                height_coverage = 160
+                width_coverage = 320
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
+
+        top_view_sc = big_top_view[:,:,:wi,:]
+
+        #downsampling section
         #------------------------------------------------------------------------------------------------
         #buat semantic cloud
-        top_view_sc = self.gen_top_view_sc(depth_f, ss_f ) # ss_f gt_ss ,rgb_f
+        #top_view_sc = self.gen_top_view_sc(depth_f, ss_f ) # ss_f gt_ss ,rgb_f
         #bagian downsampling
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
         SC_features1 = self.SC_encoder.features[1](SC_features0)
@@ -269,16 +591,21 @@ class x13(nn.Module): #
         # SC_features6 = self.SC_encoder.features[6](SC_features5)
         # SC_features7 = self.SC_encoder.features[7](SC_features6)
         # SC_features8 = self.SC_encoder.features[8](SC_features7)
+
+        #------------------------------------------------------------------------------------------------
+        #red light and stop sign detection
+        redl_stops = self.tls_predictor(RGB_features8)
+        red_light = redl_stops[:,0] #gt_redl
+        tls_bias = self.tls_biasing_bypass(RGB_features8)
+        bs,_,H,W = RGB_features8.shape
         #------------------------------------------------------------------------------------------------
         #Speed prediction
         speed = self.speed_head(out[1].squeeze(-2)) # RGB_features8
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
-        redl_stops = self.tls_predictor(RGB_features8) 
-        red_light = redl_stops[:,0]
         # stop_sign = redl_stops[:,1]  # we don't have stop sign
         stop_sign = torch.zeros_like(red_light)
-        tls_bias = self.tls_biasing(redl_stops)   #   gt_redl.unsqueeze(-1)
+        #tls_bias = self.tls_biasing(redl_stops)   #   gt_redl.unsqueeze(-1)
         #------------------------------------------------------------------------------------------------
         #waypoint prediction: get hidden state dari gabungan kedua bottleneck
 
@@ -286,8 +613,16 @@ class x13(nn.Module): #
         # # for min_CVT version 2
         hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
 
+#        RGB_features8 = self.norm1(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))
+#        SC_features5 = self.norm2(rearrange(SC_features5 , 'b c h w-> b (h w) c'))
+#        features_cat = cat([RGB_features8, SC_features5], dim=2)
+#        for i, blk in enumerate(self.blocks):
+#            x = blk(features_cat, H, W)
+#        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
+#        hx = self.attn_neck(x)
+
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
-        #predict delta wp
+        # predict delta wp
         out_wp = list()
 
         # x = torch.zeros(size=(hx.shape[0], 6), dtype=torch.int64).to(self.gpu_device)
@@ -296,7 +631,8 @@ class x13(nn.Module): #
         # x.index_put_(indices, value)
 
         for _ in range(self.config.pred_len):
-            ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
+            #ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
+            ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1)], dim=1) # x
             hx = self.gru(ins, hx)
             d_xy = self.pred_dwp(hx+tls_bias)
             xy = xy + d_xy
@@ -304,36 +640,55 @@ class x13(nn.Module): #
         pred_wp = torch.stack(out_wp, dim=1)
         #------------------------------------------------------------------------------------------------
         #control decoder
-        control_pred = self.controller(hx+tls_bias) 
+        control_pred = self.controller(hx+tls_bias)
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
+#        brake = self.brake(hx+tls_bias)
 
-        return ss_f, pred_wp, steer, throttle, brake, red_light, stop_sign, top_view_sc, speed
+        return ss_f, pred_wp, steer, throttle, brake, red_light, stop_sign, top_view_sc, speed # redl_stops[:,0] , top_view_sc       
 
-    def gen_top_view_sc_show(self, depth, semseg):
-        #proses awal
-        depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
-        _, label_img = torch.max(semseg, dim=1) #pada axis C
-        cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*self.w)] for n in range(depth.shape[0])])).to(self.gpu_device)
-
-        #normalize ke frame 
-        cloud_data_x = torch.round(((depth_in * self.x_matrix) + (self.cover_area[1]/2)) * (self.w-1) / self.cover_area[1]).ravel()
-        cloud_data_z = torch.round((depth_in * -(self.h-1) / self.cover_area[0]) + (self.h-1)).ravel()
-
-        #cari index interest
-        bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= self.w-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
-        idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
-
-        #stack n x z cls dan plot
-        coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
-        coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
-        top_view_sc = torch.zeros_like(semseg) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
-        top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
-        self.save2(semseg,top_view_sc)
-
-        return top_view_sc
+    def scale_and_crop_image_cv(self, image, scale=1, crop=256):
+        upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]
+        cropped_im = image[upper_left_yx[0]:upper_left_yx[0]+crop[0], upper_left_yx[1]:upper_left_yx[1]+crop[1], :]
+        cropped_image = np.transpose(cropped_im, (2,0,1))
+        return cropped_image
     
+    def rgb_to_depth(self, de_gt):
+        de_gt = de_gt.transpose(1, 2, 0)
+        arrayd = de_gt.astype(np.float32)
+        normalized_depth = np.dot(arrayd, [65536.0, 256.0, 1.0]) # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
+        depthx = normalized_depth/16777215.0  # (256.0 * 256.0 * 256.0 - 1.0) --> rangenya 0 - 1
+        result = np.expand_dims(depthx, axis=0)
+        return result
+
+    def swap_RGB2BGR(self,matrix):
+        red = matrix[:,:,0].copy()
+        blue = matrix[:,:,2].copy()
+        matrix[:,:,0] = blue
+        matrix[:,:,2] = red
+        return matrix
+
+    def get_wp_nxr_frame(self):
+        frame_dim = self.config.crop - 1 #array mulai dari 0
+        area = self.config.coverage_area
+
+        point_xy = []
+	    #proses wp
+        for i in range(1, self.config.pred_len+1):
+            x_point = int((frame_dim/2) + (self.control_metadata['wp_'+str(i)][0]*(frame_dim/2)/area[1]))
+            y_point = int(frame_dim - (self.control_metadata['wp_'+str(i)][1]*frame_dim/area[0]))
+            xy_arr = np.clip(np.array([x_point, y_point]), 0, frame_dim) #constrain
+            point_xy.append(xy_arr)
+	
+	    #proses juga untuk next route
+	    # - + y point kebalikan dari WP, karena asumsinya agent mendekati next route point, dari negatif menuju 0
+        x_point = int((frame_dim/2) + (self.control_metadata['next_point'][0]*(frame_dim/2)/area[1]))
+        y_point = int(frame_dim + (self.control_metadata['next_point'][1]*frame_dim/area[0]))
+        xy_arr = np.clip(np.array([x_point, y_point]), 0, frame_dim) #constrain
+        point_xy.append(xy_arr)
+        return point_xy
+		
     def save2(self, ss, sc):
         frame = 0
         ss = ss.cpu().detach().numpy()
@@ -351,19 +706,86 @@ class x13(nn.Module): #
             cmap_id = self.config.SEG_CLASSES['colors'].index(cmap)
             imgx[np.where(inx == cmap_id)] = cmap
             imgx2[np.where(inx2 == cmap_id)] = cmap
-
+	# Image.fromarray(imgx).save(self.save_path / 'segmentation' / ('%06d.png' % frame))
+	# Image.fromarray(imgx2).save(self.save_path / 'semantic_cloud' / ('%06d.png' % frame))
 	
-	    #GANTI ORDER BGR KE RGB, SWAP!
-        img_ss = self.swap_RGB2BGR(imgx)
-        img_smc = self.swap_RGB2BGR(imgx2)
+	#GANTI ORDER BGR KE RGB, SWAP!
+        imgx = self.swap_RGB2BGR(imgx)
+        imgx2 = self.swap_RGB2BGR(imgx2)
 
+        cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/train_1%06d.png' % frame, imgx) #cetak predicted segmentation
+        cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/train_2%06d.png' % frame, imgx2) #cetak predicted segmentation
+
+    def gen_top_view_sc_show(self, big_top_view, depth, semseg, rot, im_width, im_height,height_coverage,width_coverage):
+        #proses awal
+        self.x_matrix2 = torch.vstack([torch.arange(-im_width//2, im_width//2)]*self.h) / self.fx
+        self.x_matrix2 = self.x_matrix2.to('cuda')
+
+        depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
+        _, label_img = torch.max(semseg, dim=1) #pada axis C
+        cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*im_width)] for n in range(depth.shape[0])])).to(self.gpu_device)
+        coverage_area = [64/256*height_coverage,64/256*width_coverage] 
+
+        #normalize to frames
+        cloud_data_x = torch.round(((depth_in * self.x_matrix2) + (coverage_area[1]/2)) * (im_width-1) / coverage_area[1]).ravel()
+        cloud_data_z = torch.round((depth_in * -(self.h-1) / coverage_area[0]) + (self.h-1)).ravel()
+
+        #look for index interests
+        bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= im_width-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
+        idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
+
+        #stack n x z cls and plot
+        coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
+        coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
+        top_view_sc = torch.zeros_like(semseg) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
+        top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
+
+        bs, ly, wi, hi = top_view_sc.shape
+        big_top_view[:,:,0:1*wi,im_height-hi//2:im_height+hi//2] = torch.where(top_view_sc != 0, top_view_sc, big_top_view[:,:,0:1*wi,im_height-hi//2:im_height+hi//2])
+        if rot != 0:
+            big_top_view = rotate(big_top_view,rot)
+
+        self.save2(semseg,big_top_view)
+
+        return big_top_view
     
-    def gen_top_view_sc(self, depth, semseg): #,rgb_f
+    def gen_top_view_sc(self, big_top_view, depth, semseg, rot, im_width, im_height, height_coverage, width_coverage):
+        #proses awal
+        self.x_matrix2 = torch.vstack([torch.arange(-im_width//2, im_width//2)]*self.h) / self.fx
+        self.x_matrix2 = self.x_matrix2.to('cuda')
+
+        depth_in = depth * 1000.0 #normalisasi ke 1 - 1000
+        _, label_img = torch.max(semseg, dim=1) #pada axis C
+        cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*im_width)] for n in range(depth.shape[0])])).to(self.gpu_device)
+        coverage_area = [64/256*height_coverage,64/256*width_coverage] 
+
+        #normalize to frames
+        cloud_data_x = torch.round(((depth_in * self.x_matrix2) + (coverage_area[1]/2)) * (im_width-1) / coverage_area[1]).ravel()
+        cloud_data_z = torch.round((depth_in * -(self.h-1) / coverage_area[0]) + (self.h-1)).ravel()
+
+        #look for index interests
+        bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= im_width-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
+        idx_xz = bool_xz.nonzero().squeeze() #hilangkan axis dengan size=1, sehingga tidak perlu nambahkan ".item()" nantinya
+
+        #stack n x z cls and plot
+        coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
+        coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor harus long supaya bisa digunakan sebagai index
+        top_view_sc = torch.zeros_like(semseg) #ini lebih cepat karena secara otomatis size, tipe data, dan device sama dengan yang dimiliki inputnya (semseg)
+        top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #format axis dari NCHW
+
+        bs, ly, wi, hi = top_view_sc.shape
+        big_top_view[:,:,0:1*wi,(im_height-hi)//2:(im_height+hi)//2] = torch.where(top_view_sc != 0, top_view_sc, big_top_view[:,:,0:1*wi,(im_height-hi)//2:(im_height+hi)//2])
+        if rot != 0:
+            big_top_view = rotate(big_top_view,rot)
+
+        return big_top_view
+  
+    def gen_top_view_sc_old(self, depth, semseg): #,rgb_f
         #proses awal
         depth_in = depth * 1000.0 #normalize to 1 - 1000
         _, label_img = torch.max(semseg, dim=1) #pada axis C
         cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*self.w)] for n in range(depth.shape[0])])).to(self.gpu_device)
-        
+
         #normalize to frame
         cloud_data_x = torch.round(((depth_in * self.x_matrix) + (self.cover_area[1]/2)) * (self.w-1) / self.cover_area[1]).ravel()
         cloud_data_z = torch.round((depth_in * -(self.h-1) / self.cover_area[0]) + (self.h-1)).ravel()
@@ -375,18 +797,17 @@ class x13(nn.Module): #
         #stack n x z cls dan plot
         coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
         coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor must be long so that it can be used as an index
+
         top_view_sc = torch.zeros_like(semseg) #this is faster because automatically the size, data type, and device are the same as those of the input (semseg)
         top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #axis format from NCHW
 
-
         return top_view_sc
 
-
-    def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl, stops, ctrl_opt="one_of"):
+    def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl, ctrl_opt="one_of"):
         assert(waypoints.size(0)==1)
         waypoints = waypoints[0].data.cpu().numpy()
         red_light = True if redl.data.cpu().numpy() > 0.5 else False
-        stop_sign = True if stops.data.cpu().numpy() > 0.5 else False
+	stop_sign = True if stops.data.cpu().numpy() > 0.5 else False
 
         waypoints[:,1] *= -1
         speed = velocity[0].data.cpu().numpy()
@@ -460,9 +881,6 @@ class x13(nn.Module): #
         else:
             sys.exit("ERROR, FALSE CONTROL OPTION")
 
-
-
-
         metadata = {
             'control_option': ctrl_opt,
             'speed': float(speed.astype(np.float64)),
@@ -470,7 +888,7 @@ class x13(nn.Module): #
             'throttle': float(throttle),
             'brake': float(brake),
             'red_light': float(red_light),
-            'stop_sign': float(stop_sign),
+	    'stop_sign': float(stop_sign),
             'cw_pid': [float(self.config.cw_pid[0]), float(self.config.cw_pid[1]), float(self.config.cw_pid[2])],
             'pid_steer': float(pid_steer),
             'pid_throttle': float(pid_throttle),
@@ -490,5 +908,6 @@ class x13(nn.Module): #
             'next_point': None, #akan direplace di fungsi agent
         }
         return steer, throttle, brake, metadata
+
 
 

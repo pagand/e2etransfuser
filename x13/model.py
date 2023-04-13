@@ -470,7 +470,6 @@ class x13(nn.Module): #
         
         self.FuseAttn = AttentionBlock(config.n_fmap_b3[4][0], config.fusion_num_heads, attn_drop=0)
 
-
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
         #------------------------------------------------------------------------------------------------
         # CVT and conv (approach2) and Min CVT
@@ -506,9 +505,7 @@ class x13(nn.Module): #
         # # TODO: Comment next conv0_ss_f
         # # TODO: change self.necks_net for version 2 and the SC_features after 5
 
-
         ######## EfficientNet
-
 
         # # # only CNN
         # in_rgb = self.rgb_normalizer(rgb_f) #[i]

@@ -587,7 +587,6 @@ class x13(nn.Module): #
         # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
         inputs = cat([RGB_features8, SC_features5], dim=1)
-        BN = nn.BatchNorm2d(inputs.shape[1])
         inputs = self.BN(inputs)
         hx = self.necks_net(inputs)
 

@@ -371,9 +371,7 @@ class x13(nn.Module): #
             nn.Sigmoid()
         )
 #        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area
@@ -467,7 +465,7 @@ class x13(nn.Module): #
 
         self.norm1 = norm_layer(embed_dim_q)
         self.norm2 = norm_layer(embed_dim_kv)
-        
+        self.BN = nn.BatchNorm2d(config.n_fmap_b1[3][-1]+config.n_fmap_b3[4][1])
         self.FuseAttn = AttentionBlock(config.n_fmap_b3[4][0], config.fusion_num_heads, attn_drop=0)
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
@@ -612,7 +610,7 @@ class x13(nn.Module): #
 
 #        hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
-        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
+        hx = self.necks_net(self.BN(cat([RGB_features8, SC_features5], dim=1)))
         bs,_,H,W = RGB_features8.shape
 
         RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
@@ -625,10 +623,7 @@ class x13(nn.Module): #
 
         x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
         hx2 = self.attn_neck(x)
- #       hx = self.FuseAttn(hx,hx2) # 1
- #       hx = self.FuseAttn(hx,hx2) + hx # 2 +
-        hx = self.FuseAttn(hx,hx2) + hx + hx2 # 3 ++
-#        hx = hx + hx2 # 0 main
+        hx = hx + hx2 
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         # predict delta wp

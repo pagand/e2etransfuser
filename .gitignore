@@ -11,7 +11,6 @@ carla/*
 cs-venus*
 my_test.sh
 
-x13/model_*
 x13/wandb
 !data/README.md
 cvt/DATASET/

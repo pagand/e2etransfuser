@@ -3,9 +3,9 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = True
-    gpu_id = '3'
-    model = 'April13_cvt_cnn_selfAttn_withT10_total_solar'
+    wandb = False
+    gpu_id = '0'
+    model = 'April13_cvt_cnn_selfAttn_02_solar'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -14,11 +14,11 @@ class GlobalConfig:
     init_stop_counter = 15
     n_class = 23
     
-    batch_size = 48 #20
+    batch_size = 16 #20
     total_epoch = 30
     
     low_data = True
-    low_data_rate = 1
+    low_data_rate = 0.2
 
     # MGN parameter
     MGN = True   ## True
@@ -35,21 +35,20 @@ class GlobalConfig:
     else:
         bottleneck = [335, 679, 335]
 
-
 	# for Data
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir =  '/localscratch/mmahdavi/transfuser/data' # '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
+    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'#  '/localscratch/mmahdavi/transfuser/data' #  for the PAMI dataset
 
     train_data, val_data = [], []
 
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:
@@ -152,6 +151,7 @@ class GlobalConfig:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
 
     ## fusion settings
+    attn = True
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]
     fusion_depth = 4 #1

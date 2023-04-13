@@ -11,7 +11,7 @@ import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
 from model import x13
-from data_from_pmlr import CARLA_Data
+from data import CARLA_Data
 # from data import CARLA_Data
 from config import GlobalConfig
 from torch.utils.tensorboard import SummaryWriter

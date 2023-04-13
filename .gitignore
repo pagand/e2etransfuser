@@ -6,6 +6,7 @@ cilrs/log/*
 x13/log/*
 s13/log/*
 ./data/*
+./cvt0/*
 carla/*
 *.pyc
 cs-venus*

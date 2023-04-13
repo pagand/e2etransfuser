@@ -3,15 +3,9 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-<<<<<<< HEAD
-    wandb = False
-    gpu_id = '0'
-    model = 'April7_cvt_redl_ContNorm_02_solar'
-=======
     wandb = True
-    gpu_id = '1'
-    model = 'April7_cvt_normalized_redl_selfattn_02_solar'
->>>>>>> de1b3e3c5a03703505e41e135fb905d6ab538380
+    gpu_id = '3'
+    model = 'April12_cvt_cnn_selfAttn_fixedLR_02_solar'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -20,7 +14,7 @@ class GlobalConfig:
     init_stop_counter = 15
     n_class = 23
     
-    batch_size = 48 #20
+    batch_size = 24 #20
     total_epoch = 30
     
     low_data = True

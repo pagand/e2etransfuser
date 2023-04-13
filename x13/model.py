@@ -807,6 +807,7 @@ class x13(nn.Module): #
         assert(waypoints.size(0)==1)
         waypoints = waypoints[0].data.cpu().numpy()
         red_light = True if redl.data.cpu().numpy() > 0.5 else False
+	stop_sign = True if stops.data.cpu().numpy() > 0.5 else False
 
         waypoints[:,1] *= -1
         speed = velocity[0].data.cpu().numpy()

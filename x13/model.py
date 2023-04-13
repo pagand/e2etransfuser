@@ -355,6 +355,12 @@ class x13(nn.Module): #
         self.cover_area = config.coverage_area
         self.n_class = config.n_class
         self.h, self.w = config.input_resolution[0], config.input_resolution[1]
+	
+	#fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
+        #fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
+
+        # fx = 160# 160 (for fov 86 deg, 300 image size)
+        #self.x_matrix = torch.vstack([torch.arange(-self.w/2, self.w/2)]*self.h) / fx
 
         fovh = np.rad2deg(2.0 * np.arctan((self.config.img_height / self.config.img_width) * np.tan(0.5 * np.radians(self.config.fov))))
 #        self.fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))

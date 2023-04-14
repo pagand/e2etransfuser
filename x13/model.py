@@ -465,7 +465,8 @@ class x13(nn.Module): #
 
         self.norm1 = norm_layer(embed_dim_q)
         self.norm2 = norm_layer(embed_dim_kv)
-        self.BN = nn.BatchNorm2d(config.n_fmap_b1[3][-1]+config.n_fmap_b3[4][1])
+        self.BN_2d = nn.BatchNorm2d(config.n_fmap_b1[3][-1]+config.n_fmap_b3[4][1])
+        self.BN_1d = nn.BatchNorm1d(480)
         self.FuseAttn = AttentionBlock(config.n_fmap_b3[4][0], config.fusion_num_heads, attn_drop=0)
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
@@ -610,13 +611,13 @@ class x13(nn.Module): #
 
 #        hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
-        hx = self.necks_net(self.BN(cat([RGB_features8, SC_features5], dim=1)))
+        hx = self.necks_net(self.BN_2d(cat([RGB_features8, SC_features5], dim=1)))
         bs,_,H,W = RGB_features8.shape
 
         RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
         SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
 
-        features_cat = cat([RGB_features8, SC_features5], dim=2)
+        features_cat = self.BN_1d(cat([RGB_features8, SC_features5], dim=2))
 
         for i, blk in enumerate(self.blocks):
             x = blk(features_cat, H, W)

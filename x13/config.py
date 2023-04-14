@@ -3,9 +3,9 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = False
-    gpu_id = '0'
-    model = 'April13_cvt_BN_cnn_selfAttn_02_solar'
+    wandb = True
+    gpu_id = '1'
+    model = 'April14_cvt_cnn_selfAttn_withAttn_withT10_total_solar'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -14,11 +14,11 @@ class GlobalConfig:
     init_stop_counter = 15
     n_class = 23
     
-    batch_size = 20 #20
+    batch_size = 80 #20
     total_epoch = 30
     
     low_data = True
-    low_data_rate = 0.2
+    low_data_rate = 1
 
     # MGN parameter
     MGN = True   ## True
@@ -48,7 +48,7 @@ class GlobalConfig:
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:

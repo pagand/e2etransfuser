@@ -579,26 +579,15 @@ class x13(nn.Module): #
 
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
-        bs,_,H,W = RGB_features8.shape
-        RGB_features8 = self.norm5(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))
-        RGB_features8 = rearrange(RGB_features8 , 'b (h w) c-> b c h w',h=H,w=W)
         redl_stops = self.tls_predictor(RGB_features8)
-
         red_light = redl_stops[:,0] #gt_redl
-       # tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
-       # tls_bias = self.tls_biasing_flatten(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
         tls_bias = self.tls_biasing_bypass(RGB_features8)
 
         bs,_,H,W = RGB_features8.shape
-#        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
-#        SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
-#        RGB_features8 = rearrange(RGB_features8 , 'b (h w) c-> b c h w',h=H,w=W)
-#        SC_features5 = rearrange(SC_features5 , 'b (h w) c-> b c h w',h=H,w=W)
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
 
-        # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
         hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
 
@@ -626,7 +615,7 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #control decoder
 
-        control_pred = self.controller(self.norm3(hx)+self.norm4(tls_bias))
+        control_pred = self.controller(hx+tls_bias)
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0

@@ -105,29 +105,6 @@ class Mlp(nn.Module):
         x = self.drop(x)
         return x
 
-class AttentionBlock(nn.Module):
-    def __init__(self,
-                 dim_q,
-                 num_heads=8,
-                 attn_drop=0.,
-                 ):
-        super().__init__()
-        self.dim = dim_q
-        self.attn_drop = attn_drop
-        # self.q_lin = nn.Linear(self.dim,self.dim)
-        # self.kv_lin = nn.Linear(self.dim,2*self.dim)
-        # self.fusion = nn.MultiheadAttention(dim_q,num_heads,attn_drop)
-        self.q_lin = nn.Linear(dim_q,dim_q)
-        self.kv_lin = nn.Linear(dim_q,2*dim_q)
-        self.fusion = nn.MultiheadAttention(dim_q,num_heads,attn_drop,batch_first=True)
-
-    def forward(self,q,kv):
-        q_end = self.q_lin(q.unsqueeze(1))
-        kv = self.kv_lin(kv.unsqueeze(1))
-        k_end,v_end = kv.chunk(2,dim=-1)
-        fused_data = self.fusion(q_end,k_end,v_end)
-        return fused_data[0].squeeze(1)
-
 class Attention_2D(nn.Module):
     def __init__(self,
                  dim_q,
@@ -402,25 +379,25 @@ class x13(nn.Module): #
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
 
-        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
-            nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
-        )
-        if config.attn:
-            embed_dim_q = self.config.fusion_embed_dim_q
-            embed_dim_kv = self.config.fusion_embed_dim_kv
-            depth = self.config.fusion_depth
-            num_heads = self.config.fusion_num_heads
-            mlp_ratio = self.config.fusion_mlp_ratio
-            qkv_bias = self.config.fusion_qkv
-            drop_rate = self.config.fusion_drop_rate
-            attn_drop_rate = self.config.fusion_attn_drop_rate
-            dpr = self.config.fusion_dpr
-            act_layer=nn.GELU
-            norm_layer =nn.LayerNorm
+        # self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
+        #     nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+        #     nn.AdaptiveAvgPool2d(1),
+        #     nn.Flatten(),
+        #     nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
+        # )
 
+        #------------------------------------------------------------------------------------------------
+        embed_dim_q = self.config.fusion_embed_dim_q
+        embed_dim_kv = self.config.fusion_embed_dim_kv
+        depth = self.config.fusion_depth
+        num_heads = self.config.fusion_num_heads
+        mlp_ratio = self.config.fusion_mlp_ratio
+        qkv_bias = self.config.fusion_qkv
+        drop_rate = self.config.fusion_drop_rate
+        attn_drop_rate = self.config.fusion_attn_drop_rate
+        dpr = self.config.fusion_dpr
+        act_layer=nn.GELU
+        norm_layer =nn.LayerNorm
         #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
         self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
@@ -438,38 +415,37 @@ class x13(nn.Module): #
         # )
         self.controller = nn.Sequential(
             nn.Linear(config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
-            nn.Linear(config.n_fmap_b3[3][-1], 2),
+            nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
         )
         self.brake = nn.Sequential(
             nn.Linear(config.n_fmap_b3[4][0],1),
             nn.Sigmoid()
         )
-        
-        if config.attn:
-            blocks = []
-            for j in range(depth):
-                blocks.append(
-                    Fusion_Block(
-                        dim_in=embed_dim_q+embed_dim_kv,
-                        dim_out=embed_dim_q+embed_dim_kv,
-                        num_heads=num_heads,
-                        mlp_ratio=mlp_ratio,
-                        qkv_bias=qkv_bias,
-                        drop=drop_rate,
-                        attn_drop=attn_drop_rate,
-                        drop_path=dpr[j],
-                        act_layer=act_layer,
-                        norm_layer=norm_layer,
-                    )
-                )
-            self.blocks = nn.ModuleList(blocks)
 
+        blocks = []
+        for j in range(depth):
+            blocks.append(
+                Fusion_Block(
+                    dim_in=embed_dim_q+embed_dim_kv,
+                    dim_out=embed_dim_q+embed_dim_kv,
+                    num_heads=num_heads,
+                    mlp_ratio=mlp_ratio,
+                    qkv_bias=qkv_bias,
+                    drop=drop_rate,
+                    attn_drop=attn_drop_rate,
+                    drop_path=dpr[j],
+                    act_layer=act_layer,
+                    norm_layer=norm_layer,
+                )
+            )
+        self.blocks = nn.ModuleList(blocks)
+        self.input_buffer = {'depth': deque()}
         self.norm1 = norm_layer(embed_dim_q)
         self.norm2 = norm_layer(embed_dim_kv)
-        self.BN_2d = nn.BatchNorm2d(config.n_fmap_b1[3][-1]+config.n_fmap_b3[4][1])
-        self.FuseAttn = AttentionBlock(config.n_fmap_b3[4][0], config.fusion_num_heads, attn_drop=0)
-
+        self.norm3 = norm_layer(config.n_fmap_b3[4][0])
+        self.norm4 = norm_layer(config.n_fmap_b3[4][0])
+        self.norm5 = norm_layer(embed_dim_q)
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
         #------------------------------------------------------------------------------------------------
@@ -604,31 +580,27 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8)
-
         red_light = redl_stops[:,0] #gt_redl
         tls_bias = self.tls_biasing_bypass(RGB_features8)
+
+        bs,_,H,W = RGB_features8.shape
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
 
         # # for min_CVT version 2
-        features_cat = self.BN_2d(cat([RGB_features8, SC_features5], dim=1))
-        hx = self.necks_net(features_cat)
-        bs,_,H,W = RGB_features8.shape
-        
-        features_cat = rearrange(features_cat , 'b c h w-> b (h w) c')
-        #RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
-        #SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
+        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
 
-        for i, blk in enumerate(self.blocks):
-            x = blk(features_cat, H, W)
+#        RGB_features8 = self.norm1(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))
+#        SC_features5 = self.norm2(rearrange(SC_features5 , 'b c h w-> b (h w) c'))
 
-        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
-        hx2 = self.attn_neck(x)
-        hx = self.FuseAttn(hx,hx2) # 1
- #       hx = self.FuseAttn(hx,hx2) + hx # 2 +
- #       hx = self.FuseAttn(hx,hx2) + hx + hx2 # 3 ++
-#        hx = hx + hx2 # 0 main
+#        features_cat = cat([RGB_features8, SC_features5], dim=2)
+
+#        for i, blk in enumerate(self.blocks):
+#            x = blk(features_cat, H, W)
+
+#        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
+#        hx = self.attn_neck(x)
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         # predict delta wp
@@ -642,11 +614,12 @@ class x13(nn.Module): #
         pred_wp = torch.stack(out_wp, dim=1)
         #------------------------------------------------------------------------------------------------
         #control decoder
+
         control_pred = self.controller(hx+tls_bias)
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
-        #brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
-        brake = self.brake(hx+tls_bias)[:,0]
+        brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
+#        brake = self.brake(hx+tls_bias)
 
         return ss_f, pred_wp, steer, throttle, brake, red_light, top_view_sc # redl_stops[:,0] , top_view_sc   
 

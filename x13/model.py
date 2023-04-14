@@ -402,12 +402,6 @@ class x13(nn.Module): #
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
 
-        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
-            nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
-        )
         if config.attn:
             embed_dim_q = self.config.fusion_embed_dim_q
             embed_dim_kv = self.config.fusion_embed_dim_kv
@@ -464,12 +458,6 @@ class x13(nn.Module): #
                     )
                 )
             self.blocks = nn.ModuleList(blocks)
-
-        self.norm1 = norm_layer(embed_dim_q)
-        self.norm2 = norm_layer(embed_dim_kv)
-        self.BN_2d = nn.BatchNorm2d(config.n_fmap_b1[3][-1]+config.n_fmap_b3[4][1])
-        self.FuseAttn = AttentionBlock(config.n_fmap_b3[4][0], config.fusion_num_heads, attn_drop=0)
-
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
         #------------------------------------------------------------------------------------------------
@@ -612,24 +600,10 @@ class x13(nn.Module): #
         #get hidden state dari gabungan kedua bottleneck
 
         # # for min_CVT version 2
-        features_cat = self.BN_2d(cat([RGB_features8, SC_features5], dim=1))
+        features_cat = cat([RGB_features8, SC_features5], dim=1)
         hx = self.necks_net(features_cat)
         bs,_,H,W = RGB_features8.shape
         
-        features_cat = rearrange(features_cat , 'b c h w-> b (h w) c')
-        #RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
-        #SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
-
-        for i, blk in enumerate(self.blocks):
-            x = blk(features_cat, H, W)
-
-        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
-        hx2 = self.attn_neck(x)
-        hx = self.FuseAttn(hx,hx2) # 1
- #       hx = self.FuseAttn(hx,hx2) + hx # 2 +
- #       hx = self.FuseAttn(hx,hx2) + hx + hx2 # 3 ++
-#        hx = hx + hx2 # 0 main
-
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         # predict delta wp
         out_wp = list()

@@ -430,7 +430,7 @@ def main():
 			curr_lw = config.loss_weights
 			lws = config.loss_weights
 			print("current loss weights: ", config.loss_weights)
-		print("current lr untuk training: ", optima.param_groups[0]['lr'])
+		print("current lr for training: ", optima.param_groups[0]['lr'])
 
 		#training validation
 		start_time = time.time() 
@@ -440,8 +440,8 @@ def main():
 			optima_lw.param_groups[0]['params'] = renormalize_params_lw(new_params_lw, config) #have to be cloned so that they are completely separated
 			print("total loss gradient: "+str(lgrad))
 		scheduler.step(val_log['v_total_l']) #the reference parameter to reduce LR is val_total_metric
-		optima_lw.param_groups[0]['lr'] = optima.param_groups[0]['lr'] #update lr disamakan
-		elapsed_time = time.time() - start_time #hitung elapsedtime
+		optima_lw.param_groups[0]['lr'] = optima.param_groups[0]['lr'] #update lr 
+		elapsed_time = time.time() - start_time #calc elapsedtime
 
 		log['epoch'].append(epoch)
 		log['lrate'].append(optima.param_groups[0]['lr'])

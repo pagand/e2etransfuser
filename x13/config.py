@@ -13,7 +13,7 @@ class GlobalConfig:
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
 
 #    model = 'speed_cmd(out1cvt)'  # run name
-    model = 'test_with_SpeedandCommand_'  # run name
+    model = 'x13_SpeedandCommand_'  # run name
 
     model += kind+'_v2'
     logdir = 'log/'+model #+'_w1' for 1 weather only
@@ -34,7 +34,7 @@ class GlobalConfig:
     batch_size = 20 #20
     total_epoch = 20 #30
 
-    random_data_len = int(188660 *0.2) #int(170740 * 0.2 )  # 20% of the dataloade each epoch 170740 
+    random_data_len = int(170740 *0.2) #int(188660 * 0.2 ) 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
@@ -59,7 +59,7 @@ class GlobalConfig:
 
     # MGN parameter
     MGN = True
-    loss_weights = [1, 1, 1, 1, 1, 1, 1, 1]
+    loss_weights = [1, 1, 1, 1, 1, 1, 0, 1]
     lw_alpha = 1.5
 
 	# for Data
@@ -95,7 +95,7 @@ class GlobalConfig:
                     break
     if low_data:
         random.seed(0)
-#        train_data = random.sample(train_data,int(0.02*len(train_data)))
+        train_data = random.sample(train_data,int(0.02*len(train_data)))
         val_data = random.sample(val_data,int(0.2*len(val_data)))
 
         # train_data = train_data[:int(0.05*len(train_data))]

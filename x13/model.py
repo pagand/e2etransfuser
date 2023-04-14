@@ -356,14 +356,14 @@ class x13(nn.Module): #
         self.n_class = config.n_class
         self.h, self.w = config.input_resolution[0], config.input_resolution[1]
 	
-	#fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
+	    #fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
         #fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
 
         # fx = 160# 160 (for fov 86 deg, 300 image size)
         #self.x_matrix = torch.vstack([torch.arange(-self.w/2, self.w/2)]*self.h) / fx
 
         fovh = np.rad2deg(2.0 * np.arctan((self.config.img_height / self.config.img_width) * np.tan(0.5 * np.radians(self.config.fov))))
-#        self.fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
+        # self.fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
         fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
 
         self.fx = 160  # 160 
@@ -392,18 +392,18 @@ class x13(nn.Module): #
         # )
 
         #------------------------------------------------------------------------------------------------
-	if config.attn:
-		embed_dim_q = self.config.fusion_embed_dim_q
-		embed_dim_kv = self.config.fusion_embed_dim_kv
-		depth = self.config.fusion_depth
-		num_heads = self.config.fusion_num_heads
-		mlp_ratio = self.config.fusion_mlp_ratio
-		qkv_bias = self.config.fusion_qkv
-		drop_rate = self.config.fusion_drop_rate
-		attn_drop_rate = self.config.fusion_attn_drop_rate
-		dpr = self.config.fusion_dpr
-		act_layer=nn.GELU
-		norm_layer =nn.LayerNorm
+        if config.attn:
+            embed_dim_q = self.config.fusion_embed_dim_q
+            embed_dim_kv = self.config.fusion_embed_dim_kv
+            depth = self.config.fusion_depth
+            num_heads = self.config.fusion_num_heads
+            mlp_ratio = self.config.fusion_mlp_ratio
+            qkv_bias = self.config.fusion_qkv
+            drop_rate = self.config.fusion_drop_rate
+            attn_drop_rate = self.config.fusion_attn_drop_rate
+            dpr = self.config.fusion_dpr
+            act_layer=nn.GELU
+            norm_layer =nn.LayerNorm
         #------------------------------------------------------------------------------------------------
         #Speed predictor
         # self.speed_head = nn.Sequential(
@@ -427,8 +427,8 @@ class x13(nn.Module): #
             )
         #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
-        #self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
-        self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
+        self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
+        # self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
         self.pred_dwp = nn.Linear(config.n_fmap_b3[4][0], 2)
         #PID Controller
         self.turn_controller = PIDController(K_P=config.turn_KP, K_I=config.turn_KI, K_D=config.turn_KD, n=config.turn_n)
@@ -446,25 +446,25 @@ class x13(nn.Module): #
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
         )
-	if config.attn:
-		blocks = []
-		for j in range(depth):
-		    blocks.append(
-			Fusion_Block(
-			    dim_in=embed_dim_q+embed_dim_kv,
-			    dim_out=embed_dim_q+embed_dim_kv,
-			    num_heads=num_heads,
-			    mlp_ratio=mlp_ratio,
-			    qkv_bias=qkv_bias,
-			    drop=drop_rate,
-			    attn_drop=attn_drop_rate,
-			    drop_path=dpr[j],
-			    act_layer=act_layer,
-			    norm_layer=norm_layer,
-			)
-		    )
-		self.blocks = nn.ModuleList(blocks)
-		self.input_buffer = {'depth': deque()}
+        if config.attn:
+            blocks = []
+            for j in range(depth):
+                blocks.append(
+                Fusion_Block(
+                    dim_in=embed_dim_q+embed_dim_kv,
+                    dim_out=embed_dim_q+embed_dim_kv,
+                    num_heads=num_heads,
+                    mlp_ratio=mlp_ratio,
+                    qkv_bias=qkv_bias,
+                    drop=drop_rate,
+                    attn_drop=attn_drop_rate,
+                    drop_path=dpr[j],
+                    act_layer=act_layer,
+                    norm_layer=norm_layer,
+                )
+                )
+            self.blocks = nn.ModuleList(blocks)
+            self.input_buffer = {'depth': deque()}
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command ):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
@@ -631,8 +631,8 @@ class x13(nn.Module): #
         # x.index_put_(indices, value)
 
         for _ in range(self.config.pred_len):
-            #ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
-            ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1)], dim=1) # x
+            ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
+            # ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1)], dim=1) # x
             hx = self.gru(ins, hx)
             d_xy = self.pred_dwp(hx+tls_bias)
             xy = xy + d_xy
@@ -803,11 +803,11 @@ class x13(nn.Module): #
 
         return top_view_sc
 
-    def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl, ctrl_opt="one_of"):
+    def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl,  stops, ctrl_opt="one_of"):
         assert(waypoints.size(0)==1)
         waypoints = waypoints[0].data.cpu().numpy()
         red_light = True if redl.data.cpu().numpy() > 0.5 else False
-	stop_sign = True if stops.data.cpu().numpy() > 0.5 else False
+        stop_sign = True if stops.data.cpu().numpy() > 0.5 else False
 
         waypoints[:,1] *= -1
         speed = velocity[0].data.cpu().numpy()
@@ -908,6 +908,5 @@ class x13(nn.Module): #
             'next_point': None, #akan direplace di fungsi agent
         }
         return steer, throttle, brake, metadata
-
 
 

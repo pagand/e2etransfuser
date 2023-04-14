@@ -223,8 +223,6 @@ class CARLA_Data(Dataset):
             scale_and_crop_image_cv(cv2.imread(seq_seg_fronts[-1]), scale=self.config.scale, crop=self.config.input_resolution)))) #[ ]
         data['depth_fronts'] = torch.from_numpy(np.array(rgb_to_depth(
             scale_and_crop_image_cv(swap_RGB2BGR(cv2.imread(seq_depth_fronts[-1],cv2.COLOR_BGR2RGB)), scale=self.config.scale, crop=self.config.input_resolution)))) #[ ]
-#        data['depth_fronts'] = torch.from_numpy(np.array(rgb_to_depth(
-#            scale_and_crop_image_cv(cv2.imread(seq_depth_fronts[-1],cv2.COLOR_BGR2RGB), scale=self.config.scale, crop=self.config.input_resolution))))
 
         ego_x = seq_x[i]
         ego_y = seq_y[i]

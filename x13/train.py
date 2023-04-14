@@ -81,7 +81,9 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			'str_loss': AverageMeter(),
 			'thr_loss': AverageMeter(),
 			'brk_loss': AverageMeter(),
-			'redl_loss': AverageMeter()}
+			'redl_loss': AverageMeter(),
+			'stops_loss': AverageMeter(),
+			'speed_loss': AverageMeter()}
 	
 	model.train()
 	prog_bar = tqdm(total=len(data_loader))
@@ -106,9 +108,31 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_throttle = data['throttle'].to(device, dtype=torch.float)
 		gt_brake = data['brake'].to(device, dtype=torch.float)
 		gt_red_light = data['red_light'].to(device, dtype=torch.float)
+		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
+                gt_command = data['command'].to(device, dtype=torch.float)
 
 		#forward pass
-		pred_seg, pred_wp, steer, throttle, brake, red_light, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts,gt_red_light)
+		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign,_,speed = model(fronts, depth_fronts, target_point, gt_velocity,gt_command)
+
+		if cur_epoch< config.cvt_freezed_epoch and list(model.named_parameters())[0][1].requires_grad: # freeze CVT
+			if list(model.named_parameters())[0][0][:3] != 'cvt' :
+				raise Exception("The order number of the CVT is changed in the arch, please consider changing accordingly")
+			for name0, param0 in model.named_parameters():
+				if 'cvt' ==name0[:3]:
+					param0.requires_grad = False
+			# # a slightly faster approach, but index might mismatch if the arch. is changed.
+			# for index ,(_, param0) in enumerate(model.named_parameters()):
+			# 	if index<= 337: # all  the CVT layers
+			# 		param0.requires_grad = False
+		elif cur_epoch == config.cvt_freezed_epoch and not list(model.named_parameters())[0][1].requires_grad: # start fine tuning CVT
+			for name0, param0 in model.named_parameters():
+				if 'cvt' ==name0[:3]:
+					param0.requires_grad = True
+			# # a slightly faster approach, but index might mismatch if the arch. is changed.
+			# for index ,(_, param0) in enumerate(model.named_parameters()):
+			# 	if index<= 337: # all  the CVT layers
+			# 		param0.requires_grad = True
+
 
 		#compute loss
 		loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -117,7 +141,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		loss_thr = F.l1_loss(throttle, gt_throttle)
 		loss_brk = F.l1_loss(brake, gt_brake)
 		loss_redl = F.l1_loss(red_light, gt_red_light)
-		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl
+                loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)
+		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl + params_lw[6]*loss_stops +params_lw[7]* loss_speedl
 		optimizer.zero_grad()
 
 		if batch_ke == 0: #first batch, calculate the initial loss
@@ -128,62 +153,78 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			loss_thr_0 = torch.clone(loss_thr)
 			loss_brk_0 = torch.clone(loss_brk)
 			loss_redl_0 = torch.clone(loss_redl)
+                        loss_speed_0 = torch.clone(loss_speed)
 
 		elif 0 < batch_ke < total_batch-1:
 			total_loss.backward() #no need to retain the graph
-
-			if not loss_seg_0*loss_wp_0*loss_str_0*loss_thr_0*loss_brk_0*loss_redl_0:
-				loss_seg_0 = torch.clone(loss_seg) if not loss_seg_0 else loss_seg_0
-				loss_wp_0 = torch.clone(loss_wp) if not loss_wp_0 else loss_wp_0
-				loss_str_0 = torch.clone(loss_str) if not loss_str_0 else loss_str_0
-				loss_thr_0 = torch.clone(loss_thr) if not loss_thr_0 else loss_thr_0
-				loss_brk_0 = torch.clone(loss_brk) if not loss_brk_0 else loss_brk_0
-				loss_redl_0 = torch.clone(loss_redl) if not loss_redl_0 else loss_redl_0
 
 		elif batch_ke == total_batch-1: #berarti batch terakhir, compute update loss weights
 			if config.MGN:
 				optimizer_lw.zero_grad()
 				total_loss.backward(retain_graph=True) # retain graph because the graph is still used for calculation
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
-				# G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[2]], retain_graph=True, create_graph=True)
-				# G0 = torch.norm(G0R[0][0][0], keepdim=True)
-				# G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				# G1 = torch.norm(G1R[0], keepdim=True)
-				# G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				# G2 = torch.norm(G2R[0], keepdim=True)
-				# G3R = torch.autograd.grad(loss_thr, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				# G3 = torch.norm(G3R[0], keepdim=True)
-				# G4R = torch.autograd.grad(loss_brk, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				# G4 = torch.norm(G4R[0], keepdim=True)
-				# G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				# G5 = torch.norm(G5R[0][0][0], keepdim=True)
-				# G_avg = (G0+G1+G2+G3+G4+G5) / len(config.loss_weights)
+				
 
 
-				G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[2]], retain_graph=True, create_graph=True)
-				G0 = torch.norm(G0R[0], keepdim=True)
-				G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				G1 = torch.norm(G1R[0], keepdim=True)
-				G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				G2 = torch.norm(G2R[0], keepdim=True)
-				G3R = torch.autograd.grad(loss_thr, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				G3 = torch.norm(G3R[0], keepdim=True)
-				G4R = torch.autograd.grad(loss_brk, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
-				G4 = torch.norm(G4R[0], keepdim=True)
-				G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
-				G5 = torch.norm(G5R[0], keepdim=True)
-
-				G_avg = (G0+G1+G2+G3+G4+G5) / len(config.loss_weights)
-
+                                # in case of model freeze, we should change the bottleneck values
+				d = len(list(model.parameters()))-len(params)
+				if d: # we have freezed parameters in the front
+					G0, G1, G2, G3, G4, G5, G6 = None, None,None,None,None,None,None
+					if config.bottleneck[2]-d>=0:
+						G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[2]-d], retain_graph=True, create_graph=True)
+						G0 = torch.norm(G0R[0], keepdim=True)
+					if config.bottleneck[1]-d>=0:
+						G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]-d], retain_graph=True, create_graph=True ) #, allow_unused=True
+						G1 = torch.norm(G1R[0], keepdim=True)
+						G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]-d], retain_graph=True, create_graph=True)
+						G2 = torch.norm(G2R[0], keepdim=True)
+						G3R = torch.autograd.grad(loss_thr, params[config.bottleneck[1]-d], retain_graph=True, create_graph=True)
+						G3 = torch.norm(G3R[0], keepdim=True)
+						G4R = torch.autograd.grad(loss_brk, params[config.bottleneck[1]-d], retain_graph=True, create_graph=True)
+						G4 = torch.norm(G4R[0], keepdim=True)
+					if config.bottleneck[0]-d>=0:
+						G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]-d], retain_graph=True, create_graph=True)
+						G5 = torch.norm(G5R[0], keepdim=True)
+						# G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+						# G6 = torch.norm(G6R[0], keepdim=True)
+						G7R = torch.autograd.grad(loss_speed, params[config.bottleneck[0]-d], retain_graph=True, create_graph=True)
+						G7 = torch.norm(G7R[0], keepdim=True)
+					
+					if not G0:
+						G0 = torch.zeros_like(G5)
+					if not G6:
+						G6 = torch.zeros_like(G5) # we don't have stop sign
+				
+				else:
+					G0R = torch.autograd.grad(loss_seg, params[config.bottleneck[2]], retain_graph=True, create_graph=True)
+					G0 = torch.norm(G0R[0], keepdim=True)
+					G1R = torch.autograd.grad(loss_wp, params[config.bottleneck[1]], retain_graph=True, create_graph=True ) #, allow_unused=True
+					G1 = torch.norm(G1R[0], keepdim=True)
+					G2R = torch.autograd.grad(loss_str, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+					G2 = torch.norm(G2R[0], keepdim=True)
+					G3R = torch.autograd.grad(loss_thr, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+					G3 = torch.norm(G3R[0], keepdim=True)
+					G4R = torch.autograd.grad(loss_brk, params[config.bottleneck[1]], retain_graph=True, create_graph=True)
+					G4 = torch.norm(G4R[0], keepdim=True)
+					G5R = torch.autograd.grad(loss_redl, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+					G5 = torch.norm(G5R[0], keepdim=True)
+					# G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+					# G6 = torch.norm(G6R[0], keepdim=True)
+					G6 = torch.zeros_like(G5) # we don't have stop sign
+					G7R = torch.autograd.grad(loss_speed, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+					G7 = torch.norm(G7R[0], keepdim=True)
+				G_avg = (G0+G1+G2+G3+G4+G5+G6+G7) / len(config.loss_weights)
 
 				#relative loss (zero division handling)
-				loss_seg_hat = loss_seg / loss_seg_0  
-				loss_wp_hat = loss_wp / loss_wp_0 
-				loss_str_hat = loss_str / loss_str_0  
-				loss_thr_hat = loss_thr / loss_thr_0  
-				loss_brk_hat = loss_brk / loss_brk_0  
-				loss_redl_hat = loss_redl / loss_redl_0 
-				loss_hat_avg = (loss_seg_hat + loss_wp_hat + loss_str_hat + loss_thr_hat + loss_brk_hat + loss_redl_hat) / len(config.loss_weights)
+				loss_seg_hat = loss_seg / loss_seg_0  if loss_seg_0 else loss_seg
+				loss_wp_hat = loss_wp / loss_wp_0 if loss_wp_0 else loss_wp
+				loss_str_hat = loss_str / loss_str_0  if loss_str_0 else loss_str
+				loss_thr_hat = loss_thr / loss_thr_0  if loss_thr_0 else loss_thr
+				loss_brk_hat = loss_brk / loss_brk_0  if loss_brk_0 else loss_brk
+				loss_redl_hat = loss_redl / loss_redl_0 if loss_redl_0 else loss_redl
+				loss_stops_hat = loss_stops / loss_stops_0 if loss_stops_0 else loss_stops
+				loss_speed_hat = loss_speed / loss_speed_0 if loss_speed_0 else loss_speed
+				loss_hat_avg = (loss_seg_hat + loss_wp_hat + loss_str_hat + loss_thr_hat + loss_brk_hat + loss_redl_hat + loss_stops_hat + loss_speed_hat) / len(config.loss_weights)
 
 				#r_i_(t) relative inverse training rate
 				inv_rate_ss = loss_seg_hat / loss_hat_avg
@@ -192,15 +233,19 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				inv_rate_thr = loss_thr_hat / loss_hat_avg
 				inv_rate_brk = loss_brk_hat / loss_hat_avg
 				inv_rate_redl = loss_redl_hat / loss_hat_avg
+				inv_rate_stops = loss_stops_hat / loss_hat_avg
+				inv_rate_speed = loss_speed_hat / loss_hat_avg
 
 				#hitung constant target grad
-				C0 = (G_avg*inv_rate_ss).detach()**config.lw_alpha
+				C0 = (G_avg*inv_rate_ss).detach().squeeze(-1).squeeze(-1)**config.lw_alpha
 				C1 = (G_avg*inv_rate_wp).detach()**config.lw_alpha
 				C2 = (G_avg*inv_rate_str).detach()**config.lw_alpha
 				C3 = (G_avg*inv_rate_thr).detach()**config.lw_alpha
 				C4 = (G_avg*inv_rate_brk).detach()**config.lw_alpha
-				C5 = (G_avg*inv_rate_redl).detach()**config.lw_alpha
-				Lgrad = F.l1_loss(G0, C0) + F.l1_loss(G1, C1) + F.l1_loss(G2, C2) + F.l1_loss(G3, C3) + F.l1_loss(G4, C4) + F.l1_loss(G5, C5)
+				C5 = (G_avg*inv_rate_redl).detach().squeeze(-1).squeeze(-1)**config.lw_alpha
+				C6 = (G_avg*inv_rate_stops).detach().squeeze(-1).squeeze(-1)**config.lw_alpha
+				C7 = (G_avg*inv_rate_speed).detach().squeeze(-1).squeeze(-1)**config.lw_alpha
+				Lgrad = F.l1_loss(G0, C0) + F.l1_loss(G1, C1) + F.l1_loss(G2, C2) + F.l1_loss(G3, C3) + F.l1_loss(G4, C4) + F.l1_loss(G5, C5) + F.l1_loss(G6, C6)+ F.l1_loss(G7, C7)
 
 				#hitung gradient loss sesuai Eq. 2 di GradNorm paper
 				Lgrad.backward()
@@ -211,7 +256,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				total_loss.backward(retain_graph=True)
 				lgrad = 0
 				new_param_lw = 1
-			
 		optimizer.step() 
 
 		score['total_loss'].update(total_loss.item())
@@ -221,7 +265,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		score['thr_loss'].update(loss_thr.item())
 		score['brk_loss'].update(loss_brk.item())
 		score['redl_loss'].update(loss_redl.item())
-
+                score['stops_loss'].update(loss_stops.item())
+                score['speed_loss'].update(loss_speed.item())
 
 		postfix = OrderedDict([('t_total_l', score['total_loss'].avg),
 							('t_ss_l', score['ss_loss'].avg),
@@ -229,7 +274,9 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 							('t_str_l', score['str_loss'].avg),
 							('t_thr_l', score['thr_loss'].avg),
 							('t_brk_l', score['brk_loss'].avg),
-							('t_redl_l', score['redl_loss'].avg)])
+							('t_redl_l', score['redl_loss'].avg),
+							('t_stops_l', score['stops_loss'].avg),
+							('t_speed_l', score['speed_loss'].avg)])
 		
 		writer.add_scalar('t_total_l', total_loss.item(), cur_step)
 		writer.add_scalar('t_ss_l', loss_seg.item(), cur_step)
@@ -238,6 +285,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		writer.add_scalar('t_thr_l', loss_thr.item(), cur_step)
 		writer.add_scalar('t_brk_l', loss_brk.item(), cur_step)
 		writer.add_scalar('t_redl_l', loss_redl.item(), cur_step)
+		writer.add_scalar('t_stops_l', loss_stops.item(), cur_step)
+		writer.add_scalar('t_speed_l', loss_speed.item(), cur_step)
 
 		prog_bar.set_postfix(postfix)
 		prog_bar.update(1)
@@ -247,8 +296,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 	#return value
 	return postfix, new_param_lw, lgrad
 
-
-#FUNGSI VALIDATION
 def validate(data_loader, model, config, writer, cur_epoch, device):
 	score = {'total_loss': AverageMeter(),
 			'ss_loss': AverageMeter(),
@@ -256,7 +303,9 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			'str_loss': AverageMeter(),
 			'thr_loss': AverageMeter(),
 			'brk_loss': AverageMeter(),
-			'redl_loss': AverageMeter()}
+			'redl_loss': AverageMeter(),
+                        'stops_loss': AverageMeter(),
+			'speed_loss': AverageMeter()}
 			
 	model.eval()
 
@@ -279,9 +328,11 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			gt_throttle = data['throttle'].to(device, dtype=torch.float)
 			gt_brake = data['brake'].to(device, dtype=torch.float)
 			gt_red_light = data['red_light'].to(device, dtype=torch.float)
+			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
+			gt_command = data['command'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, _ = model(fronts, depth_fronts, target_point, gt_velocity, seg_fronts, gt_red_light)
+			pred_seg, pred_wp, steer, throttle, brake, red_light, _,speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -290,7 +341,10 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			loss_thr = F.l1_loss(throttle, gt_throttle)
 			loss_brk = F.l1_loss(brake, gt_brake)
 			loss_redl = F.l1_loss(red_light, gt_red_light)
-			total_loss = loss_seg + loss_wp + loss_str + loss_thr + loss_brk + loss_redl
+			loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
+			loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)
+
+			total_loss = loss_seg + loss_wp + loss_str + loss_thr + loss_brk + loss_redl + loss_stops + loss_speed
 
 			score['total_loss'].update(total_loss.item())
 			score['ss_loss'].update(loss_seg.item()) 
@@ -299,6 +353,8 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			score['thr_loss'].update(loss_thr.item())
 			score['brk_loss'].update(loss_brk.item())
 			score['redl_loss'].update(loss_redl.item())
+			score['stops_loss'].update(loss_stops.item())
+			score['speed_loss'].update(loss_speed.item())
 
 			postfix = OrderedDict([('v_total_l', score['total_loss'].avg),
 								('v_ss_l', score['ss_loss'].avg),
@@ -306,7 +362,9 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 								('v_str_l', score['str_loss'].avg),
 								('v_thr_l', score['thr_loss'].avg),
 								('v_brk_l', score['brk_loss'].avg),
-								('v_redl_l', score['redl_loss'].avg)])
+								('v_redl_l', score['redl_loss'].avg),
+								('v_stops_l', score['stops_loss'].avg),
+								('v_speed_l', score['speed_loss'].avg)])
 			
 			writer.add_scalar('v_total_l', total_loss.item(), cur_step)
 			writer.add_scalar('v_ss_l', loss_seg.item(), cur_step)
@@ -315,6 +373,8 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			writer.add_scalar('v_thr_l', loss_thr.item(), cur_step)
 			writer.add_scalar('v_brk_l', loss_brk.item(), cur_step)
 			writer.add_scalar('v_redl_l', loss_redl.item(), cur_step)
+			writer.add_scalar('v_stops_l', loss_stops.item(), cur_step)
+			writer.add_scalar('v_speed_l', loss_speed.item(), cur_step)
 
 			prog_bar.set_postfix(postfix)
 			prog_bar.update(1)
@@ -323,7 +383,6 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 
 	#return value
 	return postfix
-
 
 #MAIN FUNCTION
 def main():
@@ -399,6 +458,8 @@ def main():
 			('val_thr_loss', []),
 			('val_brk_loss', []),
 			('val_redl_loss', []),
+                        ('val_stops_loss', []),
+			('val_speed_loss', []),
 			('train_loss', []), 
 			('train_ss_loss', []),
 			('train_wp_loss', []),
@@ -406,6 +467,8 @@ def main():
 			('train_thr_loss', []),
 			('train_brk_loss', []),
 			('train_redl_loss', []),
+			('train_stops_loss', []),
+			('train_speed_loss', []),
 			('lrate', []),
 			('stop_counter', []), 
 			('lgrad_loss', []),
@@ -415,6 +478,8 @@ def main():
 			('lw_thr', []),
 			('lw_brk', []),
 			('lw_redl', []),
+			('lw_stops', []),
+			('lw_speed', []),
 			('elapsed_time', []),
 		])
 	writer = SummaryWriter(log_dir=config.logdir)
@@ -463,6 +528,10 @@ def main():
 		log['val_brk_loss'].append(val_log['v_brk_l'])
 		log['train_redl_loss'].append(train_log['t_redl_l'])
 		log['val_redl_loss'].append(val_log['v_redl_l'])
+		log['train_stops_loss'].append(train_log['t_stops_l'])
+		log['val_stops_loss'].append(val_log['v_stops_l'])
+		log['train_speed_loss'].append(train_log['t_speed_l'])
+		log['val_speed_loss'].append(val_log['v_speed_l'])
 		log['lgrad_loss'].append(lgrad)
 		log['lw_ss'].append(lws[0])
 		log['lw_wp'].append(lws[1])
@@ -470,11 +539,13 @@ def main():
 		log['lw_thr'].append(lws[3])
 		log['lw_brk'].append(lws[4])
 		log['lw_redl'].append(lws[5])
+		log['lw_stops'].append(lws[6])
+		log['lw_speed'].append(lws[7])
 		log['elapsed_time'].append(elapsed_time)
-		print('| t_total_l: %.4f | t_ss_l: %.4f | t_wp_l: %.4f | t_str_l: %.4f | t_thr_l: %.4f | t_brk_l: %.4f | t_redl_l: %.4f |' % (train_log['t_total_l'], train_log['t_ss_l'], train_log['t_wp_l'], train_log['t_str_l'], train_log['t_thr_l'], train_log['t_brk_l'], train_log['t_redl_l']))
-		print('| v_total_l: %.4f | v_ss_l: %.4f | v_wp_l: %.4f | v_str_l: %.4f | v_thr_l: %.4f | v_brk_l: %.4f | v_redl_l: %.4f |' % (val_log['v_total_l'], val_log['v_ss_l'], val_log['v_wp_l'], val_log['v_str_l'], val_log['v_thr_l'], val_log['v_brk_l'], val_log['v_redl_l']))
+		print('| t_total_l: %.4f | t_ss_l: %.4f | t_wp_l: %.4f | t_str_l: %.4f | t_thr_l: %.4f | t_brk_l: %.4f | t_redl_l: %.4f | t_stops_l: %.4f | t_speed_l: %.4f |' % (train_log['t_total_l'], train_log['t_ss_l'], train_log['t_wp_l'], train_log['t_str_l'], train_log['t_thr_l'], train_log['t_brk_l'], train_log['t_redl_l'], train_log['t_stops_l'], train_log['t_speed_l']))
+		print('| v_total_l: %.4f | v_ss_l: %.4f | v_wp_l: %.4f | v_str_l: %.4f | v_thr_l: %.4f | v_brk_l: %.4f | v_redl_l: %.4f | v_stops_l: %.4f | v_speed_l: %.4f |' % (val_log['v_total_l'], val_log['v_ss_l'], val_log['v_wp_l'], val_log['v_str_l'], val_log['v_thr_l'], val_log['v_brk_l'], val_log['v_redl_l'], val_log['v_stops_l'], val_log['v_speed_l']))
 		print('elapsed time: %.4f sec' % (elapsed_time))
-		
+
 		#save recent model
 		torch.save(model.state_dict(), os.path.join(config.logdir, 'recent_model.pth'))
 		torch.save(optima.state_dict(), os.path.join(config.logdir, 'recent_optim.pth'))

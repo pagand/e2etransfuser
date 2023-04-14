@@ -611,13 +611,13 @@ class x13(nn.Module): #
 
 #        hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
-        hx = self.necks_net(self.BN_2d(cat([RGB_features8, SC_features5], dim=1)))
+        features_cat = self.BN_2d(cat([RGB_features8, SC_features5], dim=1))
+        hx = self.necks_net(features_cat)
         bs,_,H,W = RGB_features8.shape
-
-        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
-        SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
-
-        features_cat = self.BN_1d(cat([RGB_features8, SC_features5], dim=2))
+        
+        features_cat = rearrange(features_cat , 'b c h w-> b (h w) c')
+        #RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
+        #SC_features5 = rearrange(SC_features5 , 'b c h w-> b (h w) c')
 
         for i, blk in enumerate(self.blocks):
             x = blk(features_cat, H, W)

@@ -13,7 +13,7 @@ class GlobalConfig:
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
 
 #    model = 'speed_cmd(out1cvt)'  # run name
-    model = 'x13_SpeedandCommand_'  # run name
+    model = 'x13_control_'  # run name
 
     model += kind+'_v2'
     logdir = 'log/'+model #+'_w1' for 1 weather only

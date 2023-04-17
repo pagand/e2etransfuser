@@ -370,10 +370,8 @@ class x13(nn.Module): #
             nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
             nn.Sigmoid()
         )
-#        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-
+        # self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area
@@ -417,8 +415,8 @@ class x13(nn.Module): #
 
         #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
-        self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
-        #self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
+        #self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
+        self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
         if config.attn:
             embed_dim_q = self.config.fusion_embed_dim_q
             embed_dim_kv = self.config.fusion_embed_dim_kv
@@ -467,9 +465,11 @@ class x13(nn.Module): #
         # )
         self.controller = nn.Sequential(
             nn.Linear(config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
-            nn.Linear(config.n_fmap_b3[3][-1], 2),
+            nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
         )
+        self.BN_2d = nn.BatchNorm2d(config.n_fmap_b1[3][-1]+config.n_fmap_b3[4][1])
+
         if config.attn:
             blocks = []
             for j in range(depth):
@@ -489,7 +489,6 @@ class x13(nn.Module): #
                 )
                 )
             self.blocks = nn.ModuleList(blocks)
-            self.input_buffer = {'depth': deque()}
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command ):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
@@ -624,15 +623,18 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8)
-
         red_light = redl_stops[:,0] #gt_redl
         tls_bias = self.tls_biasing_bypass(RGB_features8)
+        stop_sign = torch.zeros_like(red_light)
+        #------------------------------------------------------------------------------------------------
+        #Speed prediction
+        speed = self.speed_head(out[1].squeeze(-2)) # RGB_features8
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
 
         # # for min_CVT version 2
-        features_cat = cat([RGB_features8, SC_features5], dim=1)
+        features_cat = self.BN_2d(cat([RGB_features8, SC_features5], dim=1))
         hx = self.necks_net(features_cat)
         bs,_,H,W = RGB_features8.shape
         
@@ -652,10 +654,9 @@ class x13(nn.Module): #
         control_pred = self.controller(hx+tls_bias)
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
-        #brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
-        brake = self.brake(hx+tls_bias)[:,0]
+        brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
 
-        return ss_f, pred_wp, steer, throttle, brake, red_light, top_view_sc # redl_stops[:,0] , top_view_sc   
+        return ss_f, pred_wp, steer, throttle, brake, red_light,stop_sign, top_view_sc,speed # redl_stops[:,0] , top_view_sc   
 
     def scale_and_crop_image_cv(self, image, scale=1, crop=256):
         upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]

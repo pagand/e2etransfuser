@@ -109,7 +109,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_brake = data['brake'].to(device, dtype=torch.float)
 		gt_red_light = data['red_light'].to(device, dtype=torch.float)
 		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
-                gt_command = data['command'].to(device, dtype=torch.float)
+		gt_command = data['command'].to(device, dtype=torch.float)
 
 		#forward pass
 		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign,_,speed = model(fronts, depth_fronts, target_point, gt_velocity,gt_command)
@@ -141,8 +141,9 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		loss_thr = F.l1_loss(throttle, gt_throttle)
 		loss_brk = F.l1_loss(brake, gt_brake)
 		loss_redl = F.l1_loss(red_light, gt_red_light)
-                loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)
-		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl + params_lw[6]*loss_stops +params_lw[7]* loss_speedl
+		loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
+		loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)
+		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl + params_lw[6]*loss_stops +params_lw[7]* loss_speed		
 		optimizer.zero_grad()
 
 		if batch_ke == 0: #first batch, calculate the initial loss
@@ -153,8 +154,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			loss_thr_0 = torch.clone(loss_thr)
 			loss_brk_0 = torch.clone(loss_brk)
 			loss_redl_0 = torch.clone(loss_redl)
-                        loss_speed_0 = torch.clone(loss_speed)
-
+			loss_stops_0 = torch.clone(loss_stops)
+			loss_speed_0 = torch.clone(loss_speed)
 		elif 0 < batch_ke < total_batch-1:
 			total_loss.backward() #no need to retain the graph
 
@@ -164,9 +165,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				total_loss.backward(retain_graph=True) # retain graph because the graph is still used for calculation
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
 				
-
-
-                                # in case of model freeze, we should change the bottleneck values
+                # in case of model freeze, we should change the bottleneck values
 				d = len(list(model.parameters()))-len(params)
 				if d: # we have freezed parameters in the front
 					G0, G1, G2, G3, G4, G5, G6 = None, None,None,None,None,None,None
@@ -265,8 +264,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		score['thr_loss'].update(loss_thr.item())
 		score['brk_loss'].update(loss_brk.item())
 		score['redl_loss'].update(loss_redl.item())
-                score['stops_loss'].update(loss_stops.item())
-                score['speed_loss'].update(loss_speed.item())
+		score['stops_loss'].update(loss_stops.item())
+		score['speed_loss'].update(loss_speed.item())
 
 		postfix = OrderedDict([('t_total_l', score['total_loss'].avg),
 							('t_ss_l', score['ss_loss'].avg),

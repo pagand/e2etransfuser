@@ -256,6 +256,7 @@ class CARLA_Data(Dataset):
         data['velocity'] = self.velocity[index]
         data['red_light'] = self.red_light[index]
         data['stop_sign'] = self.stop_sign[index]
+        data['command'] = self.command[index]
         
         return data
 

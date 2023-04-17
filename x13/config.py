@@ -2,15 +2,33 @@ import os
 import random
 
 class GlobalConfig:
-    num_worker = 0# for debugging 0
-    wandb = False
-    gpu_id = '0'
-    model = 'April14_cvt_with_SpeedandCommand02_solar_debug'
-    wandb_name = model 
-    logdir = 'log/'+model
-    model = 'randomized_low_data' # for wandb
+    # num_worker = 0# for debugging 0
+    # wandb = False
+    # gpu_id = '0'
+    # model = 'April17_cvt_02_solar_debug'
+    # wandb_name = model 
+    # logdir = 'log/'+model
+    # model = 'randomized_low_data' # for wandb
 
+    # kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+
+
+    num_worker = 4# for debugging 0
+    gpu_id = '0'
+    wandb = False
+    low_data = True
+    wandb_name = 'x13_small_data'
+    #wandb_name = 'randomized_low_data'
+
+    # TODO: correct the forward path in case of change
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+
+#    model = 'speed_cmd(out1cvt)'  # run name
+    model = 'x13_control_'  # run name
+
+    model += kind+'_v2'
+    logdir = 'log/'+model #+'_w1' for 1 weather only
+
 
     init_stop_counter = 15
     n_class = 23
@@ -19,7 +37,7 @@ class GlobalConfig:
     total_epoch = 30
     
     low_data = True
-    low_data_rate = 1
+    low_data_rate = 0.2
 
     # MGN parameter
     MGN = True   ## True
@@ -74,8 +92,8 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # '/localscratch/mmahdavi/transfuser/data' # for the PAMI dataset
-
+  #  root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # '/localscratch/mmahdavi/transfuser/data' # for the PAMI dataset
+    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
     train_data, val_data = [], []
 
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'

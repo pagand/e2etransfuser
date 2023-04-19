@@ -43,16 +43,16 @@ class ConvBNRelu(nn.Module):
         return y
 
 class ConvBlock(nn.Module):
-    def __init__(self, channel, final=False): #up, 
+    def __init__(self, channel, final=False, stridex=1): #up, 
         super(ConvBlock, self).__init__()
         if final:
-            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[0]], stridex=1)
+            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[0]], stridex=stridex)
             self.conv_block1 = nn.Sequential(
             nn.Conv2d(channel[0], channel[1], kernel_size=1),
             nn.Sigmoid()
             )
         else:
-            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[1]], stridex=1)
+            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[1]], stridex=stridex)
             self.conv_block1 = ConvBNRelu(channelx=[channel[1], channel[1]], stridex=1)
         self.conv_block0.apply(kaiming_init)
         self.conv_block1.apply(kaiming_init)
@@ -318,6 +318,7 @@ class x13(nn.Module): #
         self.gpu_device = device
         #------------------------------------------------------------------------------------------------
         #CVT
+	# self.pre = AutoImageProcessor.from_pretrained("microsoft/cvt-13")
         if config.kind == "min_cvt":
             self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
             self.conv1_down = ConvBNRelu(channelx=[3, config.n_fmap_b3[0][-1]],stridex=2)
@@ -381,6 +382,12 @@ class x13(nn.Module): #
         self.n_class = config.n_class
         self.h, self.w = config.input_resolution[0], config.input_resolution[1]
 	
+	#fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
+        #fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
+
+        # fx = 160# 160 (for fov 86 deg, 300 image size)
+        #self.x_matrix = torch.vstack([torch.arange(-self.w/2, self.w/2)]*self.h) / fx
+	
         fovh = np.rad2deg(2.0 * np.arctan((self.config.img_height / self.config.img_width) * np.tan(0.5 * np.radians(self.config.fov))))
         # self.fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
         fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
@@ -408,7 +415,7 @@ class x13(nn.Module): #
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0]) #new -config.n_fmap_b3[3][0]
         )
-
+        #------------------------------------------------------------------------------------------------
         if config.attn:
             embed_dim_q = self.config.fusion_embed_dim_q
             embed_dim_kv = self.config.fusion_embed_dim_kv
@@ -846,6 +853,30 @@ class x13(nn.Module): #
             big_top_view = rotate(big_top_view,rot)
 
         return big_top_view
+
+
+    def gen_top_view_sc_old(self, depth, semseg): #,rgb_f
+        #proses awal
+        depth_in = depth * 1000.0 #normalize to 1 - 1000
+        _, label_img = torch.max(semseg, dim=1) #pada axis C
+        cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*self.w)] for n in range(depth.shape[0])])).to(self.gpu_device)
+
+        #normalize to frame
+        cloud_data_x = torch.round(((depth_in * self.x_matrix) + (self.cover_area[1]/2)) * (self.w-1) / self.cover_area[1]).ravel()
+        cloud_data_z = torch.round((depth_in * -(self.h-1) / self.cover_area[0]) + (self.h-1)).ravel()
+
+        #find the interest index
+        bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= self.w-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
+        idx_xz = bool_xz.nonzero().squeeze() #remove axis with size=1, so no need to add ".item()" later
+
+        #stack n x z cls dan plot
+        coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
+        coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor must be long so that it can be used as an index
+
+        top_view_sc = torch.zeros_like(semseg) #this is faster because automatically the size, data type, and device are the same as those of the input (semseg)
+        top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #axis format from NCHW
+
+        return top_view_sc
   
     def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl,  stops, ctrl_opt="one_of"):
         assert(waypoints.size(0)==1)
@@ -932,6 +963,7 @@ class x13(nn.Module): #
             'throttle': float(throttle),
             'brake': float(brake),
             'red_light': float(red_light),
+	    'stop_sign': float(stop_sign),
             'cw_pid': [float(self.config.cw_pid[0]), float(self.config.cw_pid[1]), float(self.config.cw_pid[2])],
             'pid_steer': float(pid_steer),
             'pid_throttle': float(pid_throttle),

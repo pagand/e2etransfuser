@@ -5,13 +5,14 @@ aim/log/*
 cilrs/log/*
 x13/log/*
 s13/log/*
-./data0/*
+./data/*
 cvt0/*
 carla/*
 *.pyc
 cs-venus*
 my_test.sh
 
+x13/model_*
 x13/wandb
 !data/README.md
 transfuser_cvpr/
@@ -193,4 +194,4 @@ cython_debug/
 
 results/
 model_ckpt/
-data0/
+data/

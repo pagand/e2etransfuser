@@ -5,29 +5,31 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = False
     gpu_id = '0'
-    model = 'April18_cvt_02_solar_debug'
-    wandb_name = model 
-    logdir = 'log/'+model
-    model = 'randomized_low_data' # for wandb
+#    model = 'April18_cvt_02_solar_debug'
+#    wandb_name = model 
+#    logdir = 'log/'+model
+#    model = 'randomized_low_data' # for wandb
 
+#    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+
+#    model = 'speed_cmd(out1cvt)'  # run name
+    model = 'x13_control_'  # run name
+
+    num_worker = 4# for debugging 0
+    gpu_id = '0'
+    wandb = False
+    low_data = True
+    wandb_name = 'x13_small_data'
+    #wandb_name = 'randomized_low_data'
+
+     # TODO: correct the forward path in case of change
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
 
-
-#     num_worker = 4# for debugging 0
-#     gpu_id = '0'
-#     wandb = False
-#     low_data = True
-#     wandb_name = 'x13_small_data'
-#     #wandb_name = 'randomized_low_data'
-
-#     # TODO: correct the forward path in case of change
-#     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-
 # #    model = 'speed_cmd(out1cvt)'  # run name
-#     model = 'x13_control_'  # run name
+    model = 'x13_control_'  # run name
 
-#     model += kind+'_v2'
-#     logdir = 'log/'+model #+'_w1' for 1 weather only
+    model += kind+'_v2'
+    logdir = 'log/'+model #+'_w1' for 1 weather only
 
 
     init_stop_counter = 15
@@ -119,7 +121,12 @@ class GlobalConfig:
 
     if low_data:
         random.seed(0)
+<<<<<<< HEAD
         val_data = random.sample(val_data,int(low_data_rate*len(val_data)))
+=======
+        train_data = random.sample(train_data,int(0.2*len(train_data)))
+        val_data = random.sample(val_data,int(0.2*len(val_data)))
+>>>>>>> 77054189e9b2ac64d57adcf18a55c46cd4484453
 
         # train_data = train_data[:int(0.05*len(train_data))]
         # val_data = val_data[:int(0.1*len(val_data))]

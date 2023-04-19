@@ -109,6 +109,30 @@ class Mlp(nn.Module):
         x = self.fc2(x)
         x = self.drop(x)
         return x
+    
+class AttentionBlock(nn.Module):
+    def __init__(self,
+                 dim_q,
+                 num_heads=8,
+                 attn_drop=0.,
+                 ):
+        super().__init__()
+        self.dim = dim_q
+        self.attn_drop = attn_drop
+        # self.q_lin = nn.Linear(self.dim,self.dim)
+        # self.kv_lin = nn.Linear(self.dim,2*self.dim)
+        # self.fusion = nn.MultiheadAttention(dim_q,num_heads,attn_drop)
+        self.q_lin = nn.Linear(dim_q,dim_q)
+        self.kv_lin = nn.Linear(dim_q,2*dim_q)
+        self.fusion = nn.MultiheadAttention(dim_q,num_heads,attn_drop,batch_first=True)
+
+    def forward(self,q,kv):
+        q_end = self.q_lin(q.unsqueeze(1))
+        kv = self.kv_lin(kv.unsqueeze(1))
+        k_end,v_end = kv.chunk(2,dim=-1)
+        fused_data = self.fusion(q_end,k_end,v_end)
+        return fused_data[0].squeeze(1)
+    
 
 class Attention_2D(nn.Module):
     def __init__(self,
@@ -322,9 +346,13 @@ class x13(nn.Module): #
             self.RGB_encoder = models.efficientnet_b3(pretrained=True) #efficientnet_b4
             self.RGB_encoder.classifier = nn.Sequential()
             self.RGB_encoder.avgpool = nn.Sequential()  
+        
+        #RGB
         self.rgb_normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        
         #SS
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True) 
+        
         if config.kind == "min_cvt":
             self.conv3_ss_f = ConvBlock(channel=[config.n_fmap_b3[3][-1], config.n_fmap_b3[3][-1]])
         else:
@@ -343,13 +371,15 @@ class x13(nn.Module): #
             nn.Linear(config.n_fmap_b3[4][-1], 1),
             nn.Sigmoid()
         )
+        #        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
         self.tls_biasing_bypass = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
             nn.Sigmoid()
         )
-
+        # self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
+        #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area
@@ -389,14 +419,6 @@ class x13(nn.Module): #
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0]) #new -config.n_fmap_b3[3][0]
         )
-
-        # self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-        #     nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
-        #     nn.AdaptiveAvgPool2d(1),
-        #     nn.Flatten(),
-        #     nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
-        # )
-
         #------------------------------------------------------------------------------------------------
         if config.attn:
             embed_dim_q = self.config.fusion_embed_dim_q
@@ -410,6 +432,7 @@ class x13(nn.Module): #
             dpr = self.config.fusion_dpr
             act_layer=nn.GELU
             norm_layer =nn.LayerNorm
+            
         #------------------------------------------------------------------------------------------------
         #Speed predictor
         # self.speed_head = nn.Sequential(
@@ -663,10 +686,7 @@ class x13(nn.Module): #
         # predict delta wp
         out_wp = list()
 
-        # x = torch.zeros(size=(hx.shape[0], 6), dtype=torch.int64).to(self.gpu_device)
-        # indices = (torch.LongTensor(torch.arange(hx.shape[0])).to(self.gpu_device), (gt_command-1).to(torch.int64))
-        # value = torch.ones([20], dtype=torch.int64).to(self.gpu_device)
-        # x.index_put_(indices, value)
+
 
         for _ in range(self.config.pred_len):
             ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x

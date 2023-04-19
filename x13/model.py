@@ -490,7 +490,7 @@ class x13(nn.Module): #
                 )
             self.blocks = nn.ModuleList(blocks)
 
-    def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command ):#, gt_ss, gt_redl:
+    def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command, gt_ss):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
         # CVT and conv (approach2) and Min CVT
         in_rgb = self.rgb_normalizer(rgb_f) #[i]
@@ -581,8 +581,9 @@ class x13(nn.Module): #
 
                 big_top_view = self.gen_top_view_sc_show(big_top_view, depth_f_p, ss_f_p, rot, width, hi,height_coverage,width_coverage) #  ss_f  ,rgb_f
 
-            big_top_view = big_top_view[:,:,0:wi,768-160:768+160]
-            self.save2(gt_ss,big_top_view)
+#            big_top_view = big_top_view[:,:,0:wi,768-160:768+160]
+            big_top_view = big_top_view[:,:,:wi,768-768//2:768+768//2]
+            self.save2(depth_f,gt_ss,big_top_view,0)
         
         big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
         for i in range(3):
@@ -699,8 +700,7 @@ class x13(nn.Module): #
         point_xy.append(xy_arr)
         return point_xy
 		
-    def save2(self, ss, sc):
-        frame = 0
+    def save2(self, depth_f, ss, sc, idx=0):
         ss = ss.cpu().detach().numpy()
         sc = sc.cpu().detach().numpy()
 
@@ -708,23 +708,36 @@ class x13(nn.Module): #
         imgx = np.zeros((ss.shape[2], ss.shape[3], 3))
         imgx2 = np.zeros((sc.shape[2], sc.shape[3], 3))
         #ambil tensor output segmentationnya
-        pred_seg = ss[0]
-        pred_sc = sc[0]
+        pred_seg = ss[idx]
+        pred_sc = sc[idx]
         inx = np.argmax(pred_seg, axis=0)
         inx2 = np.argmax(pred_sc, axis=0)
         for cmap in self.config.SEG_CLASSES['colors']:
             cmap_id = self.config.SEG_CLASSES['colors'].index(cmap)
             imgx[np.where(inx == cmap_id)] = cmap
             imgx2[np.where(inx2 == cmap_id)] = cmap
-	# Image.fromarray(imgx).save(self.save_path / 'segmentation' / ('%06d.png' % frame))
-	# Image.fromarray(imgx2).save(self.save_path / 'semantic_cloud' / ('%06d.png' % frame))
+
+	    # Image.fromarray(imgx).save(self.save_path / 'segmentation' / ('%06d.png' % frame))
+	    # Image.fromarray(imgx2).save(self.save_path / 'semantic_cloud' / ('%06d.png' % frame))
 	
-	#GANTI ORDER BGR KE RGB, SWAP!
+	    #GANTI ORDER BGR KE RGB, SWAP!
         imgx = self.swap_RGB2BGR(imgx)
         imgx2 = self.swap_RGB2BGR(imgx2)
 
-        cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/train_1%06d.png' % frame, imgx) #cetak predicted segmentation
-        cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/train_2%06d.png' % frame, imgx2) #cetak predicted segmentation
+        cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/SDC/Seg.png', imgx) #cetak predicted segmentation
+        cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/SDC/SDC.png', imgx2) #cetak predicted segmentation
+        plt.imshow(depth_f[idx,0].cpu())
+        plt.savefig('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/SDC/Depth.png') #cetak predicted segmentation
+        plt.close()
+
+        for i in range(pred_sc.shape[0]):
+            imgx2 = np.zeros((sc.shape[2], sc.shape[3], 3))
+            inx2 = np.argmax(pred_sc, axis=0)  
+            cmap = self.config.SEG_CLASSES['colors'][i]
+            cmap_id = self.config.SEG_CLASSES['colors'].index(cmap)
+            imgx2[np.where(inx2 == cmap_id)] = cmap
+            imgx2 = self.swap_RGB2BGR(imgx2)
+            cv2.imwrite('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/SDC/SDC_layer_%06d.png' %i , imgx2)
 
     def gen_top_view_sc_show(self, big_top_view, depth, semseg, rot, im_width, im_height,height_coverage,width_coverage):
         #proses awal
@@ -755,7 +768,7 @@ class x13(nn.Module): #
         if rot != 0:
             big_top_view = rotate(big_top_view,rot)
 
-        self.save2(semseg,big_top_view)
+#        self.save2(semseg,big_top_view)
 
         return big_top_view
     

@@ -112,7 +112,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_command = data['command'].to(device, dtype=torch.float)
 
 		#forward pass
-		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign,_,speed = model(fronts, depth_fronts, target_point, gt_velocity,gt_command)
+		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign,_,speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command, seg_fronts)
 
 		if cur_epoch< config.cvt_freezed_epoch and list(model.named_parameters())[0][1].requires_grad: # freeze CVT
 			if list(model.named_parameters())[0][0][:3] != 'cvt' :

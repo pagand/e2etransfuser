@@ -70,6 +70,8 @@ class GlobalConfig:
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
     root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'#  '/localscratch/mmahdavi/transfuser/data' #  for the PAMI dataset
 
+    attn = True
+    
     train_data, val_data = [], []
 
     ## For PMLR dataset

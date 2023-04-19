@@ -302,8 +302,8 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		"""
 		a = 0
 		# forward pass
-		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl,stop_sign, pred_sc,speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
-
+		#pred_seg, pred_wp, psteer, pthrottle, pbrake, predl,stop_sign, pred_sc,speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
+		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a,a)
 		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
 		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)

@@ -33,18 +33,9 @@ class GlobalConfig:
 
 
     init_stop_counter = 15
-    n_class = 23
-    
-    batch_size = 2 #20
-    total_epoch = 30
-    
-    low_data = True
+
     low_data_rate = 0.2
 
-    # MGN parameter
-    MGN = True   ## True
-    loss_weights = [1, 1, 1, 1, 1, 1, 1]
-    lw_alpha = 1.5
 
     if kind == 'cvt_cnn':
         bottleneck = [350, 695, 350]
@@ -101,7 +92,7 @@ class GlobalConfig:
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10'] #HD
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:
@@ -121,12 +112,8 @@ class GlobalConfig:
 
     if low_data:
         random.seed(0)
-<<<<<<< HEAD
-        val_data = random.sample(val_data,int(low_data_rate*len(val_data)))
-=======
         train_data = random.sample(train_data,int(0.2*len(train_data)))
         val_data = random.sample(val_data,int(0.2*len(val_data)))
->>>>>>> 77054189e9b2ac64d57adcf18a55c46cd4484453
 
         # train_data = train_data[:int(0.05*len(train_data))]
         # val_data = val_data[:int(0.1*len(val_data))]
@@ -149,6 +136,11 @@ class GlobalConfig:
   #  coverage_area = [64,64]
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
 
+    camera_width = 960
+    camera_height = 480
+    img_width_cut = 320
+    img_resolution = (160,704)
+    
     # camera intrinsic
     img_width = 352
     img_height = 160
@@ -204,26 +196,9 @@ class GlobalConfig:
                             'Dynamic', 'Water', 'Terrain']
     }
 
-    if kind == 'cvt_effnet' or kind == 'effnet' or kind == 'rest':
-        # parameters for Effnet
-        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
-        n_fmap_b3 = [[40,24], [32], [48], [96,136], [232,384,1536]] 
-    elif kind == 'cvt_cnn':
-    # parameters for CVT
-        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
-        n_fmap_b3 = [[40,32], [64], [192], [96,384], [232,384,1536]] 
-    elif kind == 'min_cvt':
-        # version 1
-        # n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]] 
-        # n_fmap_b3 = [[32,24], [64], [192], [96,384], [232,384,1536]]
-        # # version 2
-        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,112]] 
-        n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]] 
-    else:
-        raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
-
+    
     ## fusion settings
-    attn = True
+    attn = False
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]
     fusion_depth = 4 #1

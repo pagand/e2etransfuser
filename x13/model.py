@@ -5,6 +5,9 @@ from torch import torch, cat, add, nn
 import torch.nn.functional as F
 import torchvision.models as models
 import torchvision.transforms as transforms
+from transformers import CvtModel #, AutoImageProcessor
+
+# can be ignored
 import matplotlib.pyplot as plt
 from einops import rearrange
 from einops.layers.torch import Rearrange
@@ -14,7 +17,7 @@ import os
 import cv2
 from torchvision.transforms.functional import rotate
 
-from transformers import CvtModel #, AutoImageProcessor
+
 
 
 def kaiming_init_layer(layer):
@@ -40,16 +43,16 @@ class ConvBNRelu(nn.Module):
         return y
 
 class ConvBlock(nn.Module):
-    def __init__(self, channel, final=False): #up, 
+    def __init__(self, channel, final=False, stridex=1): #up, 
         super(ConvBlock, self).__init__()
         if final:
-            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[0]], stridex=1)
+            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[0]], stridex=stridex)
             self.conv_block1 = nn.Sequential(
             nn.Conv2d(channel[0], channel[1], kernel_size=1),
             nn.Sigmoid()
             )
         else:
-            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[1]], stridex=1)
+            self.conv_block0 = ConvBNRelu(channelx=[channel[0], channel[1]], stridex=stridex)
             self.conv_block1 = ConvBNRelu(channelx=[channel[1], channel[1]], stridex=1)
         self.conv_block0.apply(kaiming_init)
         self.conv_block1.apply(kaiming_init)
@@ -339,6 +342,7 @@ class x13(nn.Module): #
         self.gpu_device = device
         #------------------------------------------------------------------------------------------------
         #CVT
+	# self.pre = AutoImageProcessor.from_pretrained("microsoft/cvt-13")
         if config.kind == "min_cvt":
             self.cvt = CvtModel.from_pretrained("microsoft/cvt-13")
             self.conv1_down = ConvBNRelu(channelx=[3, config.n_fmap_b3[0][-1]],stridex=2)
@@ -401,6 +405,12 @@ class x13(nn.Module): #
         self.n_class = config.n_class
         self.h, self.w = config.input_resolution[0], config.input_resolution[1]
 	
+	#fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
+        #fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
+
+        # fx = 160# 160 (for fov 86 deg, 300 image size)
+        #self.x_matrix = torch.vstack([torch.arange(-self.w/2, self.w/2)]*self.h) / fx
+	
         fovh = np.rad2deg(2.0 * np.arctan((self.config.img_height / self.config.img_width) * np.tan(0.5 * np.radians(self.config.fov))))
         # self.fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
         fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
@@ -416,7 +426,6 @@ class x13(nn.Module): #
         self.SC_encoder.apply(kaiming_init)
         #------------------------------------------------------------------------------------------------
         #feature fusion
-        # self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
         #     nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
         #     nn.AdaptiveAvgPool2d(1),
         #     nn.Flatten(),
@@ -428,22 +437,7 @@ class x13(nn.Module): #
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0]) #new -config.n_fmap_b3[3][0]
         )
-        if config.attn:
-            embed_dim_q = self.config.fusion_embed_dim_q
-            embed_dim_kv = self.config.fusion_embed_dim_kv
-            depth = self.config.fusion_depth
-            num_heads = self.config.fusion_num_heads
-            mlp_ratio = self.config.fusion_mlp_ratio
-            qkv_bias = self.config.fusion_qkv
-            drop_rate = self.config.fusion_drop_rate
-            attn_drop_rate = self.config.fusion_attn_drop_rate
-            dpr = self.config.fusion_dpr
-            act_layer=nn.GELU
-            norm_layer =nn.LayerNorm
         #------------------------------------------------------------------------------------------------
-        #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
-        #self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
-        self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
         if config.attn:
             embed_dim_q = self.config.fusion_embed_dim_q
             embed_dim_kv = self.config.fusion_embed_dim_kv
@@ -500,14 +494,15 @@ class x13(nn.Module): #
 
         #     nn.Linear(config.n_fmap_b3[4][0], 3), #v3
         #     nn.Sigmoid())
-
-
-        #------------------------------------------------------------------------------------------------
+	
+	# self.BN_2d = nn.BatchNorm2d(config.n_fmap_b1[3][-1]+config.n_fmap_b3[4][1])
+	#------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
         self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
-        # self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
-        # self.gru = nn.GRUCell(input_size=5-1, hidden_size=config.n_fmap_b3[4][0])
-        self.pred_dwp = nn.Linear(config.n_fmap_b3[4][0], 2)
+	#self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
+	# self.gru = nn.GRUCell(input_size=5-1, hidden_size=config.n_fmap_b3[4][0])
+	
+	self.pred_dwp = nn.Linear(config.n_fmap_b3[4][0], 2)
         #PID Controller
         self.turn_controller = PIDController(K_P=config.turn_KP, K_I=config.turn_KI, K_D=config.turn_KD, n=config.turn_n)
         self.speed_controller = PIDController(K_P=config.speed_KP, K_I=config.speed_KI, K_D=config.speed_KD, n=config.speed_n)
@@ -524,7 +519,7 @@ class x13(nn.Module): #
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
         )
-        self.BN_2d = nn.BatchNorm2d(config.n_fmap_b1[3][-1]+config.n_fmap_b3[4][1])
+        
 
         if config.attn:
             blocks = []
@@ -545,6 +540,7 @@ class x13(nn.Module): #
                 )
                 )
             self.blocks = nn.ModuleList(blocks)
+	    self.input_buffer = {'depth': deque()}
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command, gt_ss):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
@@ -581,21 +577,22 @@ class x13(nn.Module): #
         # # TODO: Comment next conv0_ss_f
         # # TODO: change self.necks_net for version 2 and the SC_features after 5
 
+	
 
         ######## EfficientNet
+	
+        #in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        #RGB_features0 = self.RGB_encoder.features[0](in_rgb)
+        #RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
+        #RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
+        #RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
+        #RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
+        #RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
+        #RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
+        #RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
+        #RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
+	
 
-
-        # # # only CNN
-        # in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        # RGB_features0 = self.RGB_encoder.features[0](in_rgb)
-        # RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
-        # RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
-        # RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
-        # RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
-        # RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
-        # RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
-        # RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
-        # RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
        
         # bagian upsampling
         # ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))  ## for Effnet
@@ -682,18 +679,26 @@ class x13(nn.Module): #
         redl_stops = self.tls_predictor(RGB_features8)
         red_light = redl_stops[:,0] #gt_redl
         tls_bias = self.tls_biasing_bypass(RGB_features8)
-        stop_sign = torch.zeros_like(red_light)
+        bs,_,H,W = RGB_features8.shape
         #------------------------------------------------------------------------------------------------
         #Speed prediction
         speed = self.speed_head(out[1].squeeze(-2)) # RGB_features8
+	#------------------------------------------------------------------------------------------------
+        #red light and stop sign detection
+        # stop_sign = redl_stops[:,1]  # we don't have stop sign
+        stop_sign = torch.zeros_like(red_light)
+        #tls_bias = self.tls_biasing(redl_stops)   #   gt_redl.unsqueeze(-1)
         #------------------------------------------------------------------------------------------------
-        #waypoint prediction
-        #get hidden state dari gabungan kedua bottleneck
-
+	#waypoint prediction
+	# hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
 
         hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
-        # comment 2
+
+        #features_cat = self.BN_2d(cat([RGB_features8, SC_features5], dim=1))
+        #hx = self.necks_net(features_cat)
+	
+	# comment 2
         # measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
         # fuse = torch.cat([RGB_features8, SC_features5], dim=1)
         # hx = self.necks_net(self.fuse_BN(fuse))
@@ -707,7 +712,6 @@ class x13(nn.Module): #
 #            x = blk(features_cat, H, W)
 #        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
 #        hx = self.attn_neck(x)
-
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         # predict delta wp
         out_wp = list()
@@ -715,7 +719,6 @@ class x13(nn.Module): #
         for _ in range(self.config.pred_len):
             ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
             # ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1)], dim=1) # x
-            # ins = torch.cat([xy, next_route], dim=1) # x
             hx = self.gru(ins, hx)
             d_xy = self.pred_dwp(hx+tls_bias) #why adding??
             xy = xy + d_xy
@@ -724,16 +727,12 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #control decoder
         control_pred = self.controller(hx+tls_bias)
-
-        # comment 3
         # # NEW
         # hx = self.gru_control(control_pred, fuse)
         # # d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1))
         # d_control = self.pred_control(hx+tls_bias)  # making add (#v3)
 
         # control_pred = control_pred + d_control
-
-
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
@@ -883,6 +882,30 @@ class x13(nn.Module): #
             big_top_view = rotate(big_top_view,rot)
 
         return big_top_view
+
+
+    def gen_top_view_sc_old(self, depth, semseg): #,rgb_f
+        #proses awal
+        depth_in = depth * 1000.0 #normalize to 1 - 1000
+        _, label_img = torch.max(semseg, dim=1) #pada axis C
+        cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*self.w)] for n in range(depth.shape[0])])).to(self.gpu_device)
+
+        #normalize to frame
+        cloud_data_x = torch.round(((depth_in * self.x_matrix) + (self.cover_area[1]/2)) * (self.w-1) / self.cover_area[1]).ravel()
+        cloud_data_z = torch.round((depth_in * -(self.h-1) / self.cover_area[0]) + (self.h-1)).ravel()
+
+        #find the interest index
+        bool_xz = torch.logical_and(torch.logical_and(cloud_data_x <= self.w-1, cloud_data_x >= 0), torch.logical_and(cloud_data_z <= self.h-1, cloud_data_z >= 0))
+        idx_xz = bool_xz.nonzero().squeeze() #remove axis with size=1, so no need to add ".item()" later
+
+        #stack n x z cls dan plot
+        coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
+        coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor must be long so that it can be used as an index
+
+        top_view_sc = torch.zeros_like(semseg) #this is faster because automatically the size, data type, and device are the same as those of the input (semseg)
+        top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #axis format from NCHW
+
+        return top_view_sc
   
     def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl,  stops, ctrl_opt="one_of"):
         assert(waypoints.size(0)==1)
@@ -969,6 +992,7 @@ class x13(nn.Module): #
             'throttle': float(throttle),
             'brake': float(brake),
             'red_light': float(red_light),
+	    'stop_sign': float(stop_sign),
             'cw_pid': [float(self.config.cw_pid[0]), float(self.config.cw_pid[1]), float(self.config.cw_pid[2])],
             'pid_steer': float(pid_steer),
             'pid_throttle': float(pid_throttle),

@@ -92,7 +92,10 @@ class LeaderboardEvaluator(object):
                 raise ImportError("CARLA version 0.9.10.1 or newer required. CARLA version found: {}".format(dist))
 
         # Load agent
+        print("info:")
+        print(args.agent)
         module_name = os.path.basename(args.agent).split('.')[0]
+        print(module_name)
         sys.path.insert(0, os.path.dirname(args.agent))
         self.module_agent = importlib.import_module(module_name)
 

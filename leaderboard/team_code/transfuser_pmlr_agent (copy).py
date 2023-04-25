@@ -13,9 +13,9 @@ import numpy as np
 from PIL import Image
 
 from leaderboard.autoagents import autonomous_agent
-from transfuser.model import TransFuser
+from transfuser.model import LidarCenterNet
 from transfuser.config import GlobalConfig
-from transfuser.data import scale_and_crop_image, lidar_to_histogram_features, transform_2d_points
+from transfuser.data import scale_and_crop_image, lidar_to_histogram_features, transform_2d_points,draw_target_point,lidar_bev_cam_correspondences
 from team_code.planner import RoutePlanner
 
 import math
@@ -41,7 +41,7 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 							'rgb_rear': deque(), 'lidar': deque(), 'gps': deque(), 'thetas': deque()}
 
 		self.config = GlobalConfig()
-		self.net = TransFuser(self.config, 'cuda')
+		self.net = LidarCenterNet(self.config, 'cuda')
 		self.net.load_state_dict(torch.load(os.path.join(path_to_conf_file, 'best_model.pth')))
 		self.net.cuda()
 		self.net.eval()
@@ -93,7 +93,7 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 		
 				{
 					'type': 'sensor.camera.rgb',
-                                        'x': 1.3, 'y': 0.0, 'z':2.3,
+                    'x': 1.3, 'y': 0.0, 'z':2.3,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
 					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 					'id': 'rgb_front'

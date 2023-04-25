@@ -8,7 +8,7 @@ from geometric_fusion import GeometricFusionBackbone
 from late_fusion import LateFusionBackbone
 from latentTF import latentTFBackbone
 from point_pillar import PointPillarNet
-
+import utils
 
 from PIL import Image, ImageFont, ImageDraw
 from torchvision import models
@@ -558,7 +558,6 @@ class LidarCenterNet(nn.Module):
                                                   )
 
         self.backbone = backbone
-
 
         if(backbone == 'transFuser'):
             self._model = TransfuserBackbone(config, image_architecture, lidar_architecture, use_velocity=use_velocity).to(self.device)

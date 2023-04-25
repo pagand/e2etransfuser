@@ -13,9 +13,9 @@ import numpy as np
 from PIL import Image
 
 from leaderboard.autoagents import autonomous_agent
-from transfuser.model import TransFuser
+from transfuser.model import LidarCenterNet
 from transfuser.config import GlobalConfig
-from transfuser.data import scale_and_crop_image, lidar_to_histogram_features, transform_2d_points
+from transfuser.data import scale_and_crop_image, lidar_to_histogram_features, transform_2d_points, draw_target_point, lidar_bev_cam_correspondences
 from team_code.planner import RoutePlanner
 
 import math
@@ -41,7 +41,12 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 							'rgb_rear': deque(), 'lidar': deque(), 'gps': deque(), 'thetas': deque()}
 
 		self.config = GlobalConfig()
-		self.net = TransFuser(self.config, 'cuda')
+		self.backbone = 'transFuser'
+		image_architecture = 'regnety_032'
+		lidar_architecture = 'regnety_032'
+		use_velocity = 0
+		self.net = LidarCenterNet(self.config, 'cuda', self.backbone, image_architecture, lidar_architecture, use_velocity)
+		print(self.net)
 		self.net.load_state_dict(torch.load(os.path.join(path_to_conf_file, 'best_model.pth')))
 		self.net.cuda()
 		self.net.eval()
@@ -93,7 +98,7 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 		
 				{
 					'type': 'sensor.camera.rgb',
-                                        'x': 1.3, 'y': 0.0, 'z':2.3,
+                    'x': 1.3, 'y': 0.0, 'z':2.3,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
 					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 					'id': 'rgb_front'
@@ -236,10 +241,9 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 
 		encoding = []
 		rgb = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb']), crop=self.config.input_resolution)).unsqueeze(0)
-#		self.input_buffer['rgb'].popleft()
-#		self.input_buffer['rgb'].append(rgb.to('cuda', dtype=torch.float32))
-		
-		
+		self.input_buffer['rgb'].popleft()
+		self.input_buffer['rgb'].append(rgb.to('cuda', dtype=torch.float32))
+
 		"""
 		if not self.config.ignore_sides:
 			rgb_left = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_left']), crop=self.config.input_resolution)).unsqueeze(0)
@@ -255,12 +259,13 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 			self.input_buffer['rgb_rear'].popleft()
 			self.input_buffer['rgb_rear'].append(rgb_rear.to('cuda', dtype=torch.float32))
 		"""
-#		self.input_buffer['lidar'].popleft()
-#		self.input_buffer['lidar'].append(tick_data['lidar'])
-#		self.input_buffer['gps'].popleft()
-#		self.input_buffer['gps'].append(tick_data['gps'])
-#		self.input_buffer['thetas'].popleft()
-#		self.input_buffer['thetas'].append(tick_data['compass'])
+		
+		self.input_buffer['lidar'].popleft()
+		self.input_buffer['lidar'].append(tick_data['lidar'])
+		self.input_buffer['gps'].popleft()
+		self.input_buffer['gps'].append(tick_data['gps'])
+		self.input_buffer['thetas'].popleft()
+		self.input_buffer['thetas'].append(tick_data['compass'])
 
 		# transform the lidar point clouds to local coordinate frame
 		ego_theta = self.input_buffer['thetas'][-1]
@@ -279,8 +284,10 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 				self.lidar_processed.append(lidar_transformed.to('cuda', dtype=torch.float32))
 
 
-			self.pred_wp = self.net(self.input_buffer['rgb'] + self.input_buffer['rgb_left'] + \
-							   self.input_buffer['rgb_right']+self.input_buffer['rgb_rear'], \
+#			self.pred_wp = self.net(self.input_buffer['rgb'] + self.input_buffer['rgb_left'] + \
+#							   self.input_buffer['rgb_right']+self.input_buffer['rgb_rear'], \
+#							   self.lidar_processed, target_point, gt_velocity)
+			self.pred_wp = self.net(self.input_buffer['rgb'] ,
 							   self.lidar_processed, target_point, gt_velocity)
 
 		steer, throttle, brake, metadata = self.net.control_pid(self.pred_wp, gt_velocity)

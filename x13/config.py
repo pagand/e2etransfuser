@@ -4,21 +4,21 @@ import random
 class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = True
-    gpu_id = '1'
-    model = 'April14_cvt_cnn_selfAttn_withAttn_withT10_total_solar'
+    gpu_id = '0'
+    model = 'April23_eff_1Map_BN_02'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
 
-    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+    kind = 'effnet' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
     n_class = 23
     
-    batch_size = 80 #20
-    total_epoch = 30
+    batch_size = 20 #20
+    total_epoch = 50
     
     low_data = True
-    low_data_rate = 1
+    low_data_rate = 0.2
 
     # MGN parameter
     MGN = True   ## True
@@ -41,7 +41,7 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # '/localscratch/mmahdavi/transfuser/data' # for the PAMI dataset
+    root_dir = '/localscratch/mmahdavi/transfuser/data' #'/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' # for the PAMI dataset
 
     train_data, val_data = [], []
 
@@ -68,7 +68,9 @@ class GlobalConfig:
 
     if low_data:
         random.seed(0)
-        val_data = random.sample(val_data,int(low_data_rate*len(val_data)))
+#        val_data = random.sample(val_data,int(low_data_rate*len(val_data)))
+        val_data = random.sample(val_data,int(len(val_data)))
+
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset

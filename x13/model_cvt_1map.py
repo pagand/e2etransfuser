@@ -437,20 +437,20 @@ class x13(nn.Module): #
             )
         self.blocks = nn.ModuleList(blocks)
         self.input_buffer = {'depth': deque()}
-        self.BN = nn.BatchNorm2d(config.n_fmap_b1[4][-1]+config.n_fmap_b3[4][-1])
+        self.BN = nn.BatchNorm2d(config.n_fmap_b1[3][-1]+config.n_fmap_b3[4][1])
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
         #------------------------------------------------------------------------------------------------
         # CVT and conv (approach2) and Min CVT
-        #in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        #out = self.cvt(in_rgb, output_hidden_states=True)
-        #RGB_features1 = self.conv1_down(in_rgb)
-        #RGB_features2 = out[2][0]
-        #RGB_features3 = out[2][1]
-        #RGB_features5 = out[2][2]
+        in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        out = self.cvt(in_rgb, output_hidden_states=True)
+        RGB_features1 = self.conv1_down(in_rgb)
+        RGB_features2 = out[2][0]
+        RGB_features3 = out[2][1]
+        RGB_features5 = out[2][2]
         # # version2 does not require conv2_down
         # RGB_features8 = self.conv2_down(RGB_features5) # version 1
-        # RGB_features8 = RGB_features5 # version 2
+        RGB_features8 = RGB_features5 # version 2
         # TODO: for Min CVT change upsampling
         # TODO: for min_CVT version 2 change hx to use SC_features5
         # TODO: fer version 2, comment conv2_down in init
@@ -479,22 +479,22 @@ class x13(nn.Module): #
 
 
         # # # only CNN
-        in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        RGB_features0 = self.RGB_encoder.features[0](in_rgb)
-        RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
-        RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
-        RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
-        RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
-        RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
-        RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
-        RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
-        RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
+        # in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        # RGB_features0 = self.RGB_encoder.features[0](in_rgb)
+        # RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
+        # RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
+        # RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
+        # RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
+        # RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
+        # RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
+        # RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
+        # RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
        
        
         # bagian upsampling
-        ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))  ## for Effnet
+        # ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))  ## for Effnet
         # # only for Min CVT (both versions)
-        # ss_f = self.conv3_ss_f(RGB_features5)  ## for CvT
+        ss_f = self.conv3_ss_f(RGB_features5)  ## for CvT
 
 
         ss_f = self.conv2_ss_f(cat([self.up(ss_f), RGB_features3], dim=1))
@@ -534,8 +534,9 @@ class x13(nn.Module): #
 
             big_top_view = big_top_view[:,:,0:wi,768-160:768+160]
             self.save2(gt_ss,big_top_view)
+        
+        big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
         if True:
-            big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
             i = 2
             if i==0:
                 width = 224 # 224
@@ -557,8 +558,8 @@ class x13(nn.Module): #
                 big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
 
 #        top_view_sc = big_top_view[:,:,wi:2*wi,768-160:768+160]
-            top_view_sc = big_top_view[:,:,:wi,:]
-        
+        top_view_sc = big_top_view[:,:,:wi,:]
+
         #downsampling section
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
         SC_features1 = self.SC_encoder.features[1](SC_features0)
@@ -567,9 +568,9 @@ class x13(nn.Module): #
         SC_features4 = self.SC_encoder.features[4](SC_features3)
         SC_features5 = self.SC_encoder.features[5](SC_features4)
         # for min-cvt version 2 should be commented
-        SC_features6 = self.SC_encoder.features[6](SC_features5)
-        SC_features7 = self.SC_encoder.features[7](SC_features6)
-        SC_features8 = self.SC_encoder.features[8](SC_features7)
+        # SC_features6 = self.SC_encoder.features[6](SC_features5)
+        # SC_features7 = self.SC_encoder.features[7](SC_features6)
+        # SC_features8 = self.SC_encoder.features[8](SC_features7)
 
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
@@ -586,7 +587,7 @@ class x13(nn.Module): #
 
         # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
-        inputs = cat([RGB_features8, SC_features8], dim=1)
+        inputs = cat([RGB_features8, SC_features5], dim=1)
         inputs = self.BN(inputs)
         hx = self.necks_net(inputs)
 

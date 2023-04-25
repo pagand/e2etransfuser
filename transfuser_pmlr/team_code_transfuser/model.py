@@ -231,6 +231,8 @@ class LidarCenterNetHead(BaseDenseHead, BBoxTestMixin):
             velocity_target,
             wh_offset_target_weight[:, :1, ...],
             avg_factor=avg_factor)
+        print("brake target is:")
+        print(brake_target)
         loss_brake = self.loss_brake(
             brake_pred,
             brake_target,

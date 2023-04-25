@@ -534,9 +534,9 @@ class x13(nn.Module): #
 
             big_top_view = big_top_view[:,:,0:wi,768-160:768+160]
             self.save2(gt_ss,big_top_view)
-        if True:
-            big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
-            i = 2
+        
+        big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
+        for i in range(3):
             if i==0:
                 width = 224 # 224
                 rot = 130 #60 # 43.3
@@ -557,8 +557,8 @@ class x13(nn.Module): #
                 big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
 
 #        top_view_sc = big_top_view[:,:,wi:2*wi,768-160:768+160]
-            top_view_sc = big_top_view[:,:,:wi,:]
-        
+        top_view_sc = big_top_view[:,:,:wi,:]
+
         #downsampling section
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
         SC_features1 = self.SC_encoder.features[1](SC_features0)

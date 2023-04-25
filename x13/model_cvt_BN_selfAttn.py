@@ -105,6 +105,29 @@ class Mlp(nn.Module):
         x = self.drop(x)
         return x
 
+class AttentionBlock(nn.Module):
+    def __init__(self,
+                 dim_q,
+                 num_heads=8,
+                 attn_drop=0.,
+                 ):
+        super().__init__()
+        self.dim = dim_q
+        self.attn_drop = attn_drop
+        # self.q_lin = nn.Linear(self.dim,self.dim)
+        # self.kv_lin = nn.Linear(self.dim,2*self.dim)
+        # self.fusion = nn.MultiheadAttention(dim_q,num_heads,attn_drop)
+        self.q_lin = nn.Linear(dim_q,dim_q)
+        self.kv_lin = nn.Linear(dim_q,2*dim_q)
+        self.fusion = nn.MultiheadAttention(dim_q,num_heads,attn_drop,batch_first=True)
+
+    def forward(self,q,kv):
+        q_end = self.q_lin(q.unsqueeze(1))
+        kv = self.kv_lin(kv.unsqueeze(1))
+        k_end,v_end = kv.chunk(2,dim=-1)
+        fused_data = self.fusion(q_end,k_end,v_end)
+        return fused_data[0].squeeze(1)
+
 class Attention_2D(nn.Module):
     def __init__(self,
                  dim_q,
@@ -258,7 +281,7 @@ class Fusion_Block(nn.Module):
 
         self.with_cls_token = False
 
-        self.norm1 = norm_layer(dim_in+dim_out)
+        self.norm1 = norm_layer(dim_in)
         self.attn = Attention_2D(
             dim_in, dim_out, num_heads, qkv_bias, attn_drop, drop,
         )
@@ -348,9 +371,7 @@ class x13(nn.Module): #
             nn.Sigmoid()
         )
 #        self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
-
         #------------------------------------------------------------------------------------------------
         #SDC
         self.cover_area = config.coverage_area
@@ -372,31 +393,31 @@ class x13(nn.Module): #
         self.SC_encoder.apply(kaiming_init)
         #------------------------------------------------------------------------------------------------
         #feature fusion
-        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
-            nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
-        )
-
-#        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-#            nn.Conv2d(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+#        self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
+#            nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
 #            nn.AdaptiveAvgPool2d(1),
 #            nn.Flatten(),
 #            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
 #        )
 
-        embed_dim_q = self.config.fusion_embed_dim_q
-        embed_dim_kv = self.config.fusion_embed_dim_kv
-        depth = self.config.fusion_depth
-        num_heads = self.config.fusion_num_heads
-        mlp_ratio = self.config.fusion_mlp_ratio
-        qkv_bias = self.config.fusion_qkv
-        drop_rate = self.config.fusion_drop_rate
-        attn_drop_rate = self.config.fusion_attn_drop_rate
-        dpr = self.config.fusion_dpr
-        act_layer=nn.GELU
-        norm_layer =nn.LayerNorm
+        self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
+            nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
+        )
+        if config.attn:
+            embed_dim_q = self.config.fusion_embed_dim_q
+            embed_dim_kv = self.config.fusion_embed_dim_kv
+            depth = self.config.fusion_depth
+            num_heads = self.config.fusion_num_heads
+            mlp_ratio = self.config.fusion_mlp_ratio
+            qkv_bias = self.config.fusion_qkv
+            drop_rate = self.config.fusion_drop_rate
+            attn_drop_rate = self.config.fusion_attn_drop_rate
+            dpr = self.config.fusion_dpr
+            act_layer=nn.GELU
+            norm_layer =nn.LayerNorm
 
         #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
@@ -415,42 +436,50 @@ class x13(nn.Module): #
         # )
         self.controller = nn.Sequential(
             nn.Linear(config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
-            nn.Linear(config.n_fmap_b3[3][-1], 3),
+            nn.Linear(config.n_fmap_b3[3][-1], 2),
             nn.ReLU()
         )
-
-        blocks = []
-        for j in range(depth):
-            blocks.append(
-                Fusion_Block(
-                    dim_in=embed_dim_q+embed_dim_kv,
-                    dim_out=embed_dim_q+embed_dim_kv,
-                    num_heads=num_heads,
-                    mlp_ratio=mlp_ratio,
-                    qkv_bias=qkv_bias,
-                    drop=drop_rate,
-                    attn_drop=attn_drop_rate,
-                    drop_path=dpr[j],
-                    act_layer=act_layer,
-                    norm_layer=norm_layer,
+        self.brake = nn.Sequential(
+            nn.Linear(config.n_fmap_b3[4][0],1),
+            nn.Sigmoid()
+        )
+        
+        if config.attn:
+            blocks = []
+            for j in range(depth):
+                blocks.append(
+                    Fusion_Block(
+                        dim_in=embed_dim_q+embed_dim_kv,
+                        dim_out=embed_dim_q+embed_dim_kv,
+                        num_heads=num_heads,
+                        mlp_ratio=mlp_ratio,
+                        qkv_bias=qkv_bias,
+                        drop=drop_rate,
+                        attn_drop=attn_drop_rate,
+                        drop_path=dpr[j],
+                        act_layer=act_layer,
+                        norm_layer=norm_layer,
+                    )
                 )
-            )
-        self.blocks = nn.ModuleList(blocks)
-        self.input_buffer = {'depth': deque()}
-        self.BN = nn.BatchNorm2d(config.n_fmap_b1[4][-1]+config.n_fmap_b3[4][-1])
+            self.blocks = nn.ModuleList(blocks)
+
+        self.norm1 = norm_layer(embed_dim_q)
+        self.norm2 = norm_layer(embed_dim_kv)
+        self.BN_2d = nn.BatchNorm2d(config.n_fmap_b1[3][-1]+config.n_fmap_b3[4][1])
+        self.FuseAttn = AttentionBlock(config.n_fmap_b3[4][0], config.fusion_num_heads, attn_drop=0)
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_ss,gt_redl): # 
         #------------------------------------------------------------------------------------------------
         # CVT and conv (approach2) and Min CVT
-        #in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        #out = self.cvt(in_rgb, output_hidden_states=True)
-        #RGB_features1 = self.conv1_down(in_rgb)
-        #RGB_features2 = out[2][0]
-        #RGB_features3 = out[2][1]
-        #RGB_features5 = out[2][2]
+        in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        out = self.cvt(in_rgb, output_hidden_states=True)
+        RGB_features1 = self.conv1_down(in_rgb)
+        RGB_features2 = out[2][0]
+        RGB_features3 = out[2][1]
+        RGB_features5 = out[2][2]
         # # version2 does not require conv2_down
         # RGB_features8 = self.conv2_down(RGB_features5) # version 1
-        # RGB_features8 = RGB_features5 # version 2
+        RGB_features8 = RGB_features5 # version 2
         # TODO: for Min CVT change upsampling
         # TODO: for min_CVT version 2 change hx to use SC_features5
         # TODO: fer version 2, comment conv2_down in init
@@ -474,28 +503,24 @@ class x13(nn.Module): #
         # # TODO: Comment next conv0_ss_f
         # # TODO: change self.necks_net for version 2 and the SC_features after 5
 
-
         ######## EfficientNet
 
-
         # # # only CNN
-        in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        RGB_features0 = self.RGB_encoder.features[0](in_rgb)
-        RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
-        RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
-        RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
-        RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
-        RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
-        RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
-        RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
-        RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
-       
+        # in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        # RGB_features0 = self.RGB_encoder.features[0](in_rgb)
+        # RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
+        # RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
+        # RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
+        # RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
+        # RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
+        # RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
+        # RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
+        # RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
        
         # bagian upsampling
-        ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))  ## for Effnet
+        # ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))  ## for Effnet
         # # only for Min CVT (both versions)
-        # ss_f = self.conv3_ss_f(RGB_features5)  ## for CvT
-
+        ss_f = self.conv3_ss_f(RGB_features5)  ## for CvT
 
         ss_f = self.conv2_ss_f(cat([self.up(ss_f), RGB_features3], dim=1))
         ss_f = self.conv1_ss_f(cat([self.up(ss_f), RGB_features2], dim=1))
@@ -534,9 +559,9 @@ class x13(nn.Module): #
 
             big_top_view = big_top_view[:,:,0:wi,768-160:768+160]
             self.save2(gt_ss,big_top_view)
-        if True:
-            big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
-            i = 2
+        
+        big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
+        for i in range(3):
             if i==0:
                 width = 224 # 224
                 rot = 130 #60 # 43.3
@@ -557,8 +582,8 @@ class x13(nn.Module): #
                 big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
 
 #        top_view_sc = big_top_view[:,:,wi:2*wi,768-160:768+160]
-            top_view_sc = big_top_view[:,:,:wi,:]
-        
+        top_view_sc = big_top_view[:,:,:wi,:]
+
         #downsampling section
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
         SC_features1 = self.SC_encoder.features[1](SC_features0)
@@ -567,9 +592,9 @@ class x13(nn.Module): #
         SC_features4 = self.SC_encoder.features[4](SC_features3)
         SC_features5 = self.SC_encoder.features[5](SC_features4)
         # for min-cvt version 2 should be commented
-        SC_features6 = self.SC_encoder.features[6](SC_features5)
-        SC_features7 = self.SC_encoder.features[7](SC_features6)
-        SC_features8 = self.SC_encoder.features[8](SC_features7)
+        # SC_features6 = self.SC_encoder.features[6](SC_features5)
+        # SC_features7 = self.SC_encoder.features[7](SC_features6)
+        # SC_features8 = self.SC_encoder.features[8](SC_features7)
 
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
@@ -579,25 +604,23 @@ class x13(nn.Module): #
        # tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
 #        tls_bias = self.tls_biasing_flatten(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
         tls_bias = self.tls_biasing_bypass(RGB_features8)
-
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
         #get hidden state dari gabungan kedua bottleneck
 
-        # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
+#        hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
-        inputs = cat([RGB_features8, SC_features8], dim=1)
-        inputs = self.BN(inputs)
-        hx = self.necks_net(inputs)
+        features_cat = self.BN_2d(cat([RGB_features8, SC_features5], dim=1))
 
-#        RGB_features8 = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
-#        SC_features8 = rearrange(SC_features8 , 'b c h w-> b (h w) c')
-
-#        for i, blk in enumerate(self.blocks):
-#            x = blk(features_cat, H, W)
-
-#        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
-#        hx = self.attn_neck(x)
+#        hx = self.necks_net(features_cat)
+        bs,_,H,W = RGB_features8.shape
+        features_cat = rearrange(features_cat , 'b c h w-> b (h w) c')
+        for i, blk in enumerate(self.blocks):
+            x = blk(features_cat, H, W)
+        x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
+        hx2 = self.attn_neck(x)
+        #hx = hx + hx2 
+        hx = hx2
 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         # predict delta wp
@@ -611,12 +634,13 @@ class x13(nn.Module): #
         pred_wp = torch.stack(out_wp, dim=1)
         #------------------------------------------------------------------------------------------------
         #control decoder
-        control_pred = self.controller(hx+tls_bias) 
+        control_pred = self.controller(hx+tls_bias)
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
-        brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
+        #brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
+        brake = self.brake(hx+tls_bias)[:,0]
 
-        return ss_f, pred_wp, steer, throttle, brake, red_light,top_view_sc # redl_stops[:,0] , top_view_sc   
+        return ss_f, pred_wp, steer, throttle, brake, red_light, top_view_sc # redl_stops[:,0] , top_view_sc   
 
     def scale_and_crop_image_cv(self, image, scale=1, crop=256):
         upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]

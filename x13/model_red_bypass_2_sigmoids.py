@@ -313,6 +313,7 @@ class x13(nn.Module): #
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][-1], 1),
+        #    nn.ReLU()
             nn.Sigmoid()
         )
 #        self.tls_biasing = nn.Linear(1, config.n_fmap_b3[4][0])
@@ -519,7 +520,10 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8)
+
         red_light = redl_stops[:,0] #gt_redl
+       # tls_bias = self.tls_biasing(redl_stops) #gt_redl.unsqueeze(1))
+#        tls_bias = self.tls_biasing_flatten(RGB_features8) #redl_stops) #gt_redl.unsqueeze(1))
         tls_bias = self.tls_biasing_bypass(RGB_features8)
 
         #------------------------------------------------------------------------------------------------

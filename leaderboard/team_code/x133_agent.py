@@ -15,9 +15,9 @@ import numpy as np
 from PIL import Image
 
 from leaderboard.autoagents import autonomous_agent
-from x13.model import x13
-from x13.config import GlobalConfig
-from x13.data import scale_and_crop_image, scale_and_crop_image_cv, rgb_to_depth, swap_RGB2BGR
+from x133.model import x13
+from x133.config import GlobalConfig
+from x133.data import scale_and_crop_image, scale_and_crop_image_cv, rgb_to_depth, swap_RGB2BGR
 from team_code.planner import RoutePlanner
 import torchvision.transforms as T
 from torchvision.utils import save_image
@@ -129,19 +129,19 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 				 	'id': 'rgb_right'
 				 	},
-					{
-							'type': 'sensor.camera.depth',
-							'x': 1.3, 'y': 0.0, 'z':2.3,
-							'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
-							'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
-							'id': 'depth_left'
-							},
-					{
-							'type': 'sensor.camera.depth',
-							'x': 1.3, 'y': 0.0, 'z':2.3,
-							'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
-							'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
-							'id': 'depth_right'
+				{
+						'type': 'sensor.camera.depth',
+						'x': 1.3, 'y': 0.0, 'z':2.3,
+						'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
+						'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
+						'id': 'depth_left'
+						},
+				{
+						'type': 'sensor.camera.depth',
+						'x': 1.3, 'y': 0.0, 'z':2.3,
+						'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
+						'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
+						'id': 'depth_right'
 							},
                                 #{
 				# 	'type': 'sensor.camera.rgb',
@@ -173,7 +173,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 	def tick(self, input_data):
 		self.step += 1
 		rgb = []
-		for pos in ['left', 'front', 'right']:
+		for pos in ['front']:
 			rgb_cam = 'rgb_' + pos
 			rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
 			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
@@ -182,7 +182,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 #		cv2.imwrite('rgb.png', rgb)
 
 		depth = []
-		for pos in ['left', 'front', 'right']:
+		for pos in ['front']:
 
 			depth_cam = 'depth_' + pos
 			depth_pos = cv2.cvtColor(input_data[depth_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
@@ -302,7 +302,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		a = 0
 		# forward pass
 		#pred_seg, pred_wp, psteer, pthrottle, pbrake, predl,stop_sign, pred_sc,speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
-		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a,a)
+		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pstops, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity)
 		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
 		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)

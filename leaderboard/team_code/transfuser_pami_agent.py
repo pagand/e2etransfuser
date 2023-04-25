@@ -6,26 +6,28 @@ import cv2
 import carla
 from PIL import Image
 from collections import deque
+import datetime
 
 import torch
 import numpy as np
 import math
 
 from leaderboard.autoagents import autonomous_agent
-from model import LidarCenterNet
-from config import GlobalConfig
-from data import lidar_to_histogram_features, draw_target_point, lidar_bev_cam_correspondences
+from transfuser_pami.model import LidarCenterNet
+from transfuser_pami.config import GlobalConfig
+from transfuser_pami.data import lidar_to_histogram_features, draw_target_point, lidar_bev_cam_correspondences
 
 from shapely.geometry import Polygon
+from matplotlib import cm
 
 import itertools
 import pathlib
-SAVE_PATH = os.environ.get('SAVE_PATH')
+SAVE_PATH = os.environ.get('SAVE_PATH',None)
 
-if not SAVE_PATH:
-    SAVE_PATH = None
-else:
-    pathlib.Path(SAVE_PATH).mkdir(parents=True, exist_ok=True)
+#if not SAVE_PATH:
+#    SAVE_PATH = None
+#else:
+#    pathlib.Path(SAVE_PATH).mkdir(parents=True, exist_ok=True)
 
 def get_entry_point():
     return 'HybridAgent'
@@ -80,7 +82,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.lidar_pos = self.config.lidar_pos  # x, y, z coordinates of the LiDAR position.
         self.iou_treshold_nms = self.config.iou_treshold_nms # Iou threshold used for Non Maximum suppression on the Bounding Box predictions.
 
-
         # Load model files
         self.nets = []
         self.model_count = 0 # Counts how many models are in our ensemble
@@ -98,7 +99,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
                 net.eval()
                 self.nets.append(net)
 
-
         self.stuck_detector = 0
         self.forced_move = 0
 
@@ -107,7 +107,21 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         self.steer_damping = self.config.steer_damping
         self.rgb_back = None #For debugging
 
+        self.save_path = None
+        if SAVE_PATH is not None:
+                now = datetime.datetime.now()
+                string = pathlib.Path(os.environ['ROUTES']).stem + '_'
+                string += '_'.join(map(lambda x: '%02d' % x, (now.month, now.day, now.hour, now.minute, now.second)))
 
+                print (string)
+
+                self.save_path = pathlib.Path(os.environ['SAVE_PATH']) / string
+                self.save_path.mkdir(parents=True, exist_ok=False)
+
+                (self.save_path / 'rgb').mkdir(parents=True, exist_ok=False)
+                (self.save_path / 'lidar_0').mkdir(parents=True, exist_ok=False)
+                (self.save_path / 'lidar_1').mkdir(parents=True, exist_ok=False)
+                (self.save_path / 'meta').mkdir(parents=True, exist_ok=False)
 
     def _init(self):
         self._route_planner = RoutePlanner(self.config.route_planner_min_distance, self.config.route_planner_max_distance)
@@ -122,7 +136,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
     def sensors(self):
         sensors = [
         
-			{
+		{
 			'type': 'sensor.camera.rgb',
     			'x': 1.3, 'y': 0.0, 'z':2.3,
 			'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
@@ -143,30 +157,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 		 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 		 	'id': 'rgb_right'
 		 	},	
-		 	
-			""" 	
-                    {
-                        'type': 'sensor.camera.rgb',
-                        'x': self.config.camera_pos[0], 'y': self.config.camera_pos[1], 'z':self.config.camera_pos[2],
-                        'roll': self.config.camera_rot_0[0], 'pitch': self.config.camera_rot_0[1], 'yaw': self.config.camera_rot_0[2],
-                        'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
-                        'id': 'rgb_front'
-                        },
-                    {
-                        'type': 'sensor.camera.rgb',
-                        'x': self.config.camera_pos[0], 'y': self.config.camera_pos[1], 'z':self.config.camera_pos[2],
-                        'roll': self.config.camera_rot_1[0], 'pitch': self.config.camera_rot_1[1], 'yaw': self.config.camera_rot_1[2],
-                        'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
-                        'id': 'rgb_left'
-                        },
-                    {
-                        'type': 'sensor.camera.rgb',
-                        'x': self.config.camera_pos[0], 'y': self.config.camera_pos[1], 'z':self.config.camera_pos[2],
-                        'roll': self.config.camera_rot_2[0], 'pitch': self.config.camera_rot_2[1], 'yaw': self.config.camera_rot_2[2],
-                        'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.camera_fov,
-                        'id': 'rgb_right'
-                        },
-                        """
                     {
                         'type': 'sensor.other.imu',
                         'x': 0.0, 'y': 0.0, 'z': 0.0,
@@ -414,10 +404,20 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
                 # Will overwrite the stuck detector. If we are stuck in traffic we do want to wait it out.
 
         self.control = control
+        if SAVE_PATH is not None and self.step % 10 == 0:
+                self.save(tick_data,lidar_bev)
 
+			
         self.update_gps_buffer(self.control, tick_data['compass'], tick_data['speed'])
         return control
+        
+    def save(self, tick_data,lidar_bev):
+        frame = self.step // 10
+        Image.fromarray(tick_data['rgb']).save(self.save_path / 'rgb' / ('%04d.png' % frame))
 
+        Image.fromarray(cm.gist_earth(lidar_bev[0].cpu().numpy()[0, 0], bytes=True)).save(self.save_path / 'lidar_0' / ('%04d.png' % frame))
+		
+		
     def bb_detected_in_front_of_vehicle(self, ego_speed):
         if (len(self.bb_buffer) < 1):  # We only start after we have 4 time steps.
             return False

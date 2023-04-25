@@ -130,8 +130,6 @@ class TransfuserBackbone(nn.Module):
             image_tensor = image
 
         lidar_tensor = lidar
-        print("lidar shape is:")
-        print(lidar.shape)
 
         image_features = self.image_encoder.features.conv1(image_tensor)
         image_features = self.image_encoder.features.bn1(image_features)
@@ -444,6 +442,7 @@ class LidarEncoder(nn.Module):
 
         if (architecture.startswith('regnet')): # Rename modules so we can use the same code
             self._model.conv1 = self._model.stem.conv
+            print(self._model.stem.conv)
             self._model.bn1  = self._model.stem.bn
             self._model.act1 = nn.Sequential()
             self._model.maxpool =  nn.Sequential()
@@ -474,6 +473,8 @@ class LidarEncoder(nn.Module):
         # Timm might be able to do this automatically
         _tmp = self._model.conv1
         use_bias = (_tmp.bias != None)
+        print("in_channels is:")
+        print(in_channels)
         self._model.conv1 = nn.Conv2d(in_channels, out_channels=_tmp.out_channels,
             kernel_size=_tmp.kernel_size, stride=_tmp.stride, padding=_tmp.padding, bias=use_bias)
         # Need to delete the old conv_layer to avoid unused parameters

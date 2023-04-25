@@ -13,7 +13,7 @@ torch.backends.cudnn.benchmark = True
 
 from config import GlobalConfig
 from model import TransFuser
-from data_from_pmlr import CARLA_Data
+from data import CARLA_Data
 import wandb
 
 torch.cuda.empty_cache()
@@ -82,6 +82,8 @@ class Engine(object):
 			if not config.ignore_rear:
 				rears_in = data['rears']
 			lidars_in = data['lidars']
+			#Image.fromarray(cm.gist_earth(self.lidar_processed[0].cpu().numpy()[0, 0], bytes=True)).save(self.save_path / 'lidar_0' / ('%04d.png' % frame))
+
 			fronts = []
 			lefts = []
 			rights = []
@@ -106,9 +108,6 @@ class Engine(object):
 
 			# target point
 			target_point = torch.stack(data['target_point'], dim=1).to(args.device, dtype=torch.float32)
-
-			
-			
 			pred_wp = model(fronts+lefts+rights+rears, lidars, target_point, gt_velocity)
 			
 			

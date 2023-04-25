@@ -6,6 +6,7 @@ cilrs/log/*
 x13/log/*
 s13/log/*
 ./data0/*
+cvt0/*
 carla/*
 *.pyc
 cs-venus*
@@ -13,14 +14,13 @@ my_test.sh
 
 x13/wandb
 !data/README.md
-cvt/DATASET/
-cvt/OUTPUT/
 transfuser_cvpr/
 transfuser_pmlr/data/
 transfuser_pmlr/data0/
 transfuser_pmlr/data00/
 transfuser_pmlr/log/
 transfuser_pmlr/results/
+
 wandb/
 .conda/
 .vscode/
@@ -58,7 +58,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
+SDC/
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python'hi'hi
 # Copyright (c) 2018-2019 Intel Corporation.
 # authors: German Ros (german.ros@intel.com), Felipe Codevilla (felipe.alcm@gmail.com)
 #
@@ -92,7 +92,10 @@ class LeaderboardEvaluator(object):
                 raise ImportError("CARLA version 0.9.10.1 or newer required. CARLA version found: {}".format(dist))
 
         # Load agent
+        print("info:")
+        print(args.agent)
         module_name = os.path.basename(args.agent).split('.')[0]
+        print(module_name)
         sys.path.insert(0, os.path.dirname(args.agent))
         self.module_agent = importlib.import_module(module_name)
 
@@ -111,7 +114,6 @@ class LeaderboardEvaluator(object):
         """
         Terminate scenario ticking when receiving a signal interrupt
         """
-        print(1111)
         if self._agent_watchdog and not self._agent_watchdog.get_status():
             raise RuntimeError("Timeout: Agent took too long to setup")
         elif self.manager:

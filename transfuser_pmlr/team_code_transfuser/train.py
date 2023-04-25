@@ -42,7 +42,9 @@ def main():
     parser.add_argument('--setting', type=str, default='all', help='What training setting to use. Options: '
                                                                    'all: Train on all towns no validation data. '
                                                                    '02_05_withheld: Do not train on Town 02 and Town 05. Use the data as validation data.')
-    parser.add_argument('--root_dir', type=str, default=r'/localscratch/mmahdavi/transfuser/data', help='Root directory of your training data')
+#    parser.add_argument('--root_dir', type=str, default=r'/localscratch/mmahdavi/transfuser/data', help='Root directory of your training data')
+    parser.add_argument('--root_dir', type=str, default=r'/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data', help='Root directory of your training data')
+
     parser.add_argument('--schedule', type=int, default=1,
                         help='Whether to train with a learning rate schedule. 1 = True')
     parser.add_argument('--schedule_reduce_epoch_01', type=int, default=30,

@@ -4,9 +4,10 @@ from torch import nn
 import torch.nn.functional as F
 import timm
 
-class TransfuserBackbone(nn.Module):
+
+class latentTFBackbone(nn.Module):
     """
-    Multi-scale Fusion Transformer for image + LiDAR feature fusion
+    Multi-scale Fusion Transformer for image + pos_embedding feature fusion
     image_architecture: Architecture used in the image branch. ResNet, RegNet and ConvNext are supported
     lidar_architecture: Architecture used in the lidar branch. ResNet, RegNet and ConvNext are supported
     use_velocity: Whether to use the velocity input in the transformer.
@@ -18,8 +19,6 @@ class TransfuserBackbone(nn.Module):
 
         self.avgpool_img = nn.AdaptiveAvgPool2d((self.config.img_vert_anchors, self.config.img_horz_anchors))
         self.avgpool_lidar = nn.AdaptiveAvgPool2d((self.config.lidar_vert_anchors, self.config.lidar_horz_anchors))
-        
-        self.image_encoder = ImageCNN(architecture=image_architecture, normalize=True)
 
         if(config.use_point_pillars == True):
             in_channels = config.num_features[-1]
@@ -29,6 +28,7 @@ class TransfuserBackbone(nn.Module):
         if(self.config.use_target_point_image == True):
             in_channels += 1
 
+        self.image_encoder = ImageCNN(architecture=image_architecture, normalize=True)
         self.lidar_encoder = LidarEncoder(architecture=lidar_architecture, in_channels=in_channels)
 
         self.transformer1 = GPT(n_embd=self.image_encoder.features.feature_info[1]['num_chs'],
@@ -119,8 +119,8 @@ class TransfuserBackbone(nn.Module):
         '''
         Image + LiDAR feature fusion using transformers
         Args:
-            image_list (list): list of input images
-            lidar_list (list): list of input LiDAR BEV
+            image: input rgb image
+            lidar: LiDAR input will be replaced by positional encoding. Third channel may contain target point.
             velocity (tensor): input velocity from speedometer
         '''
 
@@ -129,9 +129,13 @@ class TransfuserBackbone(nn.Module):
         else:
             image_tensor = image
 
+        x = torch.linspace(-1, 1, self.config.lidar_resolution_width)
+        y = torch.linspace(-1, 1, self.config.lidar_resolution_height)
+        y_grid, x_grid = torch.meshgrid(x, y, indexing='ij')
+
+        lidar[:,0] = y_grid.unsqueeze(0) #Top down positional encoding
+        lidar[:,1] = x_grid.unsqueeze(0) #Left right positional encoding
         lidar_tensor = lidar
-        print("lidar shape is:")
-        print(lidar.shape)
 
         image_features = self.image_encoder.features.conv1(image_tensor)
         image_features = self.image_encoder.features.bn1(image_features)
@@ -145,12 +149,12 @@ class TransfuserBackbone(nn.Module):
         image_features = self.image_encoder.features.layer1(image_features)
         lidar_features = self.lidar_encoder._model.layer1(lidar_features)
 
-        # Image fusion at (B, 72, 40, 176)
-        # Lidar fusion at (B, 72, 64, 64)
+        # fusion at (B, 64, 64, 64)
         image_embd_layer1 = self.avgpool_img(image_features)
         lidar_embd_layer1 = self.avgpool_lidar(lidar_features)
 
         image_features_layer1, lidar_features_layer1 = self.transformer1(image_embd_layer1, lidar_embd_layer1, velocity)
+
         image_features_layer1 = F.interpolate(image_features_layer1, size=(image_features.shape[2],image_features.shape[3]), mode='bilinear', align_corners=False)
         lidar_features_layer1 = F.interpolate(lidar_features_layer1, size=(lidar_features.shape[2],lidar_features.shape[3]), mode='bilinear', align_corners=False)
         image_features = image_features + image_features_layer1
@@ -158,11 +162,12 @@ class TransfuserBackbone(nn.Module):
 
         image_features = self.image_encoder.features.layer2(image_features)
         lidar_features = self.lidar_encoder._model.layer2(lidar_features)
-        # Image fusion at (B, 216, 20, 88)
-        # Image fusion at (B, 216, 32, 32)
+        # fusion at (B, 128, 32, 32)
         image_embd_layer2 = self.avgpool_img(image_features)
         lidar_embd_layer2 = self.avgpool_lidar(lidar_features)
+
         image_features_layer2, lidar_features_layer2 = self.transformer2(image_embd_layer2, lidar_embd_layer2, velocity)
+
         image_features_layer2 = F.interpolate(image_features_layer2, size=(image_features.shape[2],image_features.shape[3]), mode='bilinear', align_corners=False)
         lidar_features_layer2 = F.interpolate(lidar_features_layer2, size=(lidar_features.shape[2],lidar_features.shape[3]), mode='bilinear', align_corners=False)
         image_features = image_features + image_features_layer2
@@ -170,11 +175,12 @@ class TransfuserBackbone(nn.Module):
 
         image_features = self.image_encoder.features.layer3(image_features)
         lidar_features = self.lidar_encoder._model.layer3(lidar_features)
-        # Image fusion at (B, 576, 10, 44)
-        # Image fusion at (B, 576, 16, 16)
+        # fusion at (B, 256, 16, 16)
         image_embd_layer3 = self.avgpool_img(image_features)
         lidar_embd_layer3 = self.avgpool_lidar(lidar_features)
+
         image_features_layer3, lidar_features_layer3 = self.transformer3(image_embd_layer3, lidar_embd_layer3, velocity)
+
         image_features_layer3 = F.interpolate(image_features_layer3, size=(image_features.shape[2],image_features.shape[3]), mode='bilinear', align_corners=False)
         lidar_features_layer3 = F.interpolate(lidar_features_layer3, size=(lidar_features.shape[2],lidar_features.shape[3]), mode='bilinear', align_corners=False)
         image_features = image_features + image_features_layer3
@@ -182,12 +188,12 @@ class TransfuserBackbone(nn.Module):
 
         image_features = self.image_encoder.features.layer4(image_features)
         lidar_features = self.lidar_encoder._model.layer4(lidar_features)
-        # Image fusion at (B, 1512, 5, 22)
-        # Image fusion at (B, 1512, 8, 8)
+        # fusion at (B, 512, 8, 8)
         image_embd_layer4 = self.avgpool_img(image_features)
         lidar_embd_layer4 = self.avgpool_lidar(lidar_features)
 
         image_features_layer4, lidar_features_layer4 = self.transformer4(image_embd_layer4, lidar_embd_layer4, velocity)
+
         image_features_layer4 = F.interpolate(image_features_layer4, size=(image_features.shape[2],image_features.shape[3]), mode='bilinear', align_corners=False)
         lidar_features_layer4 = F.interpolate(lidar_features_layer4, size=(lidar_features.shape[2],lidar_features.shape[3]), mode='bilinear', align_corners=False)
         image_features = image_features + image_features_layer4
@@ -198,87 +204,18 @@ class TransfuserBackbone(nn.Module):
         lidar_features = self.change_channel_conv_lidar(lidar_features)
 
         x4 = lidar_features
-        image_features_grid = image_features  # For auxilliary information
 
+        image_features_grid = image_features  # For auxilliary information
         image_features = self.image_encoder.features.global_pool(image_features)
         image_features = torch.flatten(image_features, 1)
         lidar_features = self.lidar_encoder._model.global_pool(lidar_features)
         lidar_features = torch.flatten(lidar_features, 1)
-
+        
         fused_features = image_features + lidar_features
 
         features = self.top_down(x4)
         return features, image_features_grid, fused_features
 
-
-class SegDecoder(nn.Module):
-    def __init__(self, config, latent_dim=512):
-        super().__init__()
-        self.config = config
-        self.latent_dim = latent_dim
-        self.num_class = config.num_class
-
-        self.deconv1 = nn.Sequential(
-                    nn.Conv2d(self.latent_dim, self.config.deconv_channel_num_1, 3, 1, 1),
-                    nn.ReLU(True),
-                    nn.Conv2d(self.config.deconv_channel_num_1, self.config.deconv_channel_num_2, 3, 1, 1),
-                    nn.ReLU(True),
-                    )
-        self.deconv2 = nn.Sequential(
-                    nn.Conv2d(self.config.deconv_channel_num_2, self.config.deconv_channel_num_3, 3, 1, 1),
-                    nn.ReLU(True),
-                    nn.Conv2d(self.config.deconv_channel_num_3, self.config.deconv_channel_num_3, 3, 1, 1),
-                    nn.ReLU(True),
-                    )
-        self.deconv3 = nn.Sequential(
-                    nn.Conv2d(self.config.deconv_channel_num_3, self.config.deconv_channel_num_3, 3, 1, 1),
-                    nn.ReLU(True),
-                    nn.Conv2d(self.config.deconv_channel_num_3, self.num_class, 3, 1, 1),
-                    )
-
-    def forward(self, x):
-        x = self.deconv1(x)
-        x = F.interpolate(x, scale_factor=self.config.deconv_scale_factor_1, mode='bilinear', align_corners=False)
-        x = self.deconv2(x)
-        x = F.interpolate(x, scale_factor=self.config.deconv_scale_factor_2, mode='bilinear', align_corners=False)
-        x = self.deconv3(x)
-
-        return x
-
-
-class DepthDecoder(nn.Module):
-    def __init__(self, config, latent_dim=512):
-        super().__init__()
-        self.config = config
-        self.latent_dim = latent_dim
-
-        self.deconv1 = nn.Sequential(
-                    nn.Conv2d(self.latent_dim, self.config.deconv_channel_num_1, 3, 1, 1),
-                    nn.ReLU(True),
-                    nn.Conv2d(self.config.deconv_channel_num_1, self.config.deconv_channel_num_2, 3, 1, 1),
-                    nn.ReLU(True),
-                    )
-        self.deconv2 = nn.Sequential(
-                    nn.Conv2d(self.config.deconv_channel_num_2, self.config.deconv_channel_num_3, 3, 1, 1),
-                    nn.ReLU(True),
-                    nn.Conv2d(self.config.deconv_channel_num_3, self.config.deconv_channel_num_3, 3, 1, 1),
-                    nn.ReLU(True),
-                    )
-        self.deconv3 = nn.Sequential(
-                    nn.Conv2d(self.config.deconv_channel_num_3, self.config.deconv_channel_num_3, 3, 1, 1),
-                    nn.ReLU(True),
-                    nn.Conv2d(self.config.deconv_channel_num_3, 1, 3, 1, 1),
-                    )
-
-    def forward(self, x):
-        x = self.deconv1(x)
-        x = F.interpolate(x, scale_factor=self.config.deconv_scale_factor_1, mode='bilinear', align_corners=False)
-        x = self.deconv2(x)
-        x = F.interpolate(x, scale_factor=self.config.deconv_scale_factor_2, mode='bilinear', align_corners=False)
-        x = self.deconv3(x)
-        x = torch.sigmoid(x).squeeze(1)
-
-        return x
 
 
 class GPT(nn.Module):
@@ -291,7 +228,7 @@ class GPT(nn.Module):
                     embd_pdrop, attn_pdrop, resid_pdrop, config, use_velocity=True):
         super().__init__()
         self.n_embd = n_embd
-        # We currently only support seq len 1
+        #We currently only support seq len 1
         self.seq_len = 1
         
         self.img_vert_anchors = img_vert_anchors
@@ -346,8 +283,8 @@ class GPT(nn.Module):
         image_tensor = image_tensor.view(bz, self.seq_len, -1, img_h, img_w).permute(0,1,3,4,2).contiguous().view(bz, -1, self.n_embd)
         lidar_tensor = lidar_tensor.view(bz, self.seq_len, -1, lidar_h, lidar_w).permute(0,1,3,4,2).contiguous().view(bz, -1, self.n_embd)
 
+        
         token_embeddings = torch.cat((image_tensor, lidar_tensor), dim=1)
-
         # project velocity to n_embed
         if(self.use_velocity==True):
             velocity_embeddings = self.vel_emb(velocity) # (B, C)
@@ -357,12 +294,11 @@ class GPT(nn.Module):
             x = self.drop(self.pos_emb + token_embeddings)
         x = self.blocks(x) # (B, an * T, C)
         x = self.ln_f(x) # (B, an * T, C)
-
         x = x.view(bz, self.seq_len*self.img_vert_anchors*self.img_horz_anchors + self.seq_len*self.lidar_vert_anchors*self.lidar_horz_anchors, self.n_embd)
 
         image_tensor_out = x[:, :self.seq_len*self.img_vert_anchors*self.img_horz_anchors, :].contiguous().view(bz * self.seq_len, -1, img_h, img_w)
         lidar_tensor_out = x[:, self.seq_len*self.img_vert_anchors*self.img_horz_anchors:, :].contiguous().view(bz * self.seq_len, -1, lidar_h, lidar_w)
-
+        
         return image_tensor_out, lidar_tensor_out
 
         
@@ -371,6 +307,7 @@ class ImageCNN(nn.Module):
     Encoder network for image input list.
     Args:
         architecture (string): Vision architecture to be used from the TIMM model library.
+        c_dim (int): output dimension of the latent embedding
         normalize (bool): whether the input images should be normalized
     """
 
@@ -413,7 +350,7 @@ class ImageCNN(nn.Module):
 
             #This layer norm is not pretrained anymore but that shouldn't matter since it is the last layer in the network.
             _tmp = self.features.global_pool.norm
-            self.features.global_pool.norm = nn.LayerNorm((self.config.perception_output_features,1,1), _tmp.eps, _tmp.elementwise_affine)
+            self.features.global_pool.norm = nn.LayerNorm((512,1,1), _tmp.eps, _tmp.elementwise_affine)
 
 
 def normalize_imagenet(x):
@@ -433,6 +370,7 @@ class LidarEncoder(nn.Module):
     Encoder network for LiDAR input list
     Args:
         architecture (string): Vision architecture to be used from the TIMM model library.
+        num_classes: output feature dimension
         in_channels: input channels
     """
 
@@ -453,11 +391,10 @@ class LidarEncoder(nn.Module):
             self._model.layer4 = self._model.s4
             self._model.global_pool = nn.AdaptiveAvgPool2d(output_size=1)
             self._model.head = nn.Sequential()
-
         elif (architecture.startswith('convnext')):
             self._model.conv1 = self._model.stem._modules['0']
             self._model.bn1 = self._model.stem._modules['1']
-            self._model.act1 = nn.Sequential()
+            self._model.act1 = nn.Sequential()  # Conv NeXt does not use an activation function after the stem
             self._model.maxpool = nn.Sequential()
             self._model.layer1 = self._model.stages._modules['0']
             self._model.layer2 = self._model.stages._modules['1']
@@ -468,20 +405,19 @@ class LidarEncoder(nn.Module):
             self._model.global_pool.fc = nn.Sequential()
             self._model.head = nn.Sequential()
             _tmp = self._model.global_pool.norm
-            self._model.global_pool.norm = nn.LayerNorm((self.config.perception_output_features,1,1), _tmp.eps, _tmp.elementwise_affine)
+            self._model.global_pool.norm = nn.LayerNorm((512,1,1), _tmp.eps, _tmp.elementwise_affine)
 
-        # Change the first conv layer so that it matches the amount of channels in the LiDAR
-        # Timm might be able to do this automatically
         _tmp = self._model.conv1
         use_bias = (_tmp.bias != None)
         self._model.conv1 = nn.Conv2d(in_channels, out_channels=_tmp.out_channels,
             kernel_size=_tmp.kernel_size, stride=_tmp.stride, padding=_tmp.padding, bias=use_bias)
         # Need to delete the old conv_layer to avoid unused parameters
         del _tmp
-        del self._model.stem.conv
+        del self._model.stem
         torch.cuda.empty_cache()
         if(use_bias):
             self._model.conv1.bias = _tmp.bias
+
 
 class SelfAttention(nn.Module):
     """

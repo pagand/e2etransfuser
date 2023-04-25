@@ -10,7 +10,7 @@ class GlobalConfig:
     wandb_name = 'randomized_low_data'
 
     # TODO: correct the forward path in case of change
-    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+    kind =  'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
 
 #    model = 'speed_cmd(out1cvt)'  # run name
     model = 'test_with_SpeedandCommand_'  # run name
@@ -68,8 +68,11 @@ class GlobalConfig:
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'#  '/localscratch/mmahdavi/transfuser/data' #  for the PAMI dataset
+    # root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'#  '/localscratch/mmahdavi/transfuser/data' #  for the PAMI dataset
+    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data' # for the PAMI dataset
 
+    attn = True
+    
     train_data, val_data = [], []
 
     ## For PMLR dataset

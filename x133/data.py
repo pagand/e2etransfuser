@@ -19,7 +19,6 @@ class CARLA_Data(Dataset):
         # self.left = []
         # self.right = []
         # self.rear = []
-        self.lidar = []
         self.x = []
         self.y = []
         self.x_command = []
@@ -30,13 +29,13 @@ class CARLA_Data(Dataset):
         self.brake = []
         self.command = []
         self.velocity = []
-        # self.seg_front = []
-        # self.depth_front = []
+        self.seg_front = []
+        self.depth_front = []
         self.red_light = []
         self.stop_sign = []
 
         for sub_root in root:
-            preload_file = os.path.join(sub_root, 'lidar_rgb_transfuser_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
+            preload_file = os.path.join(sub_root, 'x13_rgb_dep_vel_nxr_ctrl_ts_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
           
 
             # dump to npy if no preload
@@ -45,7 +44,6 @@ class CARLA_Data(Dataset):
                 # preload_left = []
                 # preload_right = []
                 # preload_rear = []
-                preload_lidar = []
                 preload_x = []
                 preload_y = []
                 preload_x_command = []
@@ -56,8 +54,8 @@ class CARLA_Data(Dataset):
                 preload_brake = []
                 preload_command = []
                 preload_velocity = []
-                # preload_seg_front = []
-                # preload_depth_front = []
+                preload_seg_front = []
+                preload_depth_front = []
                 preload_red_light = []
                 preload_stop_sign = []
 
@@ -81,12 +79,11 @@ class CARLA_Data(Dataset):
                         # lefts = []
                         # rights = []
                         # rears = []
-                        lidars =[]
                         xs = []
                         ys = []
                         thetas = []
-                        # seg_fronts = []
-                        # depth_fronts = []
+                        seg_fronts = []
+                        depth_fronts = []
 
                         # read files sequentially (past and current frames)
                         for i in range(self.seq_len):
@@ -97,11 +94,8 @@ class CARLA_Data(Dataset):
                             # lefts.append(route_dir+"/rgb_left/"+filename)
                             # rights.append(route_dir+"/rgb_right/"+filename)
                             # rears.append(route_dir+"/rgb_rear/"+filename)
-                            # seg_fronts.append(scenario_dir+"/semantics/"+filename)
-                            # depth_fronts.append(scenario_dir+"/depth/"+filename)
-
-                            # point cloud
-                            lidars.append(scenario_dir + f"/lidar/{str(seq*self.seq_len+1+i).zfill(4)}.npy")
+                            seg_fronts.append(scenario_dir+"/semantics/"+filename)
+                            depth_fronts.append(scenario_dir+"/depth/"+filename)
 
                             # position
                             with open(scenario_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
@@ -124,9 +118,6 @@ class CARLA_Data(Dataset):
 
                         # read files sequentially (future frames)
                         for i in range(self.seq_len, self.seq_len + self.pred_len):
-                            # point cloud
-                            lidars.append(scenario_dir + f"/lidar/{str(seq*self.seq_len+1+i).zfill(4)}.npy")
-
                             # position
                             with open(scenario_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
                                 data = json.load(read_file)
@@ -143,12 +134,11 @@ class CARLA_Data(Dataset):
                         # preload_left.append(lefts)
                         # preload_right.append(rights)
                         # preload_rear.append(rears)
-                        preload_lidar.append(lidars)
                         preload_x.append(xs)
                         preload_y.append(ys)
                         preload_theta.append(thetas)
-                        # preload_seg_front.append(seg_fronts)
-                        # preload_depth_front.append(depth_fronts)
+                        preload_seg_front.append(seg_fronts)
+                        preload_depth_front.append(depth_fronts)
 
                 # dump to npy
                 preload_dict = {}
@@ -156,7 +146,6 @@ class CARLA_Data(Dataset):
                 # preload_dict['left'] = preload_left
                 # preload_dict['right'] = preload_right
                 # preload_dict['rear'] = preload_rear
-                preload_dict['lidar'] = preload_lidar
                 preload_dict['x'] = preload_x
                 preload_dict['y'] = preload_y
                 preload_dict['x_command'] = preload_x_command
@@ -167,8 +156,8 @@ class CARLA_Data(Dataset):
                 preload_dict['brake'] = preload_brake
                 preload_dict['command'] = preload_command
                 preload_dict['velocity'] = preload_velocity
-                # preload_dict['seg_front'] = preload_seg_front
-                # preload_dict['depth_front'] = preload_depth_front
+                preload_dict['seg_front'] = preload_seg_front
+                preload_dict['depth_front'] = preload_depth_front
                 preload_dict['red_light'] = preload_red_light
                 preload_dict['stop_sign'] = preload_stop_sign
 
@@ -180,7 +169,6 @@ class CARLA_Data(Dataset):
             # self.left += preload_dict.item()['left']
             # self.right += preload_dict.item()['right']
             # self.rear += preload_dict.item()['rear']
-            self.lidar += preload_dict.item()['lidar']
             self.x += preload_dict.item()['x']
             self.y += preload_dict.item()['y']
             self.x_command += preload_dict.item()['x_command']
@@ -191,8 +179,8 @@ class CARLA_Data(Dataset):
             self.brake += preload_dict.item()['brake']
             self.command += preload_dict.item()['command']
             self.velocity += preload_dict.item()['velocity']
-            # self.seg_front += preload_dict.item()['seg_front']
-            # self.depth_front += preload_dict.item()['depth_front']
+            self.seg_front += preload_dict.item()['seg_front']
+            self.depth_front += preload_dict.item()['depth_front']
             self.red_light += preload_dict.item()['red_light']
             self.stop_sign += preload_dict.item()['stop_sign']
 
@@ -207,59 +195,38 @@ class CARLA_Data(Dataset):
         # data['lefts'] = []
         # data['rights'] = []
         # data['rears'] = []
-        data['lidars'] = []
         data['seg_fronts'] = []
         data['depth_fronts'] = []
-        data['target_point'] = []
-        data['steer'] = []
-        data['command'] =[]
-        data['throttle'] = []
-        data['brake'] = []
-        data['velocity'] = []
-        data['red_light'] = []
-        data['stop_sign'] = []
-        data['waypoints'] =[]
-
         seq_fronts = self.front[index]
         # seq_lefts = self.left[index]
         # seq_rights = self.right[index]
         # seq_rears = self.rear[index]
-        seq_lidars = self.lidar[index]
         seq_x = self.x[index]
         seq_y = self.y[index]
         seq_theta = self.theta[index]
-        # seq_seg_fronts = self.seg_front[index]
-        # seq_depth_fronts = self.depth_front[index]
-    
+        seq_seg_fronts = self.seg_front[index]
+        seq_depth_fronts = self.depth_front[index]
 
         # print("=====================================================================")
         # print(seq_fronts)
         # print(seq_seg_fronts[-1])
-        full_lidar = []
+
         for i in range(self.seq_len):
             # fix for theta=nan in some measurements
             if np.isnan(seq_theta[i]):
                 seq_theta[i] = 0.
 
-            #input 1 RGB, no sequence
-            data['fronts'].append(torch.from_numpy(np.array(
-                scale_and_crop_image(Image.open(seq_fronts[-1]), scale=self.config.scale, crop=self.config.input_resolution))) )#[ ]
-            # data['seg_fronts'] = torch.from_numpy(np.array(cls2one_hot(
-            #     scale_and_crop_image_cv(cv2.imread(seq_seg_fronts[-1]), scale=self.config.scale, crop=self.config.input_resolution)))) #[ ]
-            # data['depth_fronts'] = torch.from_numpy(np.array(rgb_to_depth(
-            #     scale_and_crop_image_cv(swap_RGB2BGR(cv2.imread(seq_depth_fronts[-1], cv2.COLOR_BGR2RGB)), scale=self.config.scale, crop=self.config.input_resolution)))) #[ ]
-            lidar_unprocessed = np.load(seq_lidars[i], allow_pickle=True)[1][...,:3] # lidar: XYZI
-            full_lidar.append(lidar_unprocessed)
+        #input 1 RGB, no sequence
+        data['fronts'] = torch.from_numpy(np.array(
+            scale_and_crop_image(Image.open(seq_fronts[-1]), scale=self.config.scale, crop=self.config.input_resolution))) #[ ]
+        data['seg_fronts'] = torch.from_numpy(np.array(cls2one_hot(
+            scale_and_crop_image_cv(cv2.imread(seq_seg_fronts[-1]), scale=self.config.scale, crop=self.config.input_resolution)))) #[ ]
+        data['depth_fronts'] = torch.from_numpy(np.array(rgb_to_depth(
+            scale_and_crop_image_cv(cv2.imread(seq_depth_fronts[-1], cv2.COLOR_BGR2RGB), scale=self.config.scale, crop=self.config.input_resolution)))) #[ ]
 
-        
         ego_x = seq_x[i]
         ego_y = seq_y[i]
         ego_theta = seq_theta[i]   
-
-        # future frames
-        for i in range(self.seq_len, self.seq_len + self.pred_len):
-            lidar_unprocessed = np.load(seq_lidars[i], allow_pickle=True)
-            full_lidar.append(lidar_unprocessed)  
 
         # lidar and waypoint processing to local coordinates
         waypoints = []
@@ -270,16 +237,6 @@ class CARLA_Data(Dataset):
             local_waypoint = transform_2d_points(np.zeros((1,3)), 
                 np.pi/2-seq_theta[i], -seq_x[i], -seq_y[i], np.pi/2-ego_theta, -ego_x, -ego_y)
             waypoints.append(tuple(local_waypoint[0,:2]))
-
-
-            # process only past lidar point clouds
-            if i < self.seq_len:
-                # convert coordinate frame of point cloud
-                full_lidar[i][:,1] *= -1 # inverts x, y
-                full_lidar[i] = transform_2d_points(full_lidar[i], 
-                    np.pi/2-seq_theta[i], -seq_x[i], -seq_y[i], np.pi/2-ego_theta, -ego_x, -ego_y)
-                lidar_processed = lidar_to_histogram_features(full_lidar[i], crop=self.config.input_resolution)
-                data['lidars'].append(lidar_processed)
 
         data['waypoints'] = waypoints
 
@@ -294,7 +251,6 @@ class CARLA_Data(Dataset):
         data['target_point'] = tuple(local_command_point)
 
         data['steer'] = self.steer[index]
-        data['command'] = self.command[index]
         data['throttle'] = self.throttle[index]
         data['brake'] = self.brake[index]
         data['velocity'] = self.velocity[index]
@@ -309,31 +265,6 @@ def swap_RGB2BGR(matrix):
     matrix[:,:,0] = blue
     matrix[:,:,2] = red
     return matrix
-
-def lidar_to_histogram_features(lidar, crop=256):
-    """
-    Convert LiDAR point cloud into 2-bin histogram over 256x256 grid
-    """
-    def splat_points(point_cloud):
-        # 256 x 256 grid
-        pixels_per_meter = 8
-        hist_max_per_pixel = 5
-        x_meters_max = int(crop[1]/pixels_per_meter/2)#16
-        y_meters_max = int(crop[0]/pixels_per_meter) #32
-        xbins = np.linspace(-2*x_meters_max, 2*x_meters_max+1, 2*x_meters_max*pixels_per_meter+1)
-        ybins = np.linspace(-y_meters_max, 0, y_meters_max*pixels_per_meter+1)
-        hist = np.histogramdd(point_cloud[...,:2], bins=(xbins, ybins))[0]
-        hist[hist>hist_max_per_pixel] = hist_max_per_pixel
-        overhead_splat = hist/hist_max_per_pixel
-        return overhead_splat
-
-    below = lidar[lidar[...,2]<=-2.0]
-    above = lidar[lidar[...,2]>-2.0]
-    below_features = splat_points(below)
-    above_features = splat_points(above)
-    features = np.stack([below_features, above_features], axis=-1)
-    features = np.transpose(features, (2, 0, 1)).astype(np.float32)
-    return features
 
 def scale_and_crop_image(image, scale=1, crop=256):
     """

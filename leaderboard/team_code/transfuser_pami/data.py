@@ -6,7 +6,9 @@ from PIL import Image, ImageFile
 import numpy as np
 import torch 
 from torch.utils.data import Dataset
-
+from tqdm import tqdm
+import sys
+import cv2
 
 class CARLA_Data(Dataset):
 
@@ -335,6 +337,25 @@ def lidar_to_histogram_features(lidar, crop=256):
     features = np.transpose(features, (2, 0, 1)).astype(np.float32)
     return features
 
+<<<<<<< HEAD
+def draw_target_point(target_point, color = (255, 255, 255)):
+    image = np.zeros((256, 256), dtype=np.uint8)
+    target_point = target_point.copy()
+
+    # convert to lidar coordinate
+    target_point[1] += 1.3
+    point = target_point * 8.
+    point[1] *= -1
+    point[1] = 256 - point[1] 
+    point[0] += 128 
+    point = point.astype(np.int32)
+    point = np.clip(point, 0, 256)
+    cv2.circle(image, tuple(point), radius=5, color=color, thickness=3)
+    image = image.reshape(1, 256, 256)
+    return image.astype(np.float) / 255.
+    
+=======
+>>>>>>> 7dda728c0c1fba744c727ae9750c36cb85f3496c
 def scale_and_crop_image(image, scale=1, crop=256):
     """
     Scale and crop a PIL image, returning a channels-first numpy array.
@@ -347,6 +368,9 @@ def scale_and_crop_image(image, scale=1, crop=256):
     cropped_image = image[start_x:start_x+crop[0], start_y:start_y+crop[1]]
     cropped_image = np.transpose(cropped_image, (2,0,1))
     return cropped_image
+<<<<<<< HEAD
+    
+=======
 
 def scale_and_crop_image_cv(image, scale=1, crop=256):
     upper_left_yx = [int((image.shape[0]/2) - (crop[0]/2)), int((image.shape[1]/2) - (crop[1]/2))]
@@ -370,6 +394,7 @@ def rgb_to_depth(de_gt):
     return result
 
 
+>>>>>>> 7dda728c0c1fba744c727ae9750c36cb85f3496c
 def transform_2d_points(xyz, r1, t1_x, t1_y, r2, t2_x, t2_y):
     """
     Build a rotation matrix and take the dot product.
@@ -394,3 +419,177 @@ def transform_2d_points(xyz, r1, t1_x, t1_y, r2, t2_x, t2_y):
     out[:,2] = xyz[:,2]
 
     return out
+<<<<<<< HEAD
+
+
+def lidar_bev_cam_correspondences(world, lidar_vis=None, image_vis=None, step=None, debug=False):
+    """
+    Convert LiDAR point cloud to camera co-ordinates
+
+    world: Expects the point cloud from CARLA in the CARLA coordinate system: x left, y forward, z up (LiDAR rotated by 90 degree)
+    lidar_vis: lidar prjected to BEV
+    image_vis: RGB input image to the network
+    step: current timestep
+    debug: Whether to save the debug images. If false only world is required
+    """
+
+    pixels_per_meter = 8
+    lidar_width      = 256
+    lidar_height     = 256
+    lidar_meters_x   = (lidar_width  / pixels_per_meter) / 2 # Divided by two because the LiDAR is in the center of the image
+    lidar_meters_y   =  lidar_height / pixels_per_meter
+
+    downscale_factor = 32
+
+    img_width  = 352
+    img_height = 160
+    fov_width  = 60
+
+    left_camera_rotation  = -60.0
+    right_camera_rotation =  60.0
+
+    fov_height = 2.0 * np.arctan((img_height / img_width) * np.tan(0.5 * np.radians(fov_width)))
+    fov_height = np.rad2deg(fov_height)
+
+    # Our pixels are squares so focal_x = focal_y
+    focal_x = img_width  / (2.0 * np.tan(np.deg2rad(fov_width)  / 2.0))
+    focal_y = img_height / (2.0 * np.tan(np.deg2rad(fov_height) / 2.0))
+
+    cam_z   = 2.3
+    lidar_z = 2.5
+
+    # get valid points in 64x64 grid
+    world[:, 0] *= -1  # flip x axis, so that the positive direction points towards right. new coordinate system: x right, y forward, z up
+    lidar = world[abs(world[:,0])<lidar_meters_x] # 32m to the sides
+    lidar = lidar[lidar[:,1]<lidar_meters_y] # 64m to the front
+    lidar = lidar[lidar[:,1]>0] # 0m to the back
+
+    # Translate Lidar cloud to the same coordinate system as the cameras (They only differ in height)
+    lidar[..., 2] = lidar[..., 2] + (lidar_z - cam_z)
+
+    # Make copies because we will rotate the new pointclouds
+    lidar_for_left_camera  = deepcopy(lidar)
+    lidar_for_right_camera = deepcopy(lidar)
+
+
+    lidar_indices = np.arange(0, lidar.shape[0], 1)
+    # Use a pinhole camera model to project the LiDAR points onto the camera image
+    z = lidar[..., 1]
+    x = ((focal_x * lidar[..., 0]) / z) + (img_width  / 2.0)
+    y = ((focal_y * lidar[..., 2]) / z) + (img_height / 2.0)
+    result_center = np.stack([x, y, lidar_indices], 1)
+
+    # Remove points that are outside of the image
+    result_center = result_center[np.logical_and(result_center[...,0] > 0, result_center[...,0] < img_width)]
+    result_center = result_center[np.logical_and(result_center[...,1] > 0, result_center[...,1] < img_height)]
+
+    result_center_shifted = result_center
+    result_center_shifted[..., 0] = result_center_shifted[..., 0] + (img_width / 2.0)
+
+    # Rotate the left camera to align with the axis for projection with a pinhole camera model
+    theta = np.radians(left_camera_rotation)
+    R = np.array([
+        [np.cos(theta), -np.sin(theta), 0.0],
+        [np.sin(theta),  np.cos(theta), 0.0],
+        [0.0,            0.0,           1.0]
+    ])
+    lidar_for_left_camera = R.dot(lidar_for_left_camera.T).T
+
+    # Use a pinhole camera model to project the LiDAR points onto the camera image
+    z = lidar_for_left_camera[..., 1]
+    x = ((focal_x * lidar_for_left_camera[..., 0]) / z) + (img_width  / 2.0)
+    y = ((focal_y * lidar_for_left_camera[..., 2]) / z) + (img_height / 2.0)
+    result_left = np.stack([x, y, lidar_indices], 1)
+
+    # Remove points that are outside of the image
+    result_left = result_left[np.logical_and(result_left[...,0] > 0, result_left[...,0] < img_width)]
+    result_left = result_left[np.logical_and(result_left[...,1] > 0, result_left[...,1] < img_height)]
+
+    # We only use half of the left image, so we cut the unneccessary points
+    result_left_shifted        = result_left[result_left[...,0] >= (img_width/2.0)]
+    result_left_shifted[...,0] = result_left_shifted[...,0] - (img_width/2.0)
+
+    # Do the same for the right image
+    theta = np.radians(right_camera_rotation)
+    R = np.array([
+        [np.cos(theta), -np.sin(theta), 0.0],
+        [np.sin(theta),  np.cos(theta), 0.0],
+        [0.0,            0.0,           1.0]
+    ])
+    lidar_for_right_camera = R.dot(lidar_for_right_camera.T).T
+
+    # Use a pinhole camera model to project the LiDAR points onto the camera image
+    z = lidar_for_right_camera[..., 1]
+    x = ((focal_x * lidar_for_right_camera[..., 0]) / z) + (img_width / 2.0)
+    y = ((focal_y * lidar_for_right_camera[..., 2]) / z) + (img_height / 2.0)
+    result_right = np.stack([x, y, lidar_indices], 1)
+
+    # Remove points that are outside of the image
+    result_right = result_right[np.logical_and(result_right[..., 0] > 0, result_right[..., 0] < img_width)]
+    result_right = result_right[np.logical_and(result_right[..., 1] > 0, result_right[..., 1] < img_height)]
+
+    # We only use half of the left image, so we cut the unneccessary points
+    result_right_shifted = result_right[result_right[...,0] < (img_width/2.0)] # Cut of right part, it's not used.
+    result_right_shifted[...,0] = result_right_shifted[...,0] + (img_width/2.0) + img_width
+
+    # Combine the three images into one
+    results_total = np.concatenate((result_left_shifted, result_center_shifted, result_right_shifted), axis=0)
+
+    if(debug == True):
+        # Visualize LiDAR hits in image
+        vis = np.zeros([img_height, 2 * img_width])
+        vis_bev = np.zeros([lidar_height, lidar_width])
+        vis_original_image = image_vis[0].detach().cpu().numpy()
+        vis_original_image = np.transpose(vis_original_image, (1, 2, 0)) / 255.0
+        vis_original_lidar = np.zeros([lidar_height, lidar_width])
+        lidar_vis = lidar_vis.detach().cpu().numpy()
+        vis_original_lidar[np.greater(lidar_vis[0,0], 0)] = 255
+        vis_original_lidar[np.greater(lidar_vis[0,1], 0)] = 255
+
+
+    valid_bev_points = []
+    valid_cam_points = []
+    for i in range(results_total.shape[0]):
+        # Project the LiDAR point to BEV and save index of the BEV image pixel.
+        lidar_index = int(results_total[i, 2])
+        bev_x = int((lidar[lidar_index][0] + lidar_meters_x) * pixels_per_meter)
+        # The network input images use a top left coordinate system, we need to convert the bottom left coordinates by inverting the y axis
+        bev_y = (int(lidar[lidar_index][1] * pixels_per_meter) - (lidar_height-1)) * -1
+
+        valid_bev_points.append([bev_x, bev_y])
+        # Calculate index in the final image by rounding down
+        img_x = int(results_total[i][0])
+        # The network input images use a top left coordinate system, we need to convert the bottom left coordinates by inverting the y axis
+        img_y = (int(results_total[i][1]) - (img_height - 1)) * -1
+        valid_cam_points.append([img_x, img_y])
+
+
+        if (debug == True):
+            vis_original_image[img_y, img_x] = np.array([0.0,1.0,0.0])
+            vis_bev[bev_y, bev_x] = 255 #Debug visualization
+            vis[img_y, img_x] = 255
+
+    if (debug == True):
+        # NOTE add the paths you want the images to land in here before debugging
+        from matplotlib import pyplot as plt
+        plt.ion()
+        plt.imshow(vis_bev)
+        plt.savefig(r'/home/hiwi/save folder/Visualizations/2/bev_lidar_{}.png'.format(step), bbox_inches='tight')
+        plt.close()
+        plt.imshow(vis_original_image)
+        plt.savefig(r'/home/hiwi/save folder/Visualizations/2/image_with_lidar_{}.png'.format(step), bbox_inches='tight')
+        plt.close()
+        plt.ioff()
+
+
+    valid_bev_points = np.array(valid_bev_points)
+    valid_cam_points = np.array(valid_cam_points)
+
+    bev_points, cam_points = correspondences_at_one_scale(valid_bev_points, valid_cam_points,  (lidar_width // downscale_factor),
+                                                          (lidar_height // downscale_factor), (img_width // downscale_factor) * 2,
+                                                          (img_height // downscale_factor), downscale_factor)
+
+    return bev_points, cam_points
+
+=======
+>>>>>>> 7dda728c0c1fba744c727ae9750c36cb85f3496c

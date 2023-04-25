@@ -5,7 +5,7 @@ class GlobalConfig:
     """ base architecture configurations """
     num_worker = 4# for debugging 0
     gpu_id = '0'
-    wandb = True
+    wandb = False
     low_data = True
     wandb_name = 'baselines'
 
@@ -16,7 +16,7 @@ class GlobalConfig:
     logdir = 'log/'+model #+'_w1' for 1 weather only
 
     total_epoch = 40
-    batch_size = 50
+    batch_size = 20#50
     val_cycle = 1
 
 	# Data
@@ -86,11 +86,10 @@ class GlobalConfig:
 
 
     # input_resolution = 256
-    input_resolution = [160,768] # PMLR dataset #768
+    input_resolution = [160,768] #[160,160]  # PMLR dataset #768
 
 
     scale = 1 # image pre-processing
-    crop = 160 #256 # image pre-processing
 
     lr = 1e-4 # learning rate
 

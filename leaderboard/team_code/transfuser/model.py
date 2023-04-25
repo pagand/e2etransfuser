@@ -319,9 +319,6 @@ class Encoder(nn.Module):
         self.config.n_views = len(image_list) // self.config.seq_len
 
         image_tensor = torch.stack(image_list, dim=1).view(bz * self.config.n_views * self.config.seq_len, img_channel, h, w)
-        # print(lidar_list[0].shape)
-        # print(len(lidar_list))
-        # print(bz * self.config.seq_len, lidar_channel, h, w)
         lidar_tensor = torch.stack(lidar_list, dim=1).view(bz * self.config.seq_len, lidar_channel, h, w)
 
         image_features = self.image_encoder.features.conv1(image_tensor)

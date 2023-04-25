@@ -417,7 +417,7 @@ class x13(nn.Module): #
             nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0]) #new -config.n_fmap_b3[3][0]
+            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0]-config.n_fmap_b3[3][0]) #control v2 -config.n_fmap_b3[3][0]
         )
         #------------------------------------------------------------------------------------------------
         if config.attn:
@@ -447,7 +447,6 @@ class x13(nn.Module): #
 		# 				)
         
         
-
         self.speed_head = nn.Sequential(
                 nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
                 nn.ReLU(inplace=True),
@@ -458,32 +457,33 @@ class x13(nn.Module): #
             )
         # comment 1
 
-        # self.fuse_BN = nn.BatchNorm2d(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])
-        # self.measurements = nn.Sequential(
-		# 					nn.Linear(1+2+6, config.n_fmap_b1[-1][-1]),
-		# 					nn.ReLU(inplace=True),
-		# 					nn.Linear(config.n_fmap_b1[-1][-1], config.n_fmap_b3[3][0]),
-		# 					nn.ReLU(inplace=True),
-		# 				)
-        # self.gru_control = nn.GRUCell(input_size=3, hidden_size=config.n_fmap_b3[4][0])
-        # self.pred_control = nn.Sequential(
-        #     # nn.Linear(2*config.n_fmap_b3[4][0], 3),
-        #     # nn.Sigmoid()
+        self.fuse_BN = nn.BatchNorm2d(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])
+        self.measurements = nn.Sequential(
+							nn.Linear(1+2+6, config.n_fmap_b1[-1][-1]),
+							nn.ReLU(inplace=True),
+							nn.Linear(config.n_fmap_b1[-1][-1], config.n_fmap_b3[3][0]),
+							nn.ReLU(inplace=True),
+						)
+        self.gru_control = nn.GRUCell(input_size=3+2, hidden_size=config.n_fmap_b3[4][0]) #control version2 +0  ,  control v4 +2
+        self.pred_control = nn.Sequential(
+            # nn.Linear(2*config.n_fmap_b3[4][0], 3), #v1
+            # nn.Sigmoid()
 
-        #     # nn.Linear(2*config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
-        #     # nn.Linear(config.n_fmap_b3[3][-1], 3),
-        #     # nn.Sigmoid()
+            nn.Linear(2*config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]), #v2
+            nn.Linear(config.n_fmap_b3[3][-1], 3),
+            nn.Sigmoid()
 
-        #     nn.Linear(config.n_fmap_b3[4][0], 3), #v3
-        #     nn.Sigmoid())
+            # nn.Linear(config.n_fmap_b3[4][0], 3), #v3
+            # nn.Sigmoid()
+            )
 
 
         #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
-        self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
+        # self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
         # self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
-        # self.gru = nn.GRUCell(input_size=5-1, hidden_size=config.n_fmap_b3[4][0])
-        self.pred_dwp = nn.Linear(config.n_fmap_b3[4][0], 2)
+        self.gru = nn.GRUCell(input_size=5-1, hidden_size=config.n_fmap_b3[4][0])
+        self.pred_dwp = nn.Linear(2*config.n_fmap_b3[4][0], 2) #control v4
         #PID Controller
         self.turn_controller = PIDController(K_P=config.turn_KP, K_I=config.turn_KI, K_D=config.turn_KD, n=config.turn_n)
         self.speed_controller = PIDController(K_P=config.speed_KP, K_I=config.speed_KI, K_D=config.speed_KD, n=config.speed_n)
@@ -666,13 +666,13 @@ class x13(nn.Module): #
         # hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
 
-        hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
-        # comment 2
-        # measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
-        # fuse = torch.cat([RGB_features8, SC_features5], dim=1)
-        # hx = self.necks_net(self.fuse_BN(fuse))
-        # hx = torch.cat([hx, measurement_feature], dim=1) 
-        # fuse = hx.clone()#NEW
+        # hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
+        # control v2
+        measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
+        fuse = torch.cat([RGB_features8, SC_features5], dim=1)
+        hx = self.necks_net(self.fuse_BN(fuse))
+        hx = torch.cat([hx, measurement_feature], dim=1) 
+        fuse = hx.clone()#NEW
 
 #        RGB_features8 = self.norm1(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))
 #        SC_features5 = self.norm2(rearrange(SC_features5 , 'b c h w-> b (h w) c'))
@@ -689,11 +689,12 @@ class x13(nn.Module): #
 
 
         for _ in range(self.config.pred_len):
-            ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
+            # ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
             # ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1)], dim=1) # x
-            # ins = torch.cat([xy, next_route], dim=1) # x
+            ins = torch.cat([xy, next_route], dim=1) # x
             hx = self.gru(ins, hx)
-            d_xy = self.pred_dwp(hx+tls_bias) #why adding??
+            # d_xy = self.pred_dwp(hx+tls_bias) #why adding??
+            d_xy = self.pred_dwp(torch.cat([hx,tls_bias], dim=1)) #control v4
             xy = xy + d_xy
             out_wp.append(xy)
         pred_wp = torch.stack(out_wp, dim=1)
@@ -701,14 +702,15 @@ class x13(nn.Module): #
         #control decoder
         control_pred = self.controller(hx+tls_bias)
 
-        # comment 3
-        # # NEW
-        # hx = self.gru_control(control_pred, fuse)
-        # # d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1))
+        
+        ins = torch.cat([control_pred, next_route], dim=1) # control v4
+        # ins = control_pred# control v2
+
+        hx = self.gru_control(ins, fuse) # control v2/3/4
+        d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
         # d_control = self.pred_control(hx+tls_bias)  # making add (#v3)
 
-        # control_pred = control_pred + d_control
-
+        control_pred = control_pred + d_control # control v2/3/4
 
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle

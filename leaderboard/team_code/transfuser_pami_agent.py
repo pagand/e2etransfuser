@@ -13,9 +13,9 @@ import numpy as np
 import math
 
 from leaderboard.autoagents import autonomous_agent
-from transfuser.model import LidarCenterNet
-from transfuser.config import GlobalConfig
-from transfuser.data import lidar_to_histogram_features, draw_target_point, lidar_bev_cam_correspondences
+from transfuser_pami.model import LidarCenterNet
+from transfuser_pami.config import GlobalConfig
+from transfuser_pami.data import lidar_to_histogram_features, draw_target_point, lidar_bev_cam_correspondences
 
 from shapely.geometry import Polygon
 from matplotlib import cm

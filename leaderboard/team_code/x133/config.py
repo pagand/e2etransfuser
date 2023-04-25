@@ -66,22 +66,22 @@ class GlobalConfig:
         test_data.append(os.path.join(expert_dir, 'Expert')) #Expert OR Expert_w1 for 1 weather only scenario
     '''
 
-    
-
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
     input_resolution = [160,160] # PMLR dataset #768
     # input_resolution = [160,160] # PMLR dataset #512
-    # coverage_area = 64
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
 
 
+    camera_width = 960
+    camera_height = 480
+    img_width_cut = 320
+    img_resolution = (160,704)
+    
     # camera intrinsic
     img_width = 352
     img_height = 160
     fov = 2*60
-    
-   
 
     scale = 1 # image pre-processing
     # crop = 256 # image pre-processing # CVPR dataset

@@ -5,7 +5,7 @@ import numpy as np
 
 from .utils import *
 from .transfuser import TransfuserBackbone, SegDecoder, DepthDecoder
-print("doneeeeeeee")
+
 from .geometric_fusion import GeometricFusionBackbone
 from .late_fusion import LateFusionBackbone
 from .latentTF import latentTFBackbone

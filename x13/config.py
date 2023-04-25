@@ -112,7 +112,7 @@ class GlobalConfig:
 
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.2*len(train_data)))
+        train_data = random.sample(train_data,int(0.02*len(train_data)))
         val_data = random.sample(val_data,int(0.2*len(val_data)))
 
         # train_data = train_data[:int(0.05*len(train_data))]

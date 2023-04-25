@@ -435,7 +435,7 @@ class x13(nn.Module): #
             nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0]) #new -config.n_fmap_b3[3][0]
+            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0]-config.n_fmap_b3[3][0]) #control v2 -config.n_fmap_b3[3][0]
         )
         #------------------------------------------------------------------------------------------------
         if config.attn:
@@ -465,7 +465,6 @@ class x13(nn.Module): #
 		# 				)
         
         
-
         self.speed_head = nn.Sequential(
                 nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
                 nn.ReLU(inplace=True),
@@ -476,21 +475,21 @@ class x13(nn.Module): #
             )
         # comment 1
 
-        # self.fuse_BN = nn.BatchNorm2d(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])
-        # self.measurements = nn.Sequential(
-		# 					nn.Linear(1+2+6, config.n_fmap_b1[-1][-1]),
-		# 					nn.ReLU(inplace=True),
-		# 					nn.Linear(config.n_fmap_b1[-1][-1], config.n_fmap_b3[3][0]),
-		# 					nn.ReLU(inplace=True),
-		# 				)
-        # self.gru_control = nn.GRUCell(input_size=3, hidden_size=config.n_fmap_b3[4][0])
-        # self.pred_control = nn.Sequential(
-        #     # nn.Linear(2*config.n_fmap_b3[4][0], 3),
-        #     # nn.Sigmoid()
+        self.fuse_BN = nn.BatchNorm2d(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])
+        self.measurements = nn.Sequential(
+							nn.Linear(1+2+6, config.n_fmap_b1[-1][-1]),
+							nn.ReLU(inplace=True),
+							nn.Linear(config.n_fmap_b1[-1][-1], config.n_fmap_b3[3][0]),
+							nn.ReLU(inplace=True),
+						)
+        self.gru_control = nn.GRUCell(input_size=3+2, hidden_size=config.n_fmap_b3[4][0]) #control version2 +0  ,  control v4 +2
+        self.pred_control = nn.Sequential(
+            # nn.Linear(2*config.n_fmap_b3[4][0], 3), #v1
+            # nn.Sigmoid()
 
-        #     # nn.Linear(2*config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
-        #     # nn.Linear(config.n_fmap_b3[3][-1], 3),
-        #     # nn.Sigmoid()
+            nn.Linear(2*config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]), #v2
+            nn.Linear(config.n_fmap_b3[3][-1], 3),
+            nn.Sigmoid()
 
         #     nn.Linear(config.n_fmap_b3[4][0], 3), #v3
         #     nn.Sigmoid())
@@ -717,10 +716,11 @@ class x13(nn.Module): #
         out_wp = list()
 
         for _ in range(self.config.pred_len):
-            ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
+            # ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
             # ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1)], dim=1) # x
             hx = self.gru(ins, hx)
-            d_xy = self.pred_dwp(hx+tls_bias) #why adding??
+            # d_xy = self.pred_dwp(hx+tls_bias) #why adding??
+            d_xy = self.pred_dwp(torch.cat([hx,tls_bias], dim=1)) #control v4
             xy = xy + d_xy
             out_wp.append(xy)
         pred_wp = torch.stack(out_wp, dim=1)
@@ -733,6 +733,7 @@ class x13(nn.Module): #
         # d_control = self.pred_control(hx+tls_bias)  # making add (#v3)
 
         # control_pred = control_pred + d_control
+
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle
         brake = control_pred[:,2] #brake: hard 1.0 or no 0.0

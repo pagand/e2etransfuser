@@ -513,7 +513,88 @@ class LidarCenterNetHead(BaseDenseHead, BBoxTestMixin):
             out_labels = out_labels[idx]
 
         return out_bboxes, out_labels
+        
+    def forward(self, image_list, lidar_list, velocity):
+        '''
+        Image + LiDAR feature fusion using transformers
+        Args:
+            image_list (list): list of input images
+            lidar_list (list): list of input LiDAR BEV
+            velocity (tensor): input velocity from speedometer
+        '''
+        if self.image_encoder.normalize:
+            image_list = [normalize_imagenet(image_input) for image_input in image_list]
 
+        bz, _, h, w = lidar_list[0].shape
+        img_channel = image_list[0].shape[1]
+        lidar_channel = lidar_list[0].shape[1]
+        self.config.n_views = len(image_list) // self.config.seq_len
+
+        image_tensor = torch.stack(image_list, dim=1).view(bz * self.config.n_views * self.config.seq_len, img_channel, h, w)
+        lidar_tensor = torch.stack(lidar_list, dim=1).view(bz * self.config.seq_len, lidar_channel, h, w)
+
+        image_features = self.image_encoder.features.conv1(image_tensor)
+        image_features = self.image_encoder.features.bn1(image_features)
+        image_features = self.image_encoder.features.relu(image_features)
+        image_features = self.image_encoder.features.maxpool(image_features)
+        lidar_features = self.lidar_encoder._model.conv1(lidar_tensor)
+        lidar_features = self.lidar_encoder._model.bn1(lidar_features)
+        lidar_features = self.lidar_encoder._model.relu(lidar_features)
+        lidar_features = self.lidar_encoder._model.maxpool(lidar_features)
+
+        image_features = self.image_encoder.features.layer1(image_features)
+        lidar_features = self.lidar_encoder._model.layer1(lidar_features)
+        # fusion at (B, 64, 64, 64)
+        image_embd_layer1 = self.avgpool(image_features)
+        lidar_embd_layer1 = self.avgpool(lidar_features)
+        image_features_layer1, lidar_features_layer1 = self.transformer1(image_embd_layer1, lidar_embd_layer1, velocity)
+        image_features_layer1 = F.interpolate(image_features_layer1, scale_factor=8, mode='bilinear')
+        lidar_features_layer1 = F.interpolate(lidar_features_layer1, scale_factor=8, mode='bilinear')
+        image_features = image_features + image_features_layer1
+        lidar_features = lidar_features + lidar_features_layer1
+
+        image_features = self.image_encoder.features.layer2(image_features)
+        lidar_features = self.lidar_encoder._model.layer2(lidar_features)
+        # fusion at (B, 128, 32, 32)
+        image_embd_layer2 = self.avgpool(image_features)
+        lidar_embd_layer2 = self.avgpool(lidar_features)
+        image_features_layer2, lidar_features_layer2 = self.transformer2(image_embd_layer2, lidar_embd_layer2, velocity)
+        image_features_layer2 = F.interpolate(image_features_layer2, scale_factor=4, mode='bilinear')
+        lidar_features_layer2 = F.interpolate(lidar_features_layer2, scale_factor=4, mode='bilinear')
+        image_features = image_features + image_features_layer2
+        lidar_features = lidar_features + lidar_features_layer2
+
+        image_features = self.image_encoder.features.layer3(image_features)
+        lidar_features = self.lidar_encoder._model.layer3(lidar_features)
+        # fusion at (B, 256, 16, 16)
+        image_embd_layer3 = self.avgpool(image_features)
+        lidar_embd_layer3 = self.avgpool(lidar_features)
+        image_features_layer3, lidar_features_layer3 = self.transformer3(image_embd_layer3, lidar_embd_layer3, velocity)
+        image_features_layer3 = F.interpolate(image_features_layer3, scale_factor=2, mode='bilinear')
+        lidar_features_layer3 = F.interpolate(lidar_features_layer3, scale_factor=2, mode='bilinear')
+        image_features = image_features + image_features_layer3
+        lidar_features = lidar_features + lidar_features_layer3
+
+        image_features = self.image_encoder.features.layer4(image_features)
+        lidar_features = self.lidar_encoder._model.layer4(lidar_features)
+        # fusion at (B, 512, 8, 8)
+        image_embd_layer4 = self.avgpool(image_features)
+        lidar_embd_layer4 = self.avgpool(lidar_features)
+        image_features_layer4, lidar_features_layer4 = self.transformer4(image_embd_layer4, lidar_embd_layer4, velocity)
+        image_features = image_features + image_features_layer4
+        lidar_features = lidar_features + lidar_features_layer4
+
+        image_features = self.image_encoder.features.avgpool(image_features)
+        image_features = torch.flatten(image_features, 1)
+        image_features = image_features.view(bz, self.config.n_views * self.config.seq_len, -1)
+        lidar_features = self.lidar_encoder._model.avgpool(lidar_features)
+        lidar_features = torch.flatten(lidar_features, 1)
+        lidar_features = lidar_features.view(bz, self.config.seq_len, -1)
+
+        fused_features = torch.cat([image_features, lidar_features], dim=1)
+        fused_features = torch.sum(fused_features, dim=1)
+
+        return fused_features
 
 class PIDController(object):
     def __init__(self, K_P=1.0, K_I=0.0, K_D=0.0, n=20):

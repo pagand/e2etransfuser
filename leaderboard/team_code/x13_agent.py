@@ -168,8 +168,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 					'type': 'sensor.speedometer',
 					'reading_frequency': 20,
 					'id': 'speed'
-					}
-				]
+					}]
 		
 	def tick(self, input_data):
 		self.step += 1

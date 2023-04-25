@@ -73,6 +73,20 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 		gps = (gps - self._route_planner.mean) * self._route_planner.scale
 
 		return gps
+	
+	def scale_crop(self, image, scale=1, start_x=0, crop_x=None, start_y=0, crop_y=None):
+		(width, height) = (image.width // scale, image.height // scale)
+		if scale != 1:
+			image = image.resize((width, height))
+		if crop_x is None:
+			crop_x = width
+		if crop_y is None:
+			crop_y = height
+
+		image = np.asarray(image)
+		cropped_image = image[start_y:start_y+crop_y, start_x:start_x+crop_x]
+		return cropped_image
+	
 
 	def scale_crop(self, image, scale=1, start_x=0, crop_x=None, start_y=0, crop_y=None):
 		(width, height) = (image.width // scale, image.height // scale)
@@ -199,7 +213,6 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 			self._init()
 
 		tick_data = self.tick(input_data)
-
 		if self.step < self.config.seq_len:
 			#rgb = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb']), crop=self.config.input_resolution)).unsqueeze(0)
 			rgb = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb']), crop=self.config.input_resolution)).unsqueeze(0)
@@ -226,7 +239,7 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 			control.brake = 0.0
 			
 			return control
-
+		
 		gt_velocity = torch.FloatTensor([tick_data['speed']]).to('cuda', dtype=torch.float32)
 		command = torch.FloatTensor([tick_data['next_command']]).to('cuda', dtype=torch.float32)
 
@@ -245,10 +258,9 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 			rgb_left = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_left']), crop=self.config.input_resolution)).unsqueeze(0)
 			self.input_buffer['rgb_left'].popleft()
 			self.input_buffer['rgb_left'].append(rgb_left.to('cuda', dtype=torch.float32))
-			
-			rgb_right = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_right']), crop=self.config.input_resolution)).unsqueeze(0)
-			self.input_buffer['rgb_right'].popleft()
-			self.input_buffer['rgb_right'].append(rgb_right.to('cuda', dtype=torch.float32))
+		# 	rgb_right = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_right']), crop=self.config.input_resolution)).unsqueeze(0)
+		# 	self.input_buffer['rgb_right'].popleft()
+		# 	self.input_buffer['rgb_right'].append(rgb_right.to('cuda', dtype=torch.float32))
 
 		if not self.config.ignore_rear:
 			rgb_rear = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_rear']), crop=self.config.input_resolution)).unsqueeze(0)
@@ -279,10 +291,11 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 				self.lidar_processed.append(lidar_transformed.to('cuda', dtype=torch.float32))
 
 
-			self.pred_wp = self.net(self.input_buffer['rgb'] + self.input_buffer['rgb_left'] + \
-							   self.input_buffer['rgb_right']+self.input_buffer['rgb_rear'], \
+			#self.pred_wp = self.net(self.input_buffer['rgb'] + self.input_buffer['rgb_left'] + \
+			#				   self.input_buffer['rgb_right']+self.input_buffer['rgb_rear'], \
+			#				   self.lidar_processed, target_point, gt_velocity)
+			self.pred_wp = self.net(self.input_buffer['rgb'], 
 							   self.lidar_processed, target_point, gt_velocity)
-
 		steer, throttle, brake, metadata = self.net.control_pid(self.pred_wp, gt_velocity)
 		self.pid_metadata = metadata
 
@@ -314,4 +327,3 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 
 	def destroy(self):
 		del self.net
-

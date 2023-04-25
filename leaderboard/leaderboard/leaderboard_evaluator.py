@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python'hi'hi
 # Copyright (c) 2018-2019 Intel Corporation.
 # authors: German Ros (german.ros@intel.com), Felipe Codevilla (felipe.alcm@gmail.com)
 #
@@ -114,7 +114,6 @@ class LeaderboardEvaluator(object):
         """
         Terminate scenario ticking when receiving a signal interrupt
         """
-        print(1111)
         if self._agent_watchdog and not self._agent_watchdog.get_status():
             raise RuntimeError("Timeout: Agent took too long to setup")
         elif self.manager:

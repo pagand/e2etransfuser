@@ -21,6 +21,7 @@ transfuser_pmlr/data0/
 transfuser_pmlr/data00/
 transfuser_pmlr/log/
 transfuser_pmlr/results/
+
 wandb/
 .conda/
 .vscode/

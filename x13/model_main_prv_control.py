@@ -464,19 +464,6 @@ class x13(nn.Module): #
 							nn.Linear(config.n_fmap_b1[-1][-1], config.n_fmap_b3[3][0]),
 							nn.ReLU(inplace=True),
 						)
-        self.gru_control = nn.GRUCell(input_size=3+2, hidden_size=config.n_fmap_b3[4][0]) #control version2 +0  ,  control v4 +2
-        self.pred_control = nn.Sequential(
-            # nn.Linear(2*config.n_fmap_b3[4][0], 3), #v1
-            # nn.Sigmoid()
-
-            nn.Linear(2*config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]), #v2
-            nn.Linear(config.n_fmap_b3[3][-1], 3),
-            nn.Sigmoid()
-
-            # nn.Linear(config.n_fmap_b3[4][0], 3), #v3
-            # nn.Sigmoid()
-            )
-
 
         #------------------------------------------------------------------------------------------------
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
@@ -672,7 +659,6 @@ class x13(nn.Module): #
         fuse = torch.cat([RGB_features8, SC_features5], dim=1)
         hx = self.necks_net(self.fuse_BN(fuse))
         hx = torch.cat([hx, measurement_feature], dim=1) 
-        fuse = hx.clone()#NEW
 
 #        RGB_features8 = self.norm1(rearrange(RGB_features8 , 'b c h w-> b (h w) c'))
 #        SC_features5 = self.norm2(rearrange(SC_features5 , 'b c h w-> b (h w) c'))
@@ -699,15 +685,6 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #control decoder
         control_pred = self.controller(hx+tls_bias)
-
-        ins = torch.cat([control_pred, next_route], dim=1) # control v4
-        # ins = control_pred# control v2
-
-        hx = self.gru_control(ins, fuse) # control v2/3/4
-        d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
-        # d_control = self.pred_control(hx+tls_bias)  # making add (#v3)
-
-        control_pred = control_pred + d_control # control v2/3/4
 
         steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
         throttle = control_pred[:,1] * self.config.max_throttle

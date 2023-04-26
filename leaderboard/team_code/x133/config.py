@@ -4,7 +4,7 @@ class GlobalConfig:
     num_worker = 4# for debugging 0
     gpu_id = '0'
     wandb = False
-    low_data = True
+    low_data = False
     model = 'x13'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
@@ -51,7 +51,6 @@ class GlobalConfig:
                 else:
                     break
     if low_data:
-        train_data = train_data[:int(0.02*len(train_data))]
         val_data = val_data[:int(0.2*len(val_data))]
     
     ## For CVPR dataset

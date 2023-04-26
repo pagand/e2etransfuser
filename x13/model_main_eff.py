@@ -435,26 +435,20 @@ class x13(nn.Module): #
             
         #------------------------------------------------------------------------------------------------
         #Speed predictor
-        # self.speed_head = nn.Sequential(
-        #                     nn.AdaptiveAvgPool2d(1),
-        #                     nn.Flatten(),
-		# 					nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
-		# 					nn.ReLU(inplace=True),
-		# 					# nn.Linear(256, 256),
-		# 					# nn.Dropout2d(p=0.5),
-		# 					# nn.ReLU(inplace=True),
-		# 					nn.Linear(config.n_fmap_b3[3][0], 1),
-		# 				)
-        
-        
         self.speed_head = nn.Sequential(
-                nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
-                nn.ReLU(inplace=True),
-                # nn.Linear(256, 256),
-                # nn.Dropout2d(p=0.5),
-                # nn.ReLU(inplace=True),
-                nn.Linear(config.n_fmap_b3[3][0], 1),
-            )
+                            nn.AdaptiveAvgPool2d(1),
+                            nn.Flatten(),
+			nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
+			nn.ReLU(inplace=True),
+			nn.Linear(config.n_fmap_b3[3][0], 1),
+			)
+        
+        
+      #  self.speed_head = nn.Sequential(
+      #          nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[3][0]),
+      #          nn.ReLU(inplace=True),
+      #          nn.Linear(config.n_fmap_b3[3][0], 1),
+      #      )
         # comment 1
 
         self.fuse_BN = nn.BatchNorm2d(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])
@@ -466,9 +460,6 @@ class x13(nn.Module): #
 						)
         self.gru_control = nn.GRUCell(input_size=3+2, hidden_size=config.n_fmap_b3[4][0]) #control version2 +0  ,  control v4 +2
         self.pred_control = nn.Sequential(
-            # nn.Linear(2*config.n_fmap_b3[4][0], 3), #v1
-            # nn.Sigmoid()
-
             nn.Linear(2*config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]), #v2
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.Sigmoid()
@@ -523,15 +514,15 @@ class x13(nn.Module): #
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command ):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
         # CVT and conv (approach2) and Min CVT
-        in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        out = self.cvt(in_rgb, output_hidden_states=True)
-        RGB_features1 = self.conv1_down(in_rgb)
-        RGB_features2 = out[2][0]
-        RGB_features3 = out[2][1]
-        RGB_features5 = out[2][2]
+        #in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        #out = self.cvt(in_rgb, output_hidden_states=True)
+        #RGB_features1 = self.conv1_down(in_rgb)
+        #RGB_features2 = out[2][0]
+        #RGB_features3 = out[2][1]
+        #RGB_features5 = out[2][2]
         # # version2 does not require conv2_down
         # RGB_features8 = self.conv2_down(RGB_features5) # version 1
-        RGB_features8 = RGB_features5 # version 2
+        #RGB_features8 = RGB_features5 # version 2
         # TODO: for Min CVT change upsampling
         # TODO: for min_CVT version 2 change hx to use SC_features5
         # TODO: fer version 2, comment conv2_down in init
@@ -553,21 +544,21 @@ class x13(nn.Module): #
         # # TODO: change self.necks_net for version 2 and the SC_features after 5
 
         # only Effnet
-        #in_rgb = self.rgb_normalizer(rgb_f) #[i]
-        #RGB_features0 = self.RGB_encoder.features[0](in_rgb)
-        #RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
-        #RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
-        #RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
-        #RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
-        #RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
-        #RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
-        #RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
-        #RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
+        in_rgb = self.rgb_normalizer(rgb_f) #[i]
+        RGB_features0 = self.RGB_encoder.features[0](in_rgb)
+        RGB_features1 = self.RGB_encoder.features[1](RGB_features0)
+        RGB_features2 = self.RGB_encoder.features[2](RGB_features1)
+        RGB_features3 = self.RGB_encoder.features[3](RGB_features2)
+        RGB_features4 = self.RGB_encoder.features[4](RGB_features3)
+        RGB_features5 = self.RGB_encoder.features[5](RGB_features4)
+        RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
+        RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
+        RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
 
         # bagian upsampling
-        # ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
+        ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
         # # only for Min CVT (both versions)
-        ss_f = self.conv3_ss_f(RGB_features5)
+        #ss_f = self.conv3_ss_f(RGB_features5)
 
         ss_f = self.conv2_ss_f(cat([self.up(ss_f), RGB_features3], dim=1))
         ss_f = self.conv1_ss_f(cat([self.up(ss_f), RGB_features2], dim=1))
@@ -642,9 +633,9 @@ class x13(nn.Module): #
         SC_features4 = self.SC_encoder.features[4](SC_features3)
         SC_features5 = self.SC_encoder.features[5](SC_features4)
         # for min-cvt version 2 should be commented
-        # SC_features6 = self.SC_encoder.features[6](SC_features5)
-        # SC_features7 = self.SC_encoder.features[7](SC_features6)
-        # SC_features8 = self.SC_encoder.features[8](SC_features7)
+        SC_features6 = self.SC_encoder.features[6](SC_features5)
+        SC_features7 = self.SC_encoder.features[7](SC_features6)
+        SC_features8 = self.SC_encoder.features[8](SC_features7)
 
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
@@ -654,7 +645,7 @@ class x13(nn.Module): #
         bs,_,H,W = RGB_features8.shape
         #------------------------------------------------------------------------------------------------
         #Speed prediction
-        speed = self.speed_head(out[1].squeeze(-2)) # RGB_features8
+        speed = self.speed_head(RGB_features8)
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         # stop_sign = redl_stops[:,1]  # we don't have stop sign
@@ -669,7 +660,8 @@ class x13(nn.Module): #
         # hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
         # control v2
         measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
-        fuse = torch.cat([RGB_features8, SC_features5], dim=1)
+        fuse = torch.cat([RGB_features8, SC_features8], dim=1)
+        #fuse = torch.cat([RGB_features8, SC_features5], dim=1)
         hx = self.necks_net(self.fuse_BN(fuse))
         hx = torch.cat([hx, measurement_feature], dim=1) 
         fuse = hx.clone()#NEW

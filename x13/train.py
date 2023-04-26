@@ -112,7 +112,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_command = data['command'].to(device, dtype=torch.float)
 
 		#forward pass
-		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign,_,speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command, seg_fronts)
+		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _,speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)
 
 		if cur_epoch< config.cvt_freezed_epoch and list(model.named_parameters())[0][1].requires_grad: # freeze CVT
 			if list(model.named_parameters())[0][0][:3] != 'cvt' :
@@ -332,7 +332,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			gt_command = data['command'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, _,speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)
+			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _,speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -414,11 +414,11 @@ def main():
 	else: 
 		drop_last = False
 	
-	train_data_size = int(config.low_data_rate*170726)
+	train_data_size = int(config.low_data_rate*180000)
 	
-	#dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=170726, size=(train_data_size,)),train_data_size))
+	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=180000, size=(train_data_size,)),train_data_size))
 
-	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
+#	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
 	#dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=5*config.random_data_len, size=(config.random_data_len,)),config.random_data_len))
 
 	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)

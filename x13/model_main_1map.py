@@ -608,7 +608,9 @@ class x13(nn.Module): #
             self.save2(gt_ss,big_top_view)
         
         big_top_view = torch.zeros((bs,ly,2*wi,hi)).cuda()
-        for i in range(3):
+        if True:
+        #for i in range(3):
+            i=2
             if i==0:
                 width = 224 # 224
                 rot = 130 #60 # 43.3

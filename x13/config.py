@@ -5,20 +5,20 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = True
     gpu_id = '0'
-    model = 'April23_eff_1Map_BN_02'
+    model = 'April26_main_total'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
 
-    kind = 'effnet' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+    kind = 'min_cvt' #'min_cvt' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
     n_class = 23
     
-    batch_size = 20 #20
+    batch_size = 40 #20
     total_epoch = 50
     
     low_data = True
-    low_data_rate = 0.2
+    low_data_rate = 1
 
     if kind == 'cvt_cnn':
         bottleneck = [350, 695, 350]
@@ -34,7 +34,7 @@ class GlobalConfig:
     batch_size = 20 #20
     total_epoch = 20 #30
 
-    random_data_len = int(170740 *0.2) #int(188660 * 0.2 ) 
+    random_data_len = int(180000 *1) #int(188660 * 0.2 ) 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':

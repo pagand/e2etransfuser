@@ -22,6 +22,9 @@ from matplotlib import cm
 
 import itertools
 import pathlib
+
+from torchvision.utils import save_image
+
 SAVE_PATH = os.environ.get('SAVE_PATH',None)
 
 #if not SAVE_PATH:
@@ -270,6 +273,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
 
         # prepare image input
         image = self.prepare_image(tick_data)
+
 
         num_points = None
         if(self.backbone == 'latentTF'): # Image only method
@@ -620,6 +624,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         start_x += int(crop_shift // scale)
         cropped_image = image[start_y:start_y+crop_h, start_x:start_x+crop_w]
         cropped_image = np.transpose(cropped_image, (2,0,1))
+
         return cropped_image
 
     def destroy(self):

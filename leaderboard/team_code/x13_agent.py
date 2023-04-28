@@ -210,7 +210,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		pos = self._get_position(result)
 		result['gps'] = pos
 		next_wp, next_cmd = self._route_planner.run_step(pos)
-		# result['next_command'] = next_cmd.value
+		result['next_command'] = next_cmd.value
 
 		theta = compass + np.pi/2
 		R = np.array([
@@ -260,7 +260,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 			return control
 		"""
 		gt_velocity = torch.FloatTensor([tick_data['speed']]).to('cuda', dtype=torch.float32)
-		# command = torch.FloatTensor([tick_data['next_command']]).to('cuda', dtype=torch.float32)
+		gt_command = torch.FloatTensor([tick_data['next_command']]).to('cuda', dtype=torch.float32)
 
 		tick_data['target_point'] = [torch.FloatTensor([tick_data['target_point'][0]]), torch.FloatTensor([tick_data['target_point'][1]])]
 		target_point = torch.stack(tick_data['target_point'], dim=1).to('cuda', dtype=torch.float32)
@@ -302,7 +302,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		a = 0
 		# forward pass
 		#pred_seg, pred_wp, psteer, pthrottle, pbrake, predl,stop_sign, pred_sc,speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
-		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a,a)
+		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, stop_sign, pred_sc, speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,gt_command)
 		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
 		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)

@@ -71,7 +71,7 @@ class GlobalConfig:
     # root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'#  '/localscratch/mmahdavi/transfuser/data' #  for the PAMI dataset
     root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' # for the PAMI dataset
 
-    attn = True
+    attn = False
     
     train_data, val_data = [], []
 

@@ -67,7 +67,7 @@ class GlobalConfig:
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
-    input_resolution = [160,160] # PMLR dataset #768
+    input_resolution = [160,768] # [160,160] for 1 image 
     # input_resolution = [160,160] # PMLR dataset #512
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
 

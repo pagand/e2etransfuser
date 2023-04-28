@@ -22,10 +22,10 @@ export SAVE_PATH=data0/x13_NORMAL/${WEATHER}/${MODEL}-${CONTROL_OPTION} # ADVERS
 export ROUTES=leaderboard/data/all_routes/routes_town05_short.xml #look at leaderboard/data/all_routes
 #export SCENARIOS=leaderboard/data/scenarios/town05_all_scenarios.json #look at leaderboard/data/scenarios town05_all_scenarios OR no_scenarios.json
 export SCENARIOS=leaderboard/data/scenarios/no_scenarios.json
-export PORT=2000 # same as the carla server port
-export TM_PORT=2050 # port for traffic manager, required when spawning multiple servers/clients
+export PORT=2006 # same as the carla server port
+export TM_PORT=2056 # port for traffic manager, required when spawning multiple servers/clients
 #export TEAM_CONFIG=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/log/testmin_cvt_v2/retrain
-export TEAM_CONFIG=/home/mohammad/Desktop/models/e2e_1img_total
+export TEAM_CONFIG=/home/mohammad/Desktop/models/main
 export CHECKPOINT_ENDPOINT=${SAVE_PATH}/eval_result.json # results file
 export TEAM_AGENT=leaderboard/team_code/${MODEL}_agent.py
 

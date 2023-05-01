@@ -5,7 +5,7 @@ aim/log/*
 cilrs/log/*
 x13/log/*
 s13/log/*
-./data0/*
+./data/*
 cvt0/*
 carla/*
 *.pyc
@@ -194,4 +194,4 @@ cython_debug/
 
 results/
 model_ckpt/
-data0/
+data/

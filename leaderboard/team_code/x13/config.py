@@ -70,7 +70,6 @@ class GlobalConfig:
     # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
     # root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'#  '/localscratch/mmahdavi/transfuser/data' #  for the PAMI dataset
     root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
-    attn = False
     
     train_data, val_data = [], []
 
@@ -180,7 +179,7 @@ class GlobalConfig:
                             'Dynamic', 'Water', 'Terrain']
     }
         
-
+    attn = False
     ## fusion settings
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]

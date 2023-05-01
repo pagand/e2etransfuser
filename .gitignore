@@ -6,11 +6,13 @@ cilrs/log/*
 x13/log/*
 s13/log/*
 ./data/*
+#./data0/*
 cvt0/*
 carla/*
 *.pyc
 cs-venus*
 my_test.sh
+x13/model_*
 
 x13/wandb
 !data/README.md
@@ -195,3 +197,5 @@ cython_debug/
 results/
 model_ckpt/
 data/
+#data0/
+

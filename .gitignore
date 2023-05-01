@@ -199,3 +199,4 @@ model_ckpt/
 data/
 #data0/
 
+/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/leaderboard/scripts/run_evaluation2.sh

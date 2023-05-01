@@ -173,7 +173,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 	def tick(self, input_data):
 		self.step += 1
 		rgb = []
-		for pos in ['left','front','right']:
+		for pos in ['left','front', 'right']:
 			rgb_cam = 'rgb_' + pos
 			rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
 			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
@@ -182,7 +182,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 #		cv2.imwrite('rgb.png', rgb)
 
 		depth = []
-		for pos in ['left','front','right']:
+		for pos in ['left','front', 'right']:
 
 			depth_cam = 'depth_' + pos
 			depth_pos = cv2.cvtColor(input_data[depth_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)

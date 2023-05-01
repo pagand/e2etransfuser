@@ -94,7 +94,19 @@ class GlobalConfig:
 
     if low_data:
         random.seed(0)
-        val_data = random.sample(val_data,int(len(val_data)))
+#        val_data = random.sample(val_data,int(len(val_data)))
+        train_data = random.sample(train_data,int(0.2*len(train_data)))
+        val_data = random.sample(val_data,int(0.2*len(val_data)))
+
+
+    # #buat prediksi expert, test
+    # test_data = []
+    # test_weather = 'Run3_ClearNoon' #ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset, Run1_ClearNoon, Run2_ClearNoon, Run3_ClearNoon
+    # test_scenario = 'ADVERSARIAL' #NORMAL ADVERSARIAL
+    # expert_dir = '/media/aisl/data/XTRANSFUSER/EXPERIMENT_RUN/8T1W/EXPERT/'+test_scenario+'/'+test_weather  #8T1W 8T14W
+    # for town in val_towns: #test town = val town
+    #     test_data.append(os.path.join(expert_dir, 'Expert_w1')) #Expert Expert_w1
+
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset

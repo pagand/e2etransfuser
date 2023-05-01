@@ -200,3 +200,4 @@ data/
 #data0/
 
 /home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/leaderboard/scripts/run_evaluation2.sh
+/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/leaderboard/team_code/transfuser_pmlr_agent.py

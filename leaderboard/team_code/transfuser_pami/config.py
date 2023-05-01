@@ -18,8 +18,6 @@ class GlobalConfig:
     lidar_rot = [0.0, 0.0, -90.0] # Roll Pitch Yaw of LiDAR in degree
 
     camera_pos = [1.3, 0.0, 2.3] #x, y, z mounting position of the camera
-    camera_width = 960 # Camera width in pixel
-    camera_height = 480 # Camera height in pixel
     camera_fov = 120 #Camera FOV in degree
     camera_rot_0 = [0.0, 0.0, 0.0] # Roll Pitch Yaw of camera 0 in degree
     camera_rot_1 = [0.0, 0.0, -60.0] # Roll Pitch Yaw of camera 1 in degree
@@ -194,12 +192,24 @@ class GlobalConfig:
     speed_KI = 0.5
     speed_KD = 1.0
     speed_n = 20 # buffer size
+
     default_speed = 4.0 # Speed used when creeping
+
     max_throttle = 0.75 # upper limit on throttle signal value in dataset
     brake_speed = 0.4 # desired speed below which brake is triggered
     brake_ratio = 1.1 # ratio of speed to desired speed at which brake is triggered
     clip_delta = 0.25 # maximum change in speed input to logitudinal controller
     clip_throttle = 0.75 # Maximum throttle allowed by the controller
+
+    ## Added by Mohammad
+    fov = 120
+    camera_width = 960
+    camera_height = 480
+    img_width_cut = 320
+    input_resolution = [160,704]
+    coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  
+    img_width = 352
+    img_height = 160
 
     def __init__(self, root_dir='', setting='all', **kwargs):
         self.root_dir = root_dir

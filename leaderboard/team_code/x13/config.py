@@ -10,7 +10,7 @@ class GlobalConfig:
     #wandb_name = 'randomized_low_data'
 
     # TODO: correct the forward path in case of change
-    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+    kind =  'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
 
 #    model = 'speed_cmd(out1cvt)'  # run name
     model = 'x13_control_'  # run name

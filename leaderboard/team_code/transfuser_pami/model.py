@@ -2,13 +2,12 @@ from collections import deque
 import torch.nn.functional as F
 import cv2
 
-from utils import *
-from transfuser import TransfuserBackbone, SegDecoder, DepthDecoder
-from geometric_fusion import GeometricFusionBackbone
-from late_fusion import LateFusionBackbone
-from latentTF import latentTFBackbone
-from point_pillar import PointPillarNet
-import utils
+from .utils import *
+from .transfuser import TransfuserBackbone, SegDecoder, DepthDecoder
+from .geometric_fusion import GeometricFusionBackbone
+from .late_fusion import LateFusionBackbone
+from .latentTF import latentTFBackbone
+from .point_pillar import PointPillarNet
 
 from PIL import Image, ImageFont, ImageDraw
 from torchvision import models
@@ -28,6 +27,7 @@ from mmdet.models.utils.gaussian_target import (get_local_maximum, get_topk_from
 from mmdet.models.dense_heads.base_dense_head import BaseDenseHead
 from mmdet.models.dense_heads.dense_test_mixins import BBoxTestMixin
 
+from torchvision.utils import save_image
 
 @HEADS.register_module()
 class LidarCenterNetHead(BaseDenseHead, BBoxTestMixin):
@@ -682,6 +682,12 @@ class LidarCenterNet(nn.Module):
     
     def forward_ego(self, rgb, lidar_bev, target_point, target_point_image, ego_vel, bev_points=None, cam_points=None, save_path=None, expert_waypoints=None,
                     stuck_detector=0, forced_move=False, num_points=None, rgb_back=None, debug=False):
+
+        save_image('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/rgb.png' ,rgb)
+
+        print(type(rgb))
+        print(rgb.shape)
+        print(rgb.dtype)
         
         if(self.use_point_pillars == True):
             lidar_bev = self.point_pillar_net(lidar_bev, num_points)

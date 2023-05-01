@@ -56,8 +56,8 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 def BCEDice(Yp, Yt, smooth=1e-7):
-	Yp = Yp.reshape(-1)
-	Yt = Yt.reshape(-1)
+	Yp = Yp.view(-1)
+	Yt = Yt.view(-1)
 	bce = F.binary_cross_entropy(Yp, Yt, reduction='mean')
 	intersection = (Yp * Yt).sum() #irisan
 	dice_loss = 1 - ((2. * intersection + smooth) / (Yp.sum() + Yt.sum() + smooth))
@@ -112,8 +112,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_command = data['command'].to(device, dtype=torch.float)
 
 		#forward pass
-
-		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _, speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)#,seg_fronts
+		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _,speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)
 
 		if cur_epoch< config.cvt_freezed_epoch and list(model.named_parameters())[0][1].requires_grad: # freeze CVT
 			if list(model.named_parameters())[0][0][:3] != 'cvt' :
@@ -144,8 +143,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		loss_redl = F.l1_loss(red_light, gt_red_light)
 		loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
 		loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)
-		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl + params_lw[6]*loss_stops +params_lw[7]* loss_speed
-
+		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl + params_lw[6]*loss_stops +params_lw[7]* loss_speed		
 		optimizer.zero_grad()
 
 		if batch_ke == 0: #first batch, calculate the initial loss
@@ -158,18 +156,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			loss_redl_0 = torch.clone(loss_redl)
 			loss_stops_0 = torch.clone(loss_stops)
 			loss_speed_0 = torch.clone(loss_speed)
-
 		elif 0 < batch_ke < total_batch-1:
 			total_loss.backward() #no need to retain the graph
-
-			# if not loss_seg_0*loss_wp_0*loss_str_0*loss_thr_0*loss_brk_0*loss_redl_0*loss_stops_0:
-			# 	loss_seg_0 = torch.clone(loss_seg) if not loss_seg_0 else loss_seg_0
-			# 	loss_wp_0 = torch.clone(loss_wp) if not loss_wp_0 else loss_wp_0
-			# 	loss_str_0 = torch.clone(loss_str) if not loss_str_0 else loss_str_0
-			# 	loss_thr_0 = torch.clone(loss_thr) if not loss_thr_0 else loss_thr_0
-			# 	loss_brk_0 = torch.clone(loss_brk) if not loss_brk_0 else loss_brk_0
-			# 	loss_redl_0 = torch.clone(loss_redl) if not loss_redl_0 else loss_redl_0
-			# 	loss_stops_0 = torch.clone(loss_stops) if not loss_stops_0 else loss_stops_0
 
 		elif batch_ke == total_batch-1: #berarti batch terakhir, compute update loss weights
 			if config.MGN:
@@ -177,9 +165,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				total_loss.backward(retain_graph=True) # retain graph because the graph is still used for calculation
 				params = list(filter(lambda p: p.requires_grad, model.parameters()))
 				
-
-
-                                # in case of model freeze, we should change the bottleneck values
+                # in case of model freeze, we should change the bottleneck values
 				d = len(list(model.parameters()))-len(params)
 				if d: # we have freezed parameters in the front
 					G0, G1, G2, G3, G4, G5, G6 = None, None,None,None,None,None,None
@@ -269,7 +255,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 				total_loss.backward(retain_graph=True)
 				lgrad = 0
 				new_param_lw = 1
-			
 		optimizer.step() 
 
 		score['total_loss'].update(total_loss.item())
@@ -311,8 +296,6 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 	#return value
 	return postfix, new_param_lw, lgrad
 
-
-#FUNGSI VALIDATION
 def validate(data_loader, model, config, writer, cur_epoch, device):
 	score = {'total_loss': AverageMeter(),
 			'ss_loss': AverageMeter(),
@@ -321,7 +304,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			'thr_loss': AverageMeter(),
 			'brk_loss': AverageMeter(),
 			'redl_loss': AverageMeter(),
-			'stops_loss': AverageMeter(),
+                        'stops_loss': AverageMeter(),
 			'speed_loss': AverageMeter()}
 			
 	model.eval()
@@ -349,7 +332,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			gt_command = data['command'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _, speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)#, seg_fronts)
+			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _,speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)
@@ -402,12 +385,12 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 	#return value
 	return postfix
 
-
 #MAIN FUNCTION
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		wandb.init(project=config.wandb_name ,  entity="marslab", name = config.model)
+		#wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
+		wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
@@ -431,7 +414,9 @@ def main():
 		drop_last = True 
 	else: 
 		drop_last = False
-
+	
+#	train_data_size = int(config.low_data_rate*180000)
+#	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=180000, size=(train_data_size,)),train_data_size))
 
 	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
 	#dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=5*config.random_data_len, size=(config.random_data_len,)),config.random_data_len))
@@ -456,7 +441,7 @@ def main():
 		stop_count = int(log_trainval['stop_counter'][-1:])
 		model.load_state_dict(torch.load(os.path.join(config.logdir, 'recent_model.pth')))
 		optima.load_state_dict(torch.load(os.path.join(config.logdir, 'recent_optim.pth')))
-		latest_lw = [float(log_trainval['lw_ss'][-1:]), float(log_trainval['lw_wp'][-1:]), float(log_trainval['lw_str'][-1:]), float(log_trainval['lw_thr'][-1:]), float(log_trainval['lw_brk'][-1:]), float(log_trainval['lw_redl'][-1:]), float(log_trainval['lw_stops'][-1:]),  float(log_trainval['lw_speed'][-1:])]
+		latest_lw = [float(log_trainval['lw_ss'][-1:]), float(log_trainval['lw_wp'][-1:]), float(log_trainval['lw_str'][-1:]), float(log_trainval['lw_thr'][-1:]), float(log_trainval['lw_brk'][-1:]), float(log_trainval['lw_redl'][-1:]),float(log_trainval['lw_stops'][-1:]), float(log_trainval['lw_speed'][-1:])]
 		params_lw = [torch.cuda.FloatTensor([latest_lw[i]]).clone().detach().requires_grad_(True) for i in range(len(latest_lw))]
 		optima_lw = optim.SGD(params_lw, lr=float(log_trainval['lrate'][-1:]))
 		config.logdir += "/retrain"
@@ -474,7 +459,7 @@ def main():
 			('val_thr_loss', []),
 			('val_brk_loss', []),
 			('val_redl_loss', []),
-			('val_stops_loss', []),
+                        ('val_stops_loss', []),
 			('val_speed_loss', []),
 			('train_loss', []), 
 			('train_ss_loss', []),
@@ -515,7 +500,7 @@ def main():
 			curr_lw = config.loss_weights
 			lws = config.loss_weights
 			print("current loss weights: ", config.loss_weights)
-		print("current lr untuk training: ", optima.param_groups[0]['lr'])
+		print("current lr for training: ", optima.param_groups[0]['lr'])
 
 		#training validation
 		start_time = time.time() 
@@ -525,8 +510,8 @@ def main():
 			optima_lw.param_groups[0]['params'] = renormalize_params_lw(new_params_lw, config) #have to be cloned so that they are completely separated
 			print("total loss gradient: "+str(lgrad))
 		scheduler.step(val_log['v_total_l']) #the reference parameter to reduce LR is val_total_metric
-		optima_lw.param_groups[0]['lr'] = optima.param_groups[0]['lr'] #update lr disamakan
-		elapsed_time = time.time() - start_time #hitung elapsedtime
+		optima_lw.param_groups[0]['lr'] = optima.param_groups[0]['lr'] #update lr 
+		elapsed_time = time.time() - start_time #calc elapsedtime
 
 		log['epoch'].append(epoch)
 		log['lrate'].append(optima.param_groups[0]['lr'])
@@ -561,7 +546,7 @@ def main():
 		print('| t_total_l: %.4f | t_ss_l: %.4f | t_wp_l: %.4f | t_str_l: %.4f | t_thr_l: %.4f | t_brk_l: %.4f | t_redl_l: %.4f | t_stops_l: %.4f | t_speed_l: %.4f |' % (train_log['t_total_l'], train_log['t_ss_l'], train_log['t_wp_l'], train_log['t_str_l'], train_log['t_thr_l'], train_log['t_brk_l'], train_log['t_redl_l'], train_log['t_stops_l'], train_log['t_speed_l']))
 		print('| v_total_l: %.4f | v_ss_l: %.4f | v_wp_l: %.4f | v_str_l: %.4f | v_thr_l: %.4f | v_brk_l: %.4f | v_redl_l: %.4f | v_stops_l: %.4f | v_speed_l: %.4f |' % (val_log['v_total_l'], val_log['v_ss_l'], val_log['v_wp_l'], val_log['v_str_l'], val_log['v_thr_l'], val_log['v_brk_l'], val_log['v_redl_l'], val_log['v_stops_l'], val_log['v_speed_l']))
 		print('elapsed time: %.4f sec' % (elapsed_time))
-		
+
 		#save recent model
 		torch.save(model.state_dict(), os.path.join(config.logdir, 'recent_model.pth'))
 		torch.save(optima.state_dict(), os.path.join(config.logdir, 'recent_optim.pth'))

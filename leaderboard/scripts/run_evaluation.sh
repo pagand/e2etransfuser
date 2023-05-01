@@ -15,18 +15,18 @@ export DEBUG_CHALLENGE=0
 export REPETITIONS=1 
 export RESUME=True
 
-
 export WEATHER=ClearNoon # ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset
-export MODEL=x13 #x13 transfuser geometric_fusion late_fusion aim cilrs s13 x13
-export CONTROL_OPTION=one_of #160 one_of both_must pid_only mlp_only, control option is only for s13 and x13 
-export SAVE_PATH=data/ADVERSARIAL/${WEATHER}_short/${MODEL}-${CONTROL_OPTION} # ADVERSARIAL NORMAL
-export ROUTES=leaderboard/data/all_routes/routes_town05_short.xml # _long look at leaderboard/data/all_routes
-export SCENARIOS=leaderboard/data/scenarios/town05_all_scenarios.json #look at leaderboard/data/scenarios town05_all_scenarios OR no_scenarios.json
-# export SCENARIOS=leaderboard/data/scenarios/no_scenarios.json
-export PORT=2002 # same as the carla server port
-export TM_PORT=2052 # port for traffic manager, required when spawning multiple servers/clients
+export MODEL=x13 #transfuser geometric_fusion late_fusion aim cilrs s13 x13
+export CONTROL_OPTION=one_of #one_of both_must pid_only mlp_only, control option is only for s13 and x13 
+export SAVE_PATH=data/NORMAL/${WEATHER}/${MODEL}-${CONTROL_OPTION} # ADVERSARIAL NORMAL
+export ROUTES=leaderboard/data/all_routes/routes_town05_short.xml #look at leaderboard/data/all_routes
+#export SCENARIOS=leaderboard/data/scenarios/town05_all_scenarios.json #look at leaderboard/data/scenarios town05_all_scenarios OR no_scenarios.json
+export SCENARIOS=leaderboard/data/scenarios/no_scenarios.json
+export PORT=2000 # same as the carla server port
+export TM_PORT=2050 # port for traffic manager, required when spawning multiple servers/clients
 #export TEAM_CONFIG=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/log/testmin_cvt_v2/retrain
-export TEAM_CONFIG=${MODEL}/log/x13_v4_min_cvt #alldata_solar  #_160 checkpoint for transfuser
+#export TEAM_CONFIG=/home/mohammad/Desktop/models/main
+export TEAM_CONFIG=${MODEL}/log/alldata_solar_160 #_160 checkpoint for transfuser
 export CHECKPOINT_ENDPOINT=${SAVE_PATH}/eval_result.json # results file
 export TEAM_AGENT=leaderboard/team_code/${MODEL}_agent.py
 
@@ -44,4 +44,3 @@ python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --port=${PORT} \
 --trafficManagerPort=${TM_PORT} \
 --weather=${WEATHER} #buat ganti2 weather
-

@@ -634,7 +634,7 @@ class x13(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #buat semantic cloud
         #top_view_sc = self.gen_top_view_sc(depth_f, ss_f ) # ss_f gt_ss ,rgb_f
-        #bagian downsampling
+        #bagan downsampling
         SC_features0 = self.SC_encoder.features[0](top_view_sc)
         SC_features1 = self.SC_encoder.features[1](SC_features0)
         SC_features2 = self.SC_encoder.features[2](SC_features1)
@@ -686,8 +686,6 @@ class x13(nn.Module): #
         # predict delta wp
         out_wp = list()
 
-
-
         for _ in range(self.config.pred_len):
             # ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
             # ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1)], dim=1) # x
@@ -702,7 +700,6 @@ class x13(nn.Module): #
         #control decoder
         control_pred = self.controller(hx+tls_bias)
 
-        
         ins = torch.cat([control_pred, next_route], dim=1) # control v4
         # ins = control_pred# control v2
 
@@ -977,5 +974,3 @@ class x13(nn.Module): #
             'next_point': None, #akan direplace di fungsi agent
         }
         return steer, throttle, brake, metadata
-
-

@@ -407,18 +407,18 @@ class x13(nn.Module): #
         self.SC_encoder.apply(kaiming_init)
         #------------------------------------------------------------------------------------------------
         #feature fusion
-        # self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
-        #     nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
-        #     nn.AdaptiveAvgPool2d(1),
-        #     nn.Flatten(),
-        #     nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
-        # )
         self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
             nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0]-config.n_fmap_b3[3][0]) #control v2 -config.n_fmap_b3[3][0]
+            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
         )
+        #self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
+        #    nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+        #    nn.AdaptiveAvgPool2d(1),
+        #    nn.Flatten(),
+        #    nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0]-config.n_fmap_b3[3][0]) #control v2 -config.n_fmap_b3[3][0]
+        #)
         #------------------------------------------------------------------------------------------------
         if config.attn:
             embed_dim_q = self.config.fusion_embed_dim_q

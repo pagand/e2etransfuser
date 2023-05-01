@@ -1,5 +1,6 @@
 #!/bin/bash
-export CARLA_ROOT=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/carla
+#export CARLA_ROOT=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/carla
+export CARLA_ROOT=/localhome/pagand/projects/e2etransfuser/carla/
 export CARLA_SERVER=${CARLA_ROOT}/CarlaUE4.sh
 export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI
 export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI/carla
@@ -16,12 +17,12 @@ export RESUME=True
 
 
 export WEATHER=ClearNoon # ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset
-export SAVE_PATH=data0/NORMAL/${WEATHER}/Expert # ADVERSARIAL NORMAL
+export SAVE_PATH=data/NORMAL/${WEATHER}/Expert # ADVERSARIAL NORMAL
 export ROUTES=leaderboard/data/all_routes/routes_town05_long.xml #lihat di /leaderboard/data/all_routes
-export SCENARIOS=leaderboard/data/scenarios/town05_all_scenarios.json #look at leaderboard/data/scenarios town05_all_scenarios OR no_scenarios.json
+#export SCENARIOS=leaderboard/data/scenarios/town05_all_scenarios.json #look at leaderboard/data/scenarios town05_all_scenarios OR no_scenarios.json
 export SCENARIOS=leaderboard/data/scenarios/no_scenarios.json
 export PORT=2002 # same as the carla server port
-export TM_PORT=2056 # port for traffic manager, required when spawning multiple servers/clients
+export TM_PORT=2052 # port for traffic manager, required when spawning multiple servers/clients
 export CHECKPOINT_ENDPOINT=${SAVE_PATH}/eval_result.json # results file
 export TEAM_AGENT=leaderboard/team_code/expert.py
 

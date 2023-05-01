@@ -12,10 +12,6 @@ class GlobalConfig:
 
     kind = 'min_cvt' #'min_cvt' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
-    n_class = 23
-    
-    batch_size = 40 #20
-    total_epoch = 50
     
     low_data = True
     low_data_rate = 1

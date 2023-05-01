@@ -17,9 +17,10 @@ export RESUME=True
 
 
 export WEATHER=ClearNoon # ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset
-export SAVE_PATH=data/NORMAL/${WEATHER}/Expert # ADVERSARIAL NORMAL
-export ROUTES=leaderboard/data/all_routes/routes_town05_long.xml #lihat di /leaderboard/data/all_routes
-export SCENARIOS=leaderboard/data/scenarios/no_scenarios.json #look at leaderboard/data/scenarios town05_all_scenarios.json OR no_scenarios.json
+export SAVE_PATH=data/ADVERSARIAL/${WEATHER}_short/Expert # ADVERSARIAL NORMAL 
+export ROUTES=leaderboard/data/all_routes/routes_town05_short.xml #_long lihat di /leaderboard/data/all_routes
+# export SCENARIOS=leaderboard/data/scenarios/no_scenarios.json #look at leaderboard/data/scenarios town05_all_scenarios.json OR no_scenarios.json
+export SCENARIOS=leaderboard/data/scenarios/town05_all_scenarios.json #look at leaderboard/data/scenarios town05_all_scenarios.json OR no_scenarios.json
 export PORT=2000 # same as the carla server port
 export TM_PORT=2050 # port for traffic manager, required when spawning multiple servers/clients
 export CHECKPOINT_ENDPOINT=${SAVE_PATH}/eval_result.json # results file

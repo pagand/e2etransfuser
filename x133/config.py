@@ -11,7 +11,7 @@ class GlobalConfig:
     wandb_name = 'baselines'
 
     n_class = 23
-    batch_size = 40 #20
+    batch_size = 1 #20
     
 
     # MGN parameter
@@ -70,7 +70,7 @@ class GlobalConfig:
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
-    input_resolution = [160,160] # PMLR dataset #768
+    input_resolution = [160,768] # PMLR dataset #768
     # input_resolution = [160,160] # PMLR dataset #512
     # coverage_area = 64
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64

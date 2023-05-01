@@ -86,7 +86,7 @@ class GlobalConfig:
 
 
     # input_resolution = 256
-    input_resolution = [160,160] #  [160,160] for only one camera [160,768] for 3
+    input_resolution = [160,768] #  [160,160] for only one camera [160,768] for 3
 
 
     scale = 1 # image pre-processing

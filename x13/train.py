@@ -389,7 +389,8 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
+		#wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
+		wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
@@ -414,11 +415,10 @@ def main():
 	else: 
 		drop_last = False
 	
-	train_data_size = int(config.low_data_rate*180000)
-	
-	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=180000, size=(train_data_size,)),train_data_size))
+#	train_data_size = int(config.low_data_rate*180000)
+#	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=180000, size=(train_data_size,)),train_data_size))
 
-#	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
+	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
 	#dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=5*config.random_data_len, size=(config.random_data_len,)),config.random_data_len))
 
 	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
@@ -441,7 +441,7 @@ def main():
 		stop_count = int(log_trainval['stop_counter'][-1:])
 		model.load_state_dict(torch.load(os.path.join(config.logdir, 'recent_model.pth')))
 		optima.load_state_dict(torch.load(os.path.join(config.logdir, 'recent_optim.pth')))
-		latest_lw = [float(log_trainval['lw_ss'][-1:]), float(log_trainval['lw_wp'][-1:]), float(log_trainval['lw_str'][-1:]), float(log_trainval['lw_thr'][-1:]), float(log_trainval['lw_brk'][-1:]), float(log_trainval['lw_redl'][-1:])]
+		latest_lw = [float(log_trainval['lw_ss'][-1:]), float(log_trainval['lw_wp'][-1:]), float(log_trainval['lw_str'][-1:]), float(log_trainval['lw_thr'][-1:]), float(log_trainval['lw_brk'][-1:]), float(log_trainval['lw_redl'][-1:]),float(log_trainval['lw_stops'][-1:]), float(log_trainval['lw_speed'][-1:])]
 		params_lw = [torch.cuda.FloatTensor([latest_lw[i]]).clone().detach().requires_grad_(True) for i in range(len(latest_lw))]
 		optima_lw = optim.SGD(params_lw, lr=float(log_trainval['lrate'][-1:]))
 		config.logdir += "/retrain"

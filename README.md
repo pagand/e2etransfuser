@@ -185,7 +185,7 @@ This repository hevealy depends on the following repos:
 
 - End-to-end driving with Semantic Depth Cloud [Github](https://github.com/oskarnatan/end-to-end-driving)
 
-- DATA from PAMI 2022 paper [TransFuser: Imitation with Transformer-Based Sensor Fusion for Autonomous Driving](https://arxiv.org/abs/2205.15997)
+- DATA from TransFuser PAMI 2022  [paper](https://arxiv.org/abs/2205.15997)
 
 - Transfuser CVPR 2021 Github [cvpr2021](https://github.com/autonomousvision/transfuser/tree/cvpr2021) branch.
 

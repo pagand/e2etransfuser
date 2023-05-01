@@ -2,18 +2,32 @@ import os
 import random
 
 class GlobalConfig:
-    num_worker = 0# for debugging 0
-    wandb = False
+    num_worker = 4# for debugging 0
     gpu_id = '0'
-    model = 'April26_main_total'
-    wandb_name = model 
-    logdir = 'log/'+model
-    model = 'randomized_low_data' # for wandb
+    wandb = False
+    low_data = True
+    wandb_name = 'x13_small_data'
+    #wandb_name = 'randomized_low_data'
 
-    kind = 'min_cvt' #'min_cvt' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+    # TODO: correct the forward path in case of change
+    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+
+#    model = 'speed_cmd(out1cvt)'  # run name
+    model = 'x13_control_'  # run name
+
+    model += kind+'_v2'
+    logdir = 'log/'+model #+'_w1' for 1 weather only
+	
+#     num_worker = 0# for debugging 0
+#     wandb = False
+#     gpu_id = '0'
+#     model = 'April26_main_total'
+#     wandb_name = model 
+#     logdir = 'log/'+model
+#     model = 'randomized_low_data' # for wandb
+#     kind = 'min_cvt' #'min_cvt' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
     
-    low_data = True
     low_data_rate = 1
 
     if kind == 'cvt_cnn':
@@ -30,7 +44,7 @@ class GlobalConfig:
     batch_size = 20 #20
     total_epoch = 20 #30
 
-    random_data_len = int(180000 *1) #int(188660 * 0.2 ) 
+    random_data_len = int(188660 *1) #int(188660 * 0.2 ) 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
@@ -51,8 +65,6 @@ class GlobalConfig:
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
-
-
     # MGN parameter
     MGN = True
     loss_weights = [1, 1, 1, 1, 1, 1, 0, 1]
@@ -63,8 +75,8 @@ class GlobalConfig:
     pred_len = 3 # future waypoints predicted
 
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
-    # root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
+    root_dir = '/localhome/pagand/projects/e2etransfuser/data'  # for the CVPR dataset
+    #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
     train_data, val_data = [], []
 
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'

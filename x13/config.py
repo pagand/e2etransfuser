@@ -3,9 +3,9 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = False
+    wandb = True
     gpu_id = '0'
-    model = 'April26_main_total'
+    model = 'May04_main_LR_warmup_test'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -14,7 +14,7 @@ class GlobalConfig:
     init_stop_counter = 15
     
     low_data = True
-    low_data_rate = 1
+    low_data_rate = 0.001
 
     if kind == 'cvt_cnn':
         bottleneck = [350, 695, 350]
@@ -28,9 +28,9 @@ class GlobalConfig:
 
     n_class = 23
     batch_size = 20 #20
-    total_epoch = 20 #30
+    total_epoch = 30 #30
 
-    random_data_len = int(180000 *1) #int(188660 * 0.2 ) 
+    random_data_len = int(188660 *low_data_rate) #int(188660 * 0.2 ) 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
@@ -51,8 +51,6 @@ class GlobalConfig:
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
-
-
     # MGN parameter
     MGN = True
     loss_weights = [1, 1, 1, 1, 1, 1, 0, 1]
@@ -91,9 +89,8 @@ class GlobalConfig:
     if low_data:
         random.seed(0)
 #        val_data = random.sample(val_data,int(len(val_data)))
-        train_data = random.sample(train_data,int(0.2*len(train_data)))
-        val_data = random.sample(val_data,int(0.2*len(val_data)))
-
+#        train_data = random.sample(train_data,int(0.2*len(train_data)))
+        val_data = random.sample(val_data,int(len(val_data)))
 
     # #buat prediksi expert, test
     # test_data = []
@@ -125,6 +122,7 @@ class GlobalConfig:
     # crop = 256 # image pre-processing # CVPR dataset
     crop = 160 # image pre-processing # CVPR dataset
     lr = 1e-4 # learning rate AdamW
+    lr_warmup_epoch = 5
     weight_decay = 1e-3
 
     # Controller
@@ -139,7 +137,6 @@ class GlobalConfig:
     # _t2w1 : [0.9998899102211, 1.0000467300415, 0.999997615814209, 1.00002729892731]
     cw_pid = [lws[0]/(lws[0]+lws[1]), lws[0]/(lws[0]+lws[2]), lws[0]/(lws[0]+lws[3])] #str, thrt, brk
     cw_mlp = [1-cw_pid[0], 1-cw_pid[1], 1-cw_pid[2]] #str, thrt, brk
-
 
     turn_KP = 1.25
     turn_KI = 0.75
@@ -170,7 +167,6 @@ class GlobalConfig:
                             'Bridge', 'RailTrack', 'GuardRail', 'TrafficLight', 'Static',
                             'Dynamic', 'Water', 'Terrain']
     }
-
     
     ## fusion settings
     attn = False

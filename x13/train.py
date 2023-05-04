@@ -414,13 +414,8 @@ def main():
 	else: 
 		drop_last = False
 	
-	train_data_size = int(config.low_data_rate*180000)
-	
-	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=180000, size=(train_data_size,)),train_data_size))
-
 #	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
-	#dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=5*config.random_data_len, size=(config.random_data_len,)),config.random_data_len))
-
+	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=188660, size=(config.random_data_len,)),config.random_data_len))
 	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 	
 	if not os.path.exists(config.logdir+"/trainval_log.csv"):
@@ -459,7 +454,7 @@ def main():
 			('val_thr_loss', []),
 			('val_brk_loss', []),
 			('val_redl_loss', []),
-                        ('val_stops_loss', []),
+            ('val_stops_loss', []),
 			('val_speed_loss', []),
 			('train_loss', []), 
 			('train_ss_loss', []),
@@ -490,6 +485,12 @@ def main():
 
 	epoch = curr_ep
 	while epoch<=config.total_epoch:
+
+		if epoch < config.lr_warmup_epoch+1:
+			lr = epoch*config.lr/config.lr_warmup_epoch
+			optima.param_groups[0]['lr'] = lr
+
+
 		print("Epoch: {:05d}------------------------------------------------".format(epoch))
 		if config.MGN:
 			curr_lw = optima_lw.param_groups[0]['params']
@@ -503,7 +504,7 @@ def main():
 		print("current lr for training: ", optima.param_groups[0]['lr'])
 
 		#training validation
-		start_time = time.time() 
+		start_time = time.time()
 		train_log, new_params_lw, lgrad = train(dataloader_train, model, config, writer, epoch, device, optima, curr_lw, optima_lw)
 		val_log = validate(dataloader_val, model, config, writer, epoch, device)
 		if config.MGN:

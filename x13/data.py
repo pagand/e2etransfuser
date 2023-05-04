@@ -37,7 +37,6 @@ class CARLA_Data(Dataset):
         for sub_root in root:
             preload_file = os.path.join(sub_root, 'x13_rgb_dep_vel_nxr_ctrl_ts_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
           
-
             # dump to npy if no preload
             if not os.path.exists(preload_file):
                 preload_front = []

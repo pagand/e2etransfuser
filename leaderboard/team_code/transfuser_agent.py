@@ -13,9 +13,9 @@ import numpy as np
 from PIL import Image
 
 from leaderboard.autoagents import autonomous_agent
-from transfuser.model import LidarCenterNet
+from transfuser.model import TransFuser
 from transfuser.config import GlobalConfig
-from transfuser.data import scale_and_crop_image, lidar_to_histogram_features, transform_2d_points, draw_target_point, lidar_bev_cam_correspondences
+from transfuser.data import scale_and_crop_image, lidar_to_histogram_features, transform_2d_points
 from team_code.planner import RoutePlanner
 
 import math
@@ -41,12 +41,7 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 							'rgb_rear': deque(), 'lidar': deque(), 'gps': deque(), 'thetas': deque()}
 
 		self.config = GlobalConfig()
-		self.backbone = 'transFuser'
-		image_architecture = 'regnety_032'
-		lidar_architecture = 'regnety_032'
-		use_velocity = 0
-		self.net = LidarCenterNet(self.config, 'cuda', self.backbone, image_architecture, lidar_architecture, use_velocity)
-		print(self.net)
+		self.net = TransFuser(self.config, 'cuda')
 		self.net.load_state_dict(torch.load(os.path.join(path_to_conf_file, 'best_model.pth')))
 		self.net.cuda()
 		self.net.eval()
@@ -78,7 +73,7 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 		gps = (gps - self._route_planner.mean) * self._route_planner.scale
 
 		return gps
-
+	
 	def scale_crop(self, image, scale=1, start_x=0, crop_x=None, start_y=0, crop_y=None):
 		(width, height) = (image.width // scale, image.height // scale)
 		if scale != 1:
@@ -91,12 +86,12 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 		image = np.asarray(image)
 		cropped_image = image[start_y:start_y+crop_y, start_x:start_x+crop_x]
 		return cropped_image
-		
-		
+	
+
 	def sensors(self):
 		return [
-		
-				{
+
+			{
 					'type': 'sensor.camera.rgb',
                     'x': 1.3, 'y': 0.0, 'z':2.3,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
@@ -104,7 +99,7 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 					'id': 'rgb_front'
 					},
 				{
-			 		'type': 'sensor.camera.rgb',
+			 	'type': 'sensor.camera.rgb',
 				 	'x': 1.3, 'y': 0.0, 'z': 2.3,
 				 	'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
 				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
@@ -116,20 +111,41 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 				 	'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
 				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 				 	'id': 'rgb_right'
-				 	},						
-				{
-					'type': 'sensor.camera.rgb',
-					'x': -1.3, 'y': 0.0, 'z':2.3,
-					'roll': 0.0, 'pitch': 0.0, 'yaw': -180.0,
-					'width': 400, 'height': 300, 'fov': 100,
-					'id': 'rgb_rear'
-					},
-				{   
-				    'type': 'sensor.lidar.ray_cast',
-				    'x': 1.3, 'y': 0.0, 'z': 2.5,
-				    'roll': 0.0, 'pitch': 0.0, 'yaw': -90.0,
-				    'id': 'lidar'
-				    },
+				 	},
+				# {
+				# 	'type': 'sensor.camera.rgb',
+				# 	'x': 1.3, 'y': 0.0, 'z':2.3,
+				# 	'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
+				# 	'width': 400, 'height': 300, 'fov': 100,
+				# 	'id': 'rgb'
+				# 	},
+				# {
+				# 	'type': 'sensor.camera.rgb',
+				# 	'x': 1.3, 'y': 0.0, 'z':2.3,
+				# 	'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
+				# 	'width': 400, 'height': 300, 'fov': 100,
+				# 	'id': 'rgb_left'
+				# 	},
+				# {
+				# 	'type': 'sensor.camera.rgb',
+				# 	'x': 1.3, 'y': 0.0, 'z':2.3,
+				# 	'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
+				# 	'width': 400, 'height': 300, 'fov': 100,
+				# 	'id': 'rgb_right'
+				# 	},
+				# {
+				# 	'type': 'sensor.camera.rgb',
+				# 	'x': -1.3, 'y': 0.0, 'z':2.3,
+				# 	'roll': 0.0, 'pitch': 0.0, 'yaw': -180.0,
+				# 	'width': 400, 'height': 300, 'fov': 100,
+				# 	'id': 'rgb_rear'
+				# 	},
+                {   
+                    'type': 'sensor.lidar.ray_cast',
+                    'x': 1.3, 'y': 0.0, 'z': 2.5,
+                    'roll': 0.0, 'pitch': 0.0, 'yaw': -90.0,
+                    'id': 'lidar'
+                    },
 				{
 					'type': 'sensor.other.imu',
 					'x': 0.0, 'y': 0.0, 'z': 0.0,
@@ -152,17 +168,17 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 				]
 
 	def tick(self, input_data):
-
 		self.step += 1
 		rgb = []
-		for pos in ['left', 'front', 'right']:
+		for pos in ['left','front','right']:  # only 'front'  for 1 image,  [ 'left','front','right'] for 3 images
 			rgb_cam = 'rgb_' + pos
 			rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
-			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
+			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_resolution[1], self.config.img_resolution[1], self.config.img_resolution[0], self.config.img_resolution[0])
 			rgb.append(rgb_pos)
 		rgb = np.concatenate(rgb, axis=1)
-		
-#		rgb = cv2.cvtColor(input_data['rgb_front'][1][:, :, :3], cv2.COLOR_BGR2RGB)
+	
+
+#		rgb = cv2.cvtColor(input_data['rgb'][1][:, :, :3], cv2.COLOR_BGR2RGB)
 #		rgb_left = cv2.cvtColor(input_data['rgb_left'][1][:, :, :3], cv2.COLOR_BGR2RGB)
 #		rgb_right = cv2.cvtColor(input_data['rgb_right'][1][:, :, :3], cv2.COLOR_BGR2RGB)
 #		rgb_rear = cv2.cvtColor(input_data['rgb_rear'][1][:, :, :3], cv2.COLOR_BGR2RGB)
@@ -174,11 +190,14 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 		lidar = input_data['lidar'][1][:, :3]
 
 		result = {
-				'rgb': rgb, # rgb
+				'rgb': rgb,
+				# 'rgb_left': rgb_left,
+				# 'rgb_right': rgb_right,
+				# 'rgb_rear': rgb_rear,
+				'lidar': lidar,
 				'gps': gps,
 				'speed': speed,
 				'compass': compass,
-				'lidar':lidar,
 				}
 		
 		pos = self._get_position(result)
@@ -204,22 +223,20 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 			self._init()
 
 		tick_data = self.tick(input_data)
-
 		if self.step < self.config.seq_len:
-			#rgb = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb']), crop=self.config.input_resolution)).unsqueeze(0)
 			rgb = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb']), crop=self.config.input_resolution)).unsqueeze(0)
 			self.input_buffer['rgb'].append(rgb.to('cuda', dtype=torch.float32))
 			
-		#	if not self.config.ignore_sides:
-		#		rgb_left = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_left']), crop=self.config.input_resolution)).unsqueeze(0)
-		#		self.input_buffer['rgb_left'].append(rgb_left.to('cuda', dtype=torch.float32))
-		#		
-		#		rgb_right = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_right']), crop=self.config.input_resolution)).unsqueeze(0)
-		#		self.input_buffer['rgb_right'].append(rgb_right.to('cuda', dtype=torch.float32))
+			# if not self.config.ignore_sides:
+			# 	rgb_left = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_left']), crop=self.config.input_resolution)).unsqueeze(0)
+			# 	self.input_buffer['rgb_left'].append(rgb_left.to('cuda', dtype=torch.float32))
+				
+			# 	rgb_right = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_right']), crop=self.config.input_resolution)).unsqueeze(0)
+			# 	self.input_buffer['rgb_right'].append(rgb_right.to('cuda', dtype=torch.float32))
 
-		#	if not self.config.ignore_rear:
-		#		rgb_rear = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_rear']), crop=self.config.input_resolution)).unsqueeze(0)
-		#		self.input_buffer['rgb_rear'].append(rgb_rear.to('cuda', dtype=torch.float32))
+			# if not self.config.ignore_rear:
+			# 	rgb_rear = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_rear']), crop=self.config.input_resolution)).unsqueeze(0)
+			# 	self.input_buffer['rgb_rear'].append(rgb_rear.to('cuda', dtype=torch.float32))
 
 			self.input_buffer['lidar'].append(tick_data['lidar'])
 			self.input_buffer['gps'].append(tick_data['gps'])
@@ -231,7 +248,7 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 			control.brake = 0.0
 			
 			return control
-
+		
 		gt_velocity = torch.FloatTensor([tick_data['speed']]).to('cuda', dtype=torch.float32)
 		command = torch.FloatTensor([tick_data['next_command']]).to('cuda', dtype=torch.float32)
 
@@ -243,23 +260,21 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 		rgb = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb']), crop=self.config.input_resolution)).unsqueeze(0)
 		self.input_buffer['rgb'].popleft()
 		self.input_buffer['rgb'].append(rgb.to('cuda', dtype=torch.float32))
-
-		"""
-		if not self.config.ignore_sides:
-			rgb_left = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_left']), crop=self.config.input_resolution)).unsqueeze(0)
-			self.input_buffer['rgb_left'].popleft()
-			self.input_buffer['rgb_left'].append(rgb_left.to('cuda', dtype=torch.float32))
-			
-			rgb_right = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_right']), crop=self.config.input_resolution)).unsqueeze(0)
-			self.input_buffer['rgb_right'].popleft()
-			self.input_buffer['rgb_right'].append(rgb_right.to('cuda', dtype=torch.float32))
-
-		if not self.config.ignore_rear:
-			rgb_rear = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_rear']), crop=self.config.input_resolution)).unsqueeze(0)
-			self.input_buffer['rgb_rear'].popleft()
-			self.input_buffer['rgb_rear'].append(rgb_rear.to('cuda', dtype=torch.float32))
-		"""
 		
+		# if not self.config.ignore_sides:
+		# 	rgb_left = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_left']), crop=self.config.input_resolution)).unsqueeze(0)
+		# 	self.input_buffer['rgb_left'].popleft()
+		# 	self.input_buffer['rgb_left'].append(rgb_left.to('cuda', dtype=torch.float32))
+			
+		# 	rgb_right = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_right']), crop=self.config.input_resolution)).unsqueeze(0)
+		# 	self.input_buffer['rgb_right'].popleft()
+		# 	self.input_buffer['rgb_right'].append(rgb_right.to('cuda', dtype=torch.float32))
+
+		# if not self.config.ignore_rear:
+		# 	rgb_rear = torch.from_numpy(scale_and_crop_image(Image.fromarray(tick_data['rgb_rear']), crop=self.config.input_resolution)).unsqueeze(0)
+		# 	self.input_buffer['rgb_rear'].popleft()
+		# 	self.input_buffer['rgb_rear'].append(rgb_rear.to('cuda', dtype=torch.float32))
+
 		self.input_buffer['lidar'].popleft()
 		self.input_buffer['lidar'].append(tick_data['lidar'])
 		self.input_buffer['gps'].popleft()
@@ -284,12 +299,11 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 				self.lidar_processed.append(lidar_transformed.to('cuda', dtype=torch.float32))
 
 
-#			self.pred_wp = self.net(self.input_buffer['rgb'] + self.input_buffer['rgb_left'] + \
-#							   self.input_buffer['rgb_right']+self.input_buffer['rgb_rear'], \
-#							   self.lidar_processed, target_point, gt_velocity)
-			self.pred_wp = self.net(self.input_buffer['rgb'] ,
+			#self.pred_wp = self.net(self.input_buffer['rgb'] + self.input_buffer['rgb_left'] + \
+			#				   self.input_buffer['rgb_right']+self.input_buffer['rgb_rear'], \
+			#				   self.lidar_processed, target_point, gt_velocity)
+			self.pred_wp = self.net(self.input_buffer['rgb'], 
 							   self.lidar_processed, target_point, gt_velocity)
-
 		steer, throttle, brake, metadata = self.net.control_pid(self.pred_wp, gt_velocity)
 		self.pid_metadata = metadata
 
@@ -321,4 +335,3 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 
 	def destroy(self):
 		del self.net
-

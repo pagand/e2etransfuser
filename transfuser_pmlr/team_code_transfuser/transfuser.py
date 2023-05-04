@@ -130,8 +130,6 @@ class TransfuserBackbone(nn.Module):
             image_tensor = image
 
         lidar_tensor = lidar
-        print("lidar shape is:")
-        print(lidar.shape)
 
         image_features = self.image_encoder.features.conv1(image_tensor)
         image_features = self.image_encoder.features.bn1(image_features)

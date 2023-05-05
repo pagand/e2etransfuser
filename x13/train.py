@@ -389,8 +389,8 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		#wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
-		wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
+		wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
+	#	wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 
@@ -405,7 +405,7 @@ def main():
 
 	#OPTIMIZER
 	optima = optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
-	scheduler = optim.lr_scheduler.ReduceLROnPlateau(optima, mode='min', factor=0.5, patience=3, min_lr=1e-6)
+	scheduler = optim.lr_scheduler.ReduceLROnPlateau(optima, mode='min', factor=0.5, patience=config.lr_patience, min_lr=1e-6)
 
 	#CREATE DATA BATCH
 	train_set = CARLA_Data(root=config.train_data, config=config)
@@ -416,7 +416,7 @@ def main():
 		drop_last = False
 	
 #	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
-	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=188660, size=(config.random_data_len,)),config.random_data_len))
+	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=184000, size=(config.random_data_len,)),config.random_data_len))
 	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 	
 	if not os.path.exists(config.logdir+"/trainval_log.csv"):

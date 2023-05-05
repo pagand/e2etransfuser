@@ -63,6 +63,7 @@ class GlobalConfig:
     # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     #root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
     root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
+    #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
     train_data, val_data = [], []
 
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'

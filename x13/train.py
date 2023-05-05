@@ -487,9 +487,9 @@ def main():
 	epoch = curr_ep
 	while epoch<=config.total_epoch:
 
-		if epoch < config.lr_warmup_epoch+1:
-			lr = epoch*config.lr/config.lr_warmup_epoch
-			optima.param_groups[0]['lr'] = lr
+#		if epoch < config.lr_warmup_epoch+1:
+#			lr = epoch*config.lr/config.lr_warmup_epoch
+#			optima.param_groups[0]['lr'] = lr
 
 
 		print("Epoch: {:05d}------------------------------------------------".format(epoch))

@@ -5,7 +5,7 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = True
     gpu_id = '0'
-    model = 'May04_main_LRW_5_total'
+    model = 'May05_main_Pat_2_total'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -125,7 +125,7 @@ class GlobalConfig:
     lr = 1e-4 # learning rate AdamW
     lr_warmup_epoch = 5
     weight_decay = 1e-3
-    lr_patience = 3
+    lr_patience = 2
 
     # Controller
     #control weights untuk PID dan MLP dari tuningan MGN

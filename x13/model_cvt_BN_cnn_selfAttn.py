@@ -606,8 +606,6 @@ class x13(nn.Module): #
         tls_bias = self.tls_biasing_bypass(RGB_features8)
         #------------------------------------------------------------------------------------------------
         #waypoint prediction
-        #get hidden state dari gabungan kedua bottleneck
-
 #        hx = self.necks_net(cat([RGB_features8, SC_features8], dim=1)) #RGB_features_sum+SC_features8 cat([RGB_features_sum, SC_features8], dim=1)
         # # for min_CVT version 2
         features_cat = self.BN_2d(cat([RGB_features8, SC_features5], dim=1))

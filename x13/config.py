@@ -5,7 +5,7 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = True
     gpu_id = '0'
-    model = 'May05_main_Pat_2_total'
+    model = 'May05_main_fusion_new_selfAttn_total'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -27,7 +27,7 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 40 #20
+    batch_size = 20 #20
     total_epoch = 35 #30
 
     random_data_len = int(184000 *low_data_rate) #int(188660 * 0.2 ) 
@@ -60,7 +60,6 @@ class GlobalConfig:
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     #root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
     root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
     #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
@@ -171,10 +170,10 @@ class GlobalConfig:
     }
     
     ## fusion settings
-    attn = False
+    attn = True
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]
-    fusion_depth = 4 #1
+    fusion_depth = 1 #1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4
     fusion_qkv = True

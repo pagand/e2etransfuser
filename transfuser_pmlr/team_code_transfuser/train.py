@@ -35,16 +35,15 @@ def main():
     parser.add_argument('--id', type=str, default='transfuser', help='Unique experiment identifier.')
     parser.add_argument('--epochs', type=int, default=41, help='Number of train epochs.')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate.')
-    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for one GPU. When training with multiple GPUs the effective batch size will be batch_size*num_gpus')
+    parser.add_argument('--batch_size', type=int, default=4, help='Batch size for one GPU. When training with multiple GPUs the effective batch size will be batch_size*num_gpus')
     parser.add_argument('--logdir', type=str, default='log_pmlr', help='Directory to log data to.')
     parser.add_argument('--load_file', type=str, default=None, help='ckpt to load.')
     parser.add_argument('--start_epoch', type=int, default=0, help='Epoch to start with. Useful when continuing trainings via load_file.')
-    parser.add_argument('--setting', type=str, default='all', help='What training setting to use. Options: '
+    parser.add_argument('--setting', type=str, default='05_withheld', help='What training setting to use. Options: '
                                                                    'all: Train on all towns no validation data. '
                                                                    '02_05_withheld: Do not train on Town 02 and Town 05. Use the data as validation data.')
 #    parser.add_argument('--root_dir', type=str, default=r'/localscratch/mmahdavi/transfuser/data', help='Root directory of your training data')
-    parser.add_argument('--root_dir', type=str, default=r'/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data', help='Root directory of your training data')
-
+    parser.add_argument('--root_dir', type=str, default=r'/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data2', help='Root directory of your training data')
     parser.add_argument('--schedule', type=int, default=1,
                         help='Whether to train with a learning rate schedule. 1 = True')
     parser.add_argument('--schedule_reduce_epoch_01', type=int, default=30,
@@ -69,13 +68,13 @@ def main():
     parser.add_argument('--parallel_training', type=int, default=0,
                         help='If this is true/1 you need to launch the train.py script with CUDA_VISIBLE_DEVICES=0,1 torchrun --nnodes=1 --nproc_per_node=2 --max_restarts=0 --rdzv_id=123456780 --rdzv_backend=c10d train.py '
                              ' the code will be parallelized across GPUs. If set to false/0, you launch the script with python train.py and only 1 GPU will be used.')
-    parser.add_argument('--val_every', type=int, default=5, help='At which epoch frequency to validate.')
+    parser.add_argument('--val_every', type=int, default=1, help='At which epoch frequency to validate.')
     parser.add_argument('--no_bev_loss', type=int, default=0, help='If set to true the BEV loss will not be trained. 0: Train normally, 1: set training weight for BEV to 0')
     parser.add_argument('--sync_batch_norm', type=int, default=0, help='0: Compute batch norm for each GPU independently, 1: Synchronize Batch norms accross GPUs. Only use with --parallel_training 1')
     parser.add_argument('--zero_redundancy_optimizer', type=int, default=0, help='0: Normal AdamW Optimizer, 1: Use Zero Reduncdancy Optimizer to reduce memory footprint. Only use with --parallel_training 1')
     parser.add_argument('--use_disk_cache', type=int, default=0, help='0: Do not cache the dataset 1: Cache the dataset on the disk pointed to by the SCRATCH enironment variable. Useful if the dataset is stored on slow HDDs and can be temporarily stored on faster SSD storage.')
 
-    parser.add_argument('--wandb', action="store_true", default=False, help='True to log to wandb otherwise False')
+    parser.add_argument('--wandb', action="store_true", default=True, help='True to log to wandb otherwise False')
     parser.add_argument('--gpu_id', type=int, default=0, help='The GPU number to use')
 
     args = parser.parse_args()

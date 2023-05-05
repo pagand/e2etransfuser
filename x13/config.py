@@ -3,9 +3,9 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = True
+    wandb = False
     gpu_id = '0'
-    model = 'May04_main_LR_warmup_test'
+    model = 'May05_main_fusion_test'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -14,7 +14,7 @@ class GlobalConfig:
     init_stop_counter = 15
     
     low_data = True
-    low_data_rate = 0.001
+    low_data_rate = 0.2
 
     if kind == 'cvt_cnn':
         bottleneck = [350, 695, 350]
@@ -27,7 +27,7 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 20 #20
+    batch_size = 4 #20
     total_epoch = 30 #30
 
     random_data_len = int(188660 *low_data_rate) #int(188660 * 0.2 ) 
@@ -169,10 +169,10 @@ class GlobalConfig:
     }
     
     ## fusion settings
-    attn = False
+    attn = True
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]
-    fusion_depth = 4 #1
+    fusion_depth = 1 #1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4
     fusion_qkv = True

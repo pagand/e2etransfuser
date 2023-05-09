@@ -195,12 +195,12 @@ class GlobalConfig:
     turn_KP = 1.25
     turn_KI = 0.75
     turn_KD = 0.3
-    turn_n = 20 # buffer size
+    turn_n = 40 # buffer size
 
     speed_KP = 5.0
     speed_KI = 0.5
     speed_KD = 1.0
-    speed_n = 20 # buffer size
+    speed_n = 40 # buffer size
     default_speed = 4.0 # Speed used when creeping
     max_throttle = 0.75 # upper limit on throttle signal value in dataset
     brake_speed = 0.4 # desired speed below which brake is triggered

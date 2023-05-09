@@ -5,7 +5,7 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = True
     gpu_id = '0'
-    model = 'May05_main_biggerGru_total'
+    model = 'May05_selfAttn_biggerGru_similar2Main_total'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -27,7 +27,7 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 20 #20
+    batch_size = 40 #20
     total_epoch = 35 #30
 
     random_data_len = int(184000 *low_data_rate) #int(188660 * 0.2 ) 

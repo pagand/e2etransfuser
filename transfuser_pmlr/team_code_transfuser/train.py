@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=41, help='Number of train epochs.')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate.')
     parser.add_argument('--batch_size', type=int, default=64, help='Batch size for one GPU. When training with multiple GPUs the effective batch size will be batch_size*num_gpus')
-    parser.add_argument('--logdir', type=str, default='log_pmlr', help='Directory to log data to.')
+    parser.add_argument('--logdir', type=str, default='log_pmlr2', help='Directory to log data to.')
     parser.add_argument('--load_file', type=str, default=None, help='ckpt to load.')
     parser.add_argument('--start_epoch', type=int, default=0, help='Epoch to start with. Useful when continuing trainings via load_file.')
     parser.add_argument('--setting', type=str, default='05_withheld', help='What training setting to use. Options: '

@@ -35,15 +35,15 @@ def main():
     parser.add_argument('--id', type=str, default='transfuser', help='Unique experiment identifier.')
     parser.add_argument('--epochs', type=int, default=41, help='Number of train epochs.')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate.')
-    parser.add_argument('--batch_size', type=int, default=2, help='Batch size for one GPU. When training with multiple GPUs the effective batch size will be batch_size*num_gpus')
-    parser.add_argument('--logdir', type=str, default='log_pmlr', help='Directory to log data to.')
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for one GPU. When training with multiple GPUs the effective batch size will be batch_size*num_gpus')
+    parser.add_argument('--logdir', type=str, default='log_pmlr2', help='Directory to log data to.')
     parser.add_argument('--load_file', type=str, default=None, help='ckpt to load.')
     parser.add_argument('--start_epoch', type=int, default=0, help='Epoch to start with. Useful when continuing trainings via load_file.')
     parser.add_argument('--setting', type=str, default='05_withheld', help='What training setting to use. Options: '
                                                                    'all: Train on all towns no validation data. '
                                                                    '02_05_withheld: Do not train on Town 02 and Town 05. Use the data as validation data.')
-#    parser.add_argument('--root_dir', type=str, default=r'/localscratch/mmahdavi/transfuser/data', help='Root directory of your training data')
-    parser.add_argument('--root_dir', type=str, default=r'/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data2', help='Root directory of your training data')
+    parser.add_argument('--root_dir', type=str, default=r'/localscratch/mmahdavi/transfuser/data', help='Root directory of your training data')
+    #parser.add_argument('--root_dir', type=str, default=r'/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data', help='Root directory of your training data')
     parser.add_argument('--schedule', type=int, default=1,
                         help='Whether to train with a learning rate schedule. 1 = True')
     parser.add_argument('--schedule_reduce_epoch_01', type=int, default=30,

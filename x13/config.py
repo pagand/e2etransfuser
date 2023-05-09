@@ -3,9 +3,9 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = False
+    wandb = True
     gpu_id = '0'
-    model = 'May05_main_biggerGru_total'
+    model = 'May05_selfAttn_biggerGru_similar2Main_total'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -27,10 +27,10 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 2 #20
-    total_epoch = 30 #30
+    batch_size = 40 #20
+    total_epoch = 35 #30
 
-    random_data_len = int(188660 *low_data_rate) #int(188660 * 0.2 ) 
+    random_data_len = int(184000 *low_data_rate) #int(188660 * 0.2 ) 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
@@ -60,9 +60,9 @@ class GlobalConfig:
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     #root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
+    root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
+    #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
     train_data, val_data = [], []
 
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'
@@ -124,6 +124,7 @@ class GlobalConfig:
     lr = 1e-4 # learning rate AdamW
     lr_warmup_epoch = 5
     weight_decay = 1e-3
+    lr_patience = 2
 
     # Controller
     #control weights untuk PID dan MLP dari tuningan MGN

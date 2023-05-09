@@ -375,7 +375,7 @@ class x13(nn.Module): #
         self.tls_biasing_bypass = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]),
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][1]+config.n_fmap_b3[3][0]),
             nn.Sigmoid()
         )
         # self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
@@ -417,7 +417,7 @@ class x13(nn.Module): #
             nn.Conv2d(config.n_fmap_b3[4][-1]+config.n_fmap_b1[4][-1], config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0]-config.n_fmap_b3[3][0]) #control v2 -config.n_fmap_b3[3][0]
+            nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][1]) #control v2 -config.n_fmap_b3[3][0]
         )
         #------------------------------------------------------------------------------------------------
         if config.attn:
@@ -464,12 +464,12 @@ class x13(nn.Module): #
 							nn.Linear(config.n_fmap_b1[-1][-1], config.n_fmap_b3[3][0]),
 							nn.ReLU(inplace=True),
 						)
-        self.gru_control = nn.GRUCell(input_size=3+2, hidden_size=config.n_fmap_b3[4][0]) #control version2 +0  ,  control v4 +2
+        self.gru_control = nn.GRUCell(input_size=3+2, hidden_size=config.n_fmap_b3[4][1]+config.n_fmap_b3[3][0]) #control version2 +0  ,  control v4 +2
         self.pred_control = nn.Sequential(
             # nn.Linear(2*config.n_fmap_b3[4][0], 3), #v1
             # nn.Sigmoid()
 
-            nn.Linear(2*config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]), #v2
+            nn.Linear(2*config.n_fmap_b3[4][1]+2*config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]), #v2
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.Sigmoid()
 
@@ -482,8 +482,8 @@ class x13(nn.Module): #
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
         # self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
         # self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
-        self.gru = nn.GRUCell(input_size=5-1, hidden_size=config.n_fmap_b3[4][0])
-        self.pred_dwp = nn.Linear(2*config.n_fmap_b3[4][0], 2) #control v4
+        self.gru = nn.GRUCell(input_size=5-1, hidden_size=config.n_fmap_b3[4][1]+config.n_fmap_b3[3][0])
+        self.pred_dwp = nn.Linear(2*config.n_fmap_b3[4][1]+2*config.n_fmap_b3[3][0], 2) #control v4
         #PID Controller
         self.turn_controller = PIDController(K_P=config.turn_KP, K_I=config.turn_KI, K_D=config.turn_KD, n=config.turn_n)
         self.speed_controller = PIDController(K_P=config.speed_KP, K_I=config.speed_KI, K_D=config.speed_KD, n=config.speed_n)
@@ -496,7 +496,7 @@ class x13(nn.Module): #
         #     nn.ReLU()
         # )
         self.controller = nn.Sequential(
-            nn.Linear(config.n_fmap_b3[4][0], config.n_fmap_b3[3][-1]),
+            nn.Linear(config.n_fmap_b3[4][1]+config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]),
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
         )

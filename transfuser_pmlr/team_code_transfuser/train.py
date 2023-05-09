@@ -74,7 +74,7 @@ def main():
     parser.add_argument('--zero_redundancy_optimizer', type=int, default=0, help='0: Normal AdamW Optimizer, 1: Use Zero Reduncdancy Optimizer to reduce memory footprint. Only use with --parallel_training 1')
     parser.add_argument('--use_disk_cache', type=int, default=0, help='0: Do not cache the dataset 1: Cache the dataset on the disk pointed to by the SCRATCH enironment variable. Useful if the dataset is stored on slow HDDs and can be temporarily stored on faster SSD storage.')
 
-    parser.add_argument('--wandb', action="store_true", default=True, help='True to log to wandb otherwise False')
+    parser.add_argument('--wandb', action="store_true", default=False, help='True to log to wandb otherwise False')
     parser.add_argument('--gpu_id', type=int, default=0, help='The GPU number to use')
 
     args = parser.parse_args()
@@ -335,7 +335,6 @@ class Engine(object):
             loss_epoch += float(loss.item())
 
         self.log_losses(loss_epoch, detailed_losses_epoch, num_batches, '')
-        
 
 
     @torch.inference_mode() # Faster version of torch_no_grad

@@ -378,7 +378,12 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             safety_box      = safety_box[safety_box[..., 0] > self.config.safety_box_x_min]
             safety_box      = safety_box[safety_box[..., 0] < self.config.safety_box_x_max]
 
+        print(self.pred_wp)
+
         steer, throttle, brake = self.nets[0].control_pid(self.pred_wp, gt_velocity, is_stuck)
+        print(steer)
+        print(throttle)
+        print(brake)
         
         if is_stuck and self.forced_move==1: # no steer for initial frame when unblocking
             steer = 0.0

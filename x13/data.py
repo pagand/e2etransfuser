@@ -66,6 +66,9 @@ class CARLA_Data(Dataset):
                 #     scn_files = os.listdir(routep)
                 #     scenarios = [folder for folder in scn_files if not os.path.isfile(os.path.join(routep,folder))]
 
+                print("scenarios are:")
+                print(scenarios)
+
                 for scenario in scenarios:
 
                     scenario_dir = os.path.join(sub_root, scenario)

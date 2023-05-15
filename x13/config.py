@@ -100,7 +100,7 @@ class GlobalConfig:
         random.seed(0)
         train_data = random.sample(train_data,int(0.02*len(train_data)))
         val_data = random.sample(val_data,int(0.2*len(val_data)))
-        val_data = random.sample(val_data,int(len(val_data)))
+        #val_data = random.sample(val_data,int(len(val_data)))
 
     # #buat prediksi expert, test
     # test_data = []

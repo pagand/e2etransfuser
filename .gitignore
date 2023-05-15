@@ -5,8 +5,8 @@ aim/log/*
 cilrs/log/*
 x13/log/*
 s13/log/*
-./data/*
-#./data0/*
+#./data/*
+./data0/*
 cvt0/*
 carla/*
 *.pyc
@@ -196,8 +196,8 @@ cython_debug/
 
 results/
 model_ckpt/
-data/
-#data0/
+#data/
+data0/
 
 /home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/leaderboard/scripts/run_evaluation2.sh
 /home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/leaderboard/team_code/transfuser_pmlr_agent.py

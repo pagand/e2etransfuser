@@ -3,7 +3,7 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = True
+    wandb = False
     gpu_id = '0'
     model = 'May10_Main_big_gru1_total'
     wandb_name = model 
@@ -30,7 +30,7 @@ class GlobalConfig:
     batch_size = 40 #20
     total_epoch = 35 #30
 
-    random_data_len = int(184000 *low_data_rate) #int(188660 * 0.2 ) 
+    random_data_len = int(280000 *low_data_rate) #int(188660 * 0.2 ) 
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
@@ -60,8 +60,8 @@ class GlobalConfig:
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    #root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
-    root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
+    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
+    #root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
     #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
     train_data, val_data = [], []
 
@@ -91,6 +91,8 @@ class GlobalConfig:
 #        val_data = random.sample(val_data,int(len(val_data)))
 #        train_data = random.sample(train_data,int(0.2*len(train_data)))
         val_data = random.sample(val_data,int(len(val_data)))
+        train_data = random.sample(train_data,int(0.02*len(train_data)))
+        val_data = random.sample(val_data,int(0.2*len(val_data)))
 
     # #buat prediksi expert, test
     # test_data = []
@@ -122,7 +124,6 @@ class GlobalConfig:
     # crop = 256 # image pre-processing # CVPR dataset
     crop = 160 # image pre-processing # CVPR dataset
     lr = 1e-4 # learning rate AdamW
-    lr_warmup_epoch = 5
     weight_decay = 1e-3
     lr_patience = 3
 

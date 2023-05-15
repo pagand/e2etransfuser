@@ -474,7 +474,6 @@ class x13(nn.Module): #
         self.pred_control = nn.Sequential(
             # nn.Linear(2*config.n_fmap_b3[4][0], 3), #v1
             # nn.Sigmoid()
-
             nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]), #v2
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.Sigmoid()
@@ -679,7 +678,7 @@ class x13(nn.Module): #
 #        hx = torch.cat([hx, measurement_feature], dim=1) 
 #        fuse = hx.clone()#NEW
 
-        # control v1
+        # control v3
         measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
         fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
         features_cat = rearrange(fuse , 'b c h w-> b (h w) c')

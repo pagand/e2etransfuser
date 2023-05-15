@@ -1,22 +1,8 @@
-# e2etransfuser: Effiecient End-to-end Learning using Transformer to Fuser Infromation in Autonmous Driving 
+# LeTFuser: Light-weight End-to-end Transformer-Based Sensor Fusion for Autonomous Driving with Multi-Task Learning
 
 
 <img src="transfuser_pmlr/figures/demo.gif">
 
-This repository hevealy depends on the following repos:
-
-- The code for the PAMI 2022 paper [TransFuser: Imitation with Transformer-Based Sensor Fusion for Autonomous Driving](https://arxiv.org/abs/2205.15997)
-
-- CVPR 2021 paper [Multi-Modal Fusion Transformer for End-to-End Autonomous Driving](https://arxiv.org/abs/2104.09224). The code for the CVPR 2021 paper is available in the [cvpr2021](https://github.com/autonomousvision/transfuser/tree/cvpr2021) branch.
-
-- End-to-end driving [End-to-end Autonomous Driving with Semantic Depth Cloud Mapping and Multi-agent](https://github.com/oskarnatan/end-to-end-driving)
-
-
-
-Also, check out the code for other recent work on CARLA from our group:
-
-- Temporal transformer fuser [TempoFuser](https://github.com/pagand/Tempofuser)
-- Autonomous navigation with RL using transformer [AN](https://github.com/pagand/autonomous-navigation)
 
 ## Contents
 
@@ -191,6 +177,19 @@ Once the CARLA server is running, evaluate an agent with the script:
 By editing the arguments in `local_evaluation.sh`, we can benchmark performance on the Longest6 routes. You can evaluate both privileged agents (such as [autopilot.py]) and sensor-based models. To evaluate the sensor-based models use [submission_agent.py](./team_code_transfuser/submission_agent.py) as the `TEAM_AGENT` and point to the folder you downloaded the model weights into for the `TEAM_CONFIG`. The code is automatically configured to use the correct method based on the args.txt file in the model folder.
 
 You can look at qualitative examples of the expected driving behavior of TransFuser on the Longest6 routes [here](https://www.youtube.com/watch?v=DZS-U3-iV0s&list=PL6LvknlY2HlQG3YQ2nMIx7WcnyzgK9meO).
+
+
+## Credits
+
+This repository hevealy depends on the following repos:
+
+- End-to-end driving with Semantic Depth Cloud [Github](https://github.com/oskarnatan/end-to-end-driving)
+
+- DATA from TransFuser PAMI 2022  [paper](https://arxiv.org/abs/2205.15997)
+
+- Transfuser CVPR 2021 Github [cvpr2021](https://github.com/autonomousvision/transfuser/tree/cvpr2021) branch.
+
+- TCP NeurIPS 2022  [Github](https://github.com/OpenPerceptionX/TCP)
 
 
 

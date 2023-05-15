@@ -25,7 +25,7 @@ export SCENARIOS=leaderboard/data/scenarios/no_scenarios.json
 export PORT=2000 # same as the carla server port
 export TM_PORT=2050 # port for traffic manager, required when spawning multiple servers/clients
 #export TEAM_CONFIG=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/log/testmin_cvt_v2/retrain
-export TEAM_CONFIG=/home/mohammad/Desktop/models/transfuser_PAMI_new
+export TEAM_CONFIG=/home/mohammad/Desktop/models/transfuser_PAMI
 export CHECKPOINT_ENDPOINT=${SAVE_PATH}/eval_result.json # results file
 export TEAM_AGENT=leaderboard/team_code/${MODEL}_agent.py
 

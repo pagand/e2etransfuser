@@ -5,7 +5,7 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = False
     gpu_id = '0'
-    model = 'May10_Main_big_gru1_total'
+    model = 'May15_test_total'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
@@ -48,6 +48,9 @@ class GlobalConfig:
         # # version 2
         n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,112]] 
         n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]]  
+    elif kind == 'new':
+        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]]
+        n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]]
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
@@ -60,9 +63,9 @@ class GlobalConfig:
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
+    #root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
     #root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
-    #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
+    root_dir = '/localscratch/mmahdavi/transfuser/data'#'/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
     train_data, val_data = [], []
 
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'
@@ -91,8 +94,8 @@ class GlobalConfig:
 #        val_data = random.sample(val_data,int(len(val_data)))
 #        train_data = random.sample(train_data,int(0.2*len(train_data)))
         val_data = random.sample(val_data,int(len(val_data)))
-        train_data = random.sample(train_data,int(0.02*len(train_data)))
-        val_data = random.sample(val_data,int(0.2*len(val_data)))
+#        train_data = random.sample(train_data,int(0.02*len(train_data)))
+#        val_data = random.sample(val_data,int(0.2*len(val_data)))
 
     # #buat prediksi expert, test
     # test_data = []

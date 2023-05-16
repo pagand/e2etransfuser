@@ -5,8 +5,8 @@ aim/log/*
 cilrs/log/*
 x13/log/*
 s13/log/*
-./data/*
-#./data1/*
+#./data/*
+./data1/*
 cvt0/*
 carla/*
 *.pyc
@@ -19,7 +19,6 @@ x13/wandb
 transfuser_cvpr/
 transfuser_pmlr/data/
 transfuser_pmlr/data0/
-transfuser_pmlr/data00/
 transfuser_pmlr/log/
 transfuser_pmlr/results/
 

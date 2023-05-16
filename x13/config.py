@@ -2,29 +2,26 @@ import os
 import random
 
 class GlobalConfig:
-    num_worker = 4# for debugging 0
+    num_worker = 0# for debugging 0
     wandb = False
     gpu_id = '0'
     low_data = True
 	
+    # wandb_name = 'x13_small_data'
+    # kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+    # model = 'x13_control_' # run name
+    # model += kind+'_v2'
+    # logdir = 'log/'+model #+'_w1' for 1 weather only
 	
-    wandb_name = 'x13_small_data'
-    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    model = 'x13_control_' # run name
-    model += kind+'_v2'
-    logdir = 'log/'+model #+'_w1' for 1 weather only
 	
-	
-#     model = 'May10_Main_big_gru1_total'
-#     wandb_name = model 
-#     logdir = 'log/'+model
-#     model = 'randomized_low_data' # for wandb
-#     kind = 'min_cvt' #'min_cvt' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+    model = 'May16_Main_total'
+    wandb_name = model 
+    logdir = 'log/'+model
+    model = 'randomized_low_data' # for wandb
+    kind = 'min_cvt' #'min_cvt' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
 
-	
     low_data_rate = 1
-
     if kind == 'cvt_cnn':
         bottleneck = [350, 695, 350]
     elif kind == 'min_cvt':
@@ -98,9 +95,9 @@ class GlobalConfig:
 
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.02*len(train_data)))
-        val_data = random.sample(val_data,int(0.2*len(val_data)))
-        #val_data = random.sample(val_data,int(len(val_data)))
+#        train_data = random.sample(train_data,int(0.02*len(train_data)))
+#        val_data = random.sample(val_data,int(0.2*len(val_data)))
+        val_data = random.sample(val_data,int(len(val_data)))
 
     # #buat prediksi expert, test
     # test_data = []

@@ -305,12 +305,12 @@ class Fusion_Block(nn.Module):
         )
 
     def forward(self, features, h, w):
-        res = features
+#        res = features
 
         x = self.norm1(features)
         attn = self.attn(x, x, h, w)
-        x = res + self.drop_path(attn)
-        x = x + self.drop_path(self.mlp(self.norm3(x)))
+#        x = res + self.drop_path(attn)
+#        x = x + self.drop_path(self.mlp(self.norm3(x)))
 
         return x
     

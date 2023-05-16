@@ -6,19 +6,21 @@ class GlobalConfig:
     wandb = False
     gpu_id = '0'
     low_data = True
-	
+    model = 'May16_Main_total'
+    wandb_name = model 
+    logdir = 'log/'+model
+    model = 'randomized_low_data' # for wandb
+    kind = 'min_cvt' #'min_cvt' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+
+
+
     # wandb_name = 'x13_small_data'
     # kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     # model = 'x13_control_' # run name
     # model += kind+'_v2'
     # logdir = 'log/'+model #+'_w1' for 1 weather only
 	
-	
-    model = 'May16_Main_total'
-    wandb_name = model 
-    logdir = 'log/'+model
-    model = 'randomized_low_data' # for wandb
-    kind = 'min_cvt' #'min_cvt' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
+
     init_stop_counter = 15
 
     low_data_rate = 1
@@ -67,9 +69,9 @@ class GlobalConfig:
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
+    #root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
     #root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
-    #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
+    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data2' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
     train_data, val_data = [], []
 
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'

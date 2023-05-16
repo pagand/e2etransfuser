@@ -90,7 +90,7 @@ class DataAgent(AutoPilot):
             result += [
                     {
                         'type': 'sensor.camera.rgb',
-                        'x': 1.3, 'y': 0.0, 'z':2.3,#1.8
+                        'x': 1.3, 'y': 0.0, 'z':1.8,#2.3
                         'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
                         'width': self.cam_config['width'], 'height': self.cam_config['height'], 'fov': self.cam_config['fov'],
                         'id': 'rgb_front'

@@ -5,22 +5,12 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = False
     gpu_id = '0'
+    model = 'May16_main_total'
     low_data = True
-    model = 'May16_Main_total'
     wandb_name = model 
     logdir = 'log/'+model
     model = 'randomized_low_data' # for wandb
-    kind = 'min_cvt' #'min_cvt' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-
-
-
-    # wandb_name = 'x13_small_data'
-    # kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    # model = 'x13_control_' # run name
-    # model += kind+'_v2'
-    # logdir = 'log/'+model #+'_w1' for 1 weather only
-	
-
+    kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
 
     low_data_rate = 1
@@ -35,10 +25,10 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 40 #20
+    batch_size = 4 #20
     total_epoch = 35 #30
 
-    random_data_len = int(188660 *low_data_rate) #int(280000 * 0.2 ) 
+    random_data_len = int(100 *low_data_rate) #int(280000 * 0.2 ) 
 	
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
@@ -57,6 +47,9 @@ class GlobalConfig:
         # # version 2
         n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,112]] 
         n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]]  
+    elif kind == 'new':
+        n_fmap_b1 = [[32,16], [24], [40], [80,112], [192,320,1280]]
+        n_fmap_b3 = [[32,24], [64], [192], [96,1536, 384], [232,384,384]]
     else:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     

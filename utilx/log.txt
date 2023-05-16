@@ -1,0 +1,36 @@
+
+DEBUG:asyncio:Using selector: EpollSelector
+INFO:root:Number of incomplete files: 0
+INFO:root:Incompleted folders: []
+INFO:root:TOTAL elapsed time 124.74425435066223
+
+
+DEBUG:asyncio:Using selector: EpollSelector
+INFO:root:Number of incomplete files: 1
+INFO:root:Incompleted folders: ['non-straight-junction-Scen4_Town03_junction_route142_11_24_14_53_55']
+INFO:root:TOTAL elapsed time 212.89635300636292
+
+
+
+DEBUG:asyncio:Using selector: EpollSelector
+INFO:root:Number of incomplete files: 0
+INFO:root:Incompleted folders: []
+INFO:root:TOTAL elapsed time 178.21264362335205
+
+
+
+DEBUG:asyncio:Using selector: EpollSelector
+INFO:root:Number of incomplete files: 0
+INFO:root:Incompleted folders: []
+INFO:root:TOTAL elapsed time 221.99779963493347
+
+
+
+
+
+
+
+DEBUG:asyncio:Using selector: EpollSelector
+INFO:root:Number of incomplete files: 0
+INFO:root:Incompleted folders: []
+INFO:root:TOTAL elapsed time 160.5304753780365

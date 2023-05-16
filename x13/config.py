@@ -3,9 +3,9 @@ import random
 
 class GlobalConfig:
     num_worker = 0# for debugging 0
-    wandb = False
+    wandb = True
     gpu_id = '0'
-    model = 'May15_test_total'
+    model = 'May16_main_total'
     low_data = True
 	
     wandb_name = model 

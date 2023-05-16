@@ -17,7 +17,7 @@ class GlobalConfig:
     lidar_pos = [1.3,0.0,2.5] # x, y, z mounting position of the LiDAR
     lidar_rot = [0.0, 0.0, -90.0] # Roll Pitch Yaw of LiDAR in degree
 
-    camera_pos = [1.3, 0.0, 1.8] #x, y, z mounting position of the camera
+    camera_pos = [1.3, 0.0, 1.8] # 2.3 x, y, z mounting position of the camera
     camera_width = 960 # Camera width in pixel
     camera_height = 480 # Camera height in pixel
     camera_fov = 120 #Camera FOV in degree

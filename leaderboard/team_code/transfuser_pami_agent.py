@@ -96,8 +96,8 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
                 if(self.config.sync_batch_norm == True):
                     net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(net) # Model was trained with Sync. Batch Norm. Need to convert it otherwise parameters will load incorrectly.
                 state_dict = torch.load(os.path.join(path_to_conf_file, file), map_location='cuda:0')
-                state_dict = {k[7:]: v for k, v in state_dict.items()} # Removes the .module coming from the Distributed Training. Remove this if you want to evaluate a model trained without DDP.
-                net.load_state_dict(state_dict, strict=False)
+#                state_dict = {k[7:]: v for k, v in state_dict.items()} # Removes the .module coming from the Distributed Training. Remove this if you want to evaluate a model trained without DDP.
+                net.load_state_dict(state_dict, strict=True)
                 net.cuda()
                 net.eval()
                 self.nets.append(net)
@@ -116,7 +116,6 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
                 string = pathlib.Path(os.environ['ROUTES']).stem + '_'
                 string += '_'.join(map(lambda x: '%02d' % x, (now.month, now.day, now.hour, now.minute, now.second)))
 
-                print (string)
 
                 self.save_path = pathlib.Path(os.environ['SAVE_PATH']) / string
                 self.save_path.mkdir(parents=True, exist_ok=False)
@@ -377,6 +376,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
             # x-axis
             safety_box      = safety_box[safety_box[..., 0] > self.config.safety_box_x_min]
             safety_box      = safety_box[safety_box[..., 0] < self.config.safety_box_x_max]
+
 
         steer, throttle, brake = self.nets[0].control_pid(self.pred_wp, gt_velocity, is_stuck)
         

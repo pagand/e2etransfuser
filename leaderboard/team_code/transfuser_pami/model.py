@@ -683,12 +683,6 @@ class LidarCenterNet(nn.Module):
     def forward_ego(self, rgb, lidar_bev, target_point, target_point_image, ego_vel, bev_points=None, cam_points=None, save_path=None, expert_waypoints=None,
                     stuck_detector=0, forced_move=False, num_points=None, rgb_back=None, debug=False):
 
-        save_image('/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/rgb.png' ,rgb)
-
-        print(type(rgb))
-        print(rgb.shape)
-        print(rgb.dtype)
-        
         if(self.use_point_pillars == True):
             lidar_bev = self.point_pillar_net(lidar_bev, num_points)
             lidar_bev = torch.rot90(lidar_bev, -1, dims=(2, 3)) #For consitency this is also done in voxelization
@@ -706,6 +700,7 @@ class LidarCenterNet(nn.Module):
             features, image_features_grid, fused_features = self._model(rgb, lidar_bev, ego_vel)
         else:
             raise ("The chosen vision backbone does not exist. The options are: transFuser, late_fusion, geometric_fusion, latentTF")
+            
 
         pred_wp, _, _, _, _ = self.forward_gru(fused_features, target_point)
 
@@ -757,8 +752,9 @@ class LidarCenterNet(nn.Module):
             raise ("The chosen vision backbone does not exist. The options are: transFuser, late_fusion, geometric_fusion, latentTF")
 
 
-        pred_wp, _, _, _, _ = self.forward_gru(fused_features, target_point)
 
+        pred_wp, _, _, _, _ = self.forward_gru(fused_features, target_point)
+        
         # pred topdown view
         pred_bev = self.pred_bev(features[0])
         pred_bev = F.interpolate(pred_bev, (self.config.bev_resolution_height, self.config.bev_resolution_width), mode='bilinear', align_corners=True)

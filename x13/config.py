@@ -3,31 +3,26 @@ import random
 
 class GlobalConfig:
     num_worker = 4# for debugging 0
-    gpu_id = '0'
     wandb = False
+    gpu_id = '0'
     low_data = True
+	
+	
     wandb_name = 'x13_small_data'
-    #wandb_name = 'randomized_low_data'
-
-    # TODO: correct the forward path in case of change
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-
-#    model = 'speed_cmd(out1cvt)'  # run name
-    model = 'x13_control_'  # run name
-
+    model = 'x13_control_' # run name
     model += kind+'_v2'
     logdir = 'log/'+model #+'_w1' for 1 weather only
 	
-#     num_worker = 0# for debugging 0
-#     wandb = False
-#     gpu_id = '0'
-#     model = 'April26_main_total'
+	
+#     model = 'May10_Main_big_gru1_total'
 #     wandb_name = model 
 #     logdir = 'log/'+model
 #     model = 'randomized_low_data' # for wandb
 #     kind = 'min_cvt' #'min_cvt' #'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
-    
+
+	
     low_data_rate = 1
 
     if kind == 'cvt_cnn':
@@ -41,10 +36,11 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 20 #20
-    total_epoch = 20 #30
+    batch_size = 40 #20
+    total_epoch = 35 #30
 
-    random_data_len = int(188660 *1) #int(188660 * 0.2 ) 
+    random_data_len = int(188660 *low_data_rate) #int(280000 * 0.2 ) 
+	
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
     if kind == 'cvt_effnet' or kind == 'effnet':
@@ -74,8 +70,8 @@ class GlobalConfig:
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    # root_dir = '/home/aisl/OSKAR/Transfuser/transfuser_data/14_weathers_full_data'  #14_weathers_full_data OR clear_noon_full_data
     root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
+    #root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
     #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
     train_data, val_data = [], []
 
@@ -102,10 +98,9 @@ class GlobalConfig:
 
     if low_data:
         random.seed(0)
-#        val_data = random.sample(val_data,int(len(val_data)))
         train_data = random.sample(train_data,int(0.02*len(train_data)))
         val_data = random.sample(val_data,int(0.2*len(val_data)))
-
+        #val_data = random.sample(val_data,int(len(val_data)))
 
     # #buat prediksi expert, test
     # test_data = []
@@ -138,6 +133,7 @@ class GlobalConfig:
     crop = 160 # image pre-processing # CVPR dataset
     lr = 1e-4 # learning rate AdamW
     weight_decay = 1e-3
+    lr_patience = 3
 
     # Controller
     #control weights untuk PID dan MLP dari tuningan MGN
@@ -151,7 +147,6 @@ class GlobalConfig:
     # _t2w1 : [0.9998899102211, 1.0000467300415, 0.999997615814209, 1.00002729892731]
     cw_pid = [lws[0]/(lws[0]+lws[1]), lws[0]/(lws[0]+lws[2]), lws[0]/(lws[0]+lws[3])] #str, thrt, brk
     cw_mlp = [1-cw_pid[0], 1-cw_pid[1], 1-cw_pid[2]] #str, thrt, brk
-
 
     turn_KP = 1.25
     turn_KI = 0.75
@@ -182,13 +177,12 @@ class GlobalConfig:
                             'Bridge', 'RailTrack', 'GuardRail', 'TrafficLight', 'Static',
                             'Dynamic', 'Water', 'Terrain']
     }
-
     
     ## fusion settings
-    attn = False
+    attn = True
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]
-    fusion_depth = 4 #1
+    fusion_depth = 1 #1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4
     fusion_qkv = True

@@ -18,6 +18,15 @@ class GlobalConfig:
     lidar_rot = [0.0, 0.0, -90.0] # Roll Pitch Yaw of LiDAR in degree
 
     camera_pos = [1.3, 0.0, 2.3] #x, y, z mounting position of the camera
+    camera_width = 960 # Camera width in pixel
+    camera_height = 480 # Camera height in pixel
+    ## Added by Mohammad 
+    fov = 120
+    img_width_cut = 320
+    input_resolution = [160,704]
+    coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]
+    img_width = 352
+    img_height = 160
     camera_fov = 120 #Camera FOV in degree
     camera_rot_0 = [0.0, 0.0, 0.0] # Roll Pitch Yaw of camera 0 in degree
     camera_rot_1 = [0.0, 0.0, -60.0] # Roll Pitch Yaw of camera 1 in degree
@@ -131,7 +140,7 @@ class GlobalConfig:
 
     detailed_losses = ['loss_wp', 'loss_bev', 'loss_depth', 'loss_semantic', 'loss_center_heatmap', 'loss_wh',
                        'loss_offset', 'loss_yaw_class', 'loss_yaw_res', 'loss_velocity', 'loss_brake']
-    detailed_losses_weights = [1.0, 1.0, 1.0, 1.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0]
+    detailed_losses_weights = [1.0, 1.0, 1.0, 1.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2] # the lsat two were 0
 
     perception_output_features = 512 # Number of features outputted by the perception branch.
     bev_features_chanels = 64 # Number of channels for the BEV feature pyramid
@@ -186,30 +195,18 @@ class GlobalConfig:
     turn_KP = 1.25
     turn_KI = 0.75
     turn_KD = 0.3
-    turn_n = 20 # buffer size
+    turn_n = 40 # buffer size
 
     speed_KP = 5.0
     speed_KI = 0.5
     speed_KD = 1.0
-    speed_n = 20 # buffer size
-
+    speed_n = 40 # buffer size
     default_speed = 4.0 # Speed used when creeping
-
     max_throttle = 0.75 # upper limit on throttle signal value in dataset
     brake_speed = 0.4 # desired speed below which brake is triggered
     brake_ratio = 1.1 # ratio of speed to desired speed at which brake is triggered
     clip_delta = 0.25 # maximum change in speed input to logitudinal controller
     clip_throttle = 0.75 # Maximum throttle allowed by the controller
-
-    ## Added by Mohammad
-    fov = 120
-    camera_width = 960
-    camera_height = 480
-    img_width_cut = 320
-    input_resolution = [160,704]
-    coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  
-    img_width = 352
-    img_height = 160
 
     def __init__(self, root_dir='', setting='all', **kwargs):
         self.root_dir = root_dir
@@ -249,6 +246,28 @@ class GlobalConfig:
                     if not os.path.isfile(os.path.join(self.root_dir, file)):
                         print("Val Folder: ", file)
                         self.val_data.append(os.path.join(self.root_dir, town, file))
+        elif (setting == '05_withheld'): #Town02 and 05 withheld during training
+            print("Skip and Town05")
+            self.train_towns = os.listdir(self.root_dir) #Scenario Folders
+            self.val_towns = self.train_towns # Town 02 and 05 get selected automatically below
+            self.train_data, self.val_data = [], []
+            for town in self.train_towns:
+                root_files = os.listdir(os.path.join(self.root_dir, town)) #Town folders
+                for file in root_files:
+                    if ((file.find('Town05') != -1)):  #We don't train on 05 and 02 to reserve them as test towns
+                        continue
+                    if not os.path.isfile(os.path.join(self.root_dir, file)):
+                        print("Train Folder: ", file)
+                        self.train_data.append(os.path.join(self.root_dir, town, file))
+            for town in self.val_towns:
+                root_files = os.listdir(os.path.join(self.root_dir, town))
+                for file in root_files:
+                    if ( (file.find('Town05') == -1)): # Only use Town 02 and 05 for validation
+                        continue
+                    if not os.path.isfile(os.path.join(self.root_dir, file)):
+                        print("Val Folder: ", file)
+                        self.val_data.append(os.path.join(self.root_dir, town, file))
+
         elif (setting == 'eval'): #No training data needed during evaluation.
             pass
         else:

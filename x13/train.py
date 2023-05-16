@@ -389,7 +389,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		#wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
+	#	wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
 		wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
@@ -405,7 +405,7 @@ def main():
 
 	#OPTIMIZER
 	optima = optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
-	scheduler = optim.lr_scheduler.ReduceLROnPlateau(optima, mode='min', factor=0.5, patience=3, min_lr=1e-6)
+	scheduler = optim.lr_scheduler.ReduceLROnPlateau(optima, mode='min', factor=0.5, patience=config.lr_patience, min_lr=1e-6)
 
 	#CREATE DATA BATCH
 	train_set = CARLA_Data(root=config.train_data, config=config)
@@ -415,12 +415,8 @@ def main():
 	else: 
 		drop_last = False
 	
-#	train_data_size = int(config.low_data_rate*180000)
-#	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=180000, size=(train_data_size,)),train_data_size))
-
 	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last) 
-	#dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=5*config.random_data_len, size=(config.random_data_len,)),config.random_data_len))
-
+#	dataloader_train = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_worker, pin_memory=True, drop_last=drop_last,sampler=RandomSampler(torch.randint(high=280000, size=(config.random_data_len,)),config.random_data_len))
 	dataloader_val = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_worker, pin_memory=True)
 	
 	if not os.path.exists(config.logdir+"/trainval_log.csv"):
@@ -459,7 +455,7 @@ def main():
 			('val_thr_loss', []),
 			('val_brk_loss', []),
 			('val_redl_loss', []),
-                        ('val_stops_loss', []),
+            ('val_stops_loss', []),
 			('val_speed_loss', []),
 			('train_loss', []), 
 			('train_ss_loss', []),
@@ -503,7 +499,7 @@ def main():
 		print("current lr for training: ", optima.param_groups[0]['lr'])
 
 		#training validation
-		start_time = time.time() 
+		start_time = time.time()
 		train_log, new_params_lw, lgrad = train(dataloader_train, model, config, writer, epoch, device, optima, curr_lw, optima_lw)
 		val_log = validate(dataloader_val, model, config, writer, epoch, device)
 		if config.MGN:

@@ -3,15 +3,20 @@ import random
 
 class GlobalConfig:
     num_worker = 4# for debugging 0
-    wandb = False
     gpu_id = '0'
-    low_data = True
+
+    # Model variations
+    wandb = False
+    low_data = False
+    attn = True # comment model forward path TODO 1
+    augment_control_data = True  # comment model forward path TODO 2
+    MGN = True
 	
 	
     wandb_name = 'x13_small_data'
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    model = 'x13_control_' # run name
-    model += kind+'_v2'
+    model = 'Letfuser_control_attn_' # run name
+    model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 	
 	
@@ -36,8 +41,9 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 40 #20
+    batch_size = 20 #20
     total_epoch = 35 #30
+    
 
     random_data_len = int(188660 *low_data_rate) #int(280000 * 0.2 ) 
 	
@@ -62,7 +68,6 @@ class GlobalConfig:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
     # MGN parameter
-    MGN = True
     loss_weights = [1, 1, 1, 1, 1, 1, 0, 1]
     lw_alpha = 1.5
 
@@ -78,8 +83,8 @@ class GlobalConfig:
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD'] #HD
-    val_towns = ['Town05'] # 'Town05'
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD'] # ,'Town01long', 'Town02long', 'Town03long', 'Town04long', 'Town06long'
+    val_towns = ['Town05'] # 'Town05long'
 
     for dir in root_files:
         scn_files = os.listdir(os.path.join(root_dir,dir))
@@ -99,7 +104,7 @@ class GlobalConfig:
     if low_data:
         random.seed(0)
         train_data = random.sample(train_data,int(0.02*len(train_data)))
-        val_data = random.sample(val_data,int(0.2*len(val_data)))
+        val_data = random.sample(val_data,int(0.1*len(val_data)))
         #val_data = random.sample(val_data,int(len(val_data)))
 
     # #buat prediksi expert, test
@@ -179,7 +184,6 @@ class GlobalConfig:
     }
     
     ## fusion settings
-    attn = True
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]
     fusion_depth = 1 #1

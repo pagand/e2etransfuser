@@ -117,7 +117,7 @@ def main(root,seq_len,nt):
                     #outs.append(folder)
                     #prog_bar.set_postfix(sample)
                     prog_bar.update(1)
-            time.sleep(len(samples)/7)
+            time.sleep(20*len(samples)/7)
     prog_bar.close()     
     return ins#list(set(ins)-set(outs))
     
@@ -128,8 +128,8 @@ def main(root,seq_len,nt):
 if __name__ == '__main__':
     logging.basicConfig(filename='./utilx/log.txt', level=logging.DEBUG)
     start = time.time()
-    data_address = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data1'
-    ntotal = 617 # total folders
+    data_address = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data0'
+    ntotal = 45 # total folders
     ins = main(data_address,seq_len=3,nt = ntotal)
     print('Waiting for all background process to finish ...')
     time.sleep(ntotal/10)

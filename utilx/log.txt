@@ -25,12 +25,17 @@ INFO:root:Incompleted folders: []
 INFO:root:TOTAL elapsed time 221.99779963493347
 
 
-
-
-
-
-
 DEBUG:asyncio:Using selector: EpollSelector
 INFO:root:Number of incomplete files: 0
 INFO:root:Incompleted folders: []
 INFO:root:TOTAL elapsed time 160.5304753780365
+
+
+
+DEBUG:asyncio:Using selector: EpollSelector
+ERROR:root:Failed to read /localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data0/long_dataset_23_11/Town03long_Scenario11/Town03_Scenario11_route7_05_08_23_07_09/measurements/1143.json file
+INFO:root:Number of incomplete files: 2
+INFO:root:Incompleted folders: ['Town03_Scenario11_route2_05_08_14_57_30']
+INFO:root:TOTAL elapsed time 141.80586338043213
+
+

@@ -7,6 +7,9 @@ import numpy as np
 import torch 
 from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
+from config import GlobalConfig
+
+config = GlobalConfig()
 
 class CARLA_Data(Dataset):
 
@@ -35,7 +38,10 @@ class CARLA_Data(Dataset):
         self.stop_sign = []
 
         for sub_root in root:
-            preload_file = os.path.join(sub_root, 'x13_rgb_dep_vel_nxr_ctrl_ts_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
+            if config.augment_control_data:
+                preload_file = os.path.join(sub_root, 'Letfuser_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
+            else:
+                preload_file = os.path.join(sub_root, 'x13_rgb_dep_vel_nxr_ctrl_ts_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
           
             # dump to npy if no preload
             if not os.path.exists(preload_file):
@@ -239,6 +245,17 @@ class CARLA_Data(Dataset):
 
         data['waypoints'] = waypoints
 
+
+        if config.augment_control_data:
+            for i in range(self.seq_len):
+                # fix for nan in some measurements
+                if np.isnan(self.steer[index][i]):
+                    self.steer[index][i] = 0.
+                if np.isnan(self.throttle[index][i]):
+                    self.throttle[index][i] = 0.
+                if np.isnan(self.brake[index][i]):
+                    self.brake[index][i] = False
+
         # convert x_command, y_command to local coordinates
         # taken from LBC code (uses 90+theta instead of theta)
         R = np.array([
@@ -248,9 +265,8 @@ class CARLA_Data(Dataset):
         local_command_point = np.array([self.x_command[index]-ego_x, self.y_command[index]-ego_y])
         local_command_point = R.T.dot(local_command_point)
         data['target_point'] = tuple(local_command_point)
-
         data['steer'] = self.steer[index]
-        data['throttle'] = self.throttle[index]
+        data['throttle'] = self.throttle[index] 
         data['brake'] = self.brake[index]
         data['velocity'] = self.velocity[index]
         data['red_light'] = self.red_light[index]

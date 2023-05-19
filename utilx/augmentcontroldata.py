@@ -122,8 +122,6 @@ def main(root,seq_len,nt):
     prog_bar.close()     
     return ins#list(set(ins)-set(outs) 
 
-
-
 # main function that call get_stack for a sample data folder
 if __name__ == '__main__':
     logging.basicConfig(filename='./utilx/log.txt', level=logging.DEBUG)

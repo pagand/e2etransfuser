@@ -120,10 +120,6 @@ def main(root,seq_len,nt):
             time.sleep(20*len(samples)/7)
     prog_bar.close()     
     return ins#list(set(ins)-set(outs))
-    
-    
-
-
 
 # main function that call get_stack for a sample data folder
 if __name__ == '__main__':

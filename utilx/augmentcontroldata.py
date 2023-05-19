@@ -34,13 +34,11 @@ def update_queue(queue_s, queue_t, queue_b, json_file):
 # function that takes a queue and json file address as input and write queue into 'vel' element of json      
 def update_json(queue_s, queue_t, queue_b, json_file):
     #read a json file 
-    
+
     
     with open(json_file) as f:
         data = json.load(f)
-
-    
-    
+        
     # write queue into control elements of json 
     data['steer'],data['throttle'], data['brake']  = queue_s, queue_t, queue_b 
 

@@ -81,7 +81,7 @@ def get_queue(folder,seq_len):
                     logging.error('failed to write {} file in {} folder'.format(files[ind-seq_len+1], folder))
                 
                 
-    # continue to update json for the last m files
+    # continue to update json for the last m files 
     for i in range(seq_len-1,0, -1):
         queue_s.append(queue_s[-1])
         queue_t.append(queue_t[-1])

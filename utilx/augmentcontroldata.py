@@ -59,6 +59,8 @@ def background(f):
 # then wait to have at least m elements in queue and call update_json function for each json file in the folder sorted according to their names
 
 
+
+
 @background
 def get_queue(folder,seq_len):
     start = time.time()
@@ -136,7 +138,7 @@ if __name__ == '__main__':
     # all_tasks = asyncio.all_tasks()
     # await asyncio.wait(all_tasks) 
 
-    
+
 
     logging.info('TOTAL elapsed time {}'.format( time.time()-start))
 

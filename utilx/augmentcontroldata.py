@@ -98,11 +98,6 @@ def get_queue(folder,seq_len):
     Folder.append(folder.split('/')[-2])
     # return folder.split('/')[-1] 
 
-
-
-
-
-
 def main(root,seq_len,nt):
     sub_folders = os.listdir(root)
     ins = []

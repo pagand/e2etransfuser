@@ -136,6 +136,6 @@ if __name__ == '__main__':
     logging.info('Number of incomplete files: {}'.format(len(ins)- len(Folder)))
     logging.info('Incompleted folders: {}'.format(list(set(ins)-set(Folder))))
     # all_tasks = asyncio.all_tasks()
-    # await asyncio.wait(all_tasks)
+    # await asyncio.wait(all_tasks) 
 
     logging.info('TOTAL elapsed time {}'.format( time.time()-start))

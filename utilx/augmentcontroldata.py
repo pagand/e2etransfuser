@@ -93,7 +93,7 @@ def get_queue(folder,seq_len):
     
     #logging.info('Processing folder: {} Executed elpsed time: {}'.format(folder, time.time()-start))
     Folder.append(folder.split('/')[-2])
-    # return folder.split('/')[-1]
+    # return folder.split('/')[-1] 
 
 
 

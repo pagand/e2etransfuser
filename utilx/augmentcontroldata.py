@@ -136,7 +136,8 @@ if __name__ == '__main__':
     # all_tasks = asyncio.all_tasks()
     # await asyncio.wait(all_tasks) 
 
+    
+
     logging.info('TOTAL elapsed time {}'.format( time.time()-start))
 
 
-    

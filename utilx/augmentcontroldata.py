@@ -60,7 +60,7 @@ def background(f):
 def get_queue(folder,seq_len):
     start = time.time()
     
-    # get list of json files in the folder sorted according to their names
+    # get list of json files in the folder sorted according to their names 
     files = sorted(os.listdir(folder))
 
     # initialize queue

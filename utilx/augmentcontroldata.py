@@ -30,7 +30,7 @@ def update_queue(queue_s, queue_t, queue_b, json_file):
 
     return queue_s, queue_t, queue_b
 
-# function that takes a queue and json file address as input and write queue into 'vel' element of json   
+# function that takes a queue and json file address as input and write queue into 'vel' element of json     
 def update_json(queue_s, queue_t, queue_b, json_file):
     #read a json file 
     

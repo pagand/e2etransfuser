@@ -119,7 +119,9 @@ def main(root,seq_len,nt):
                     prog_bar.update(1)
             time.sleep(20*len(samples)/7)
     prog_bar.close()     
-    return ins#list(set(ins)-set(outs))
+    return ins#list(set(ins)-set(outs)
+
+
 
 # main function that call get_stack for a sample data folder
 if __name__ == '__main__':
@@ -136,7 +138,3 @@ if __name__ == '__main__':
     # await asyncio.wait(all_tasks)
 
     logging.info('TOTAL elapsed time {}'.format( time.time()-start))
-
-
-
-

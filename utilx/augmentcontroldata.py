@@ -36,11 +36,13 @@ def update_json(queue_s, queue_t, queue_b, json_file):
     
     with open(json_file) as f:
         data = json.load(f)
-        
+
     
     
     # write queue into control elements of json 
     data['steer'],data['throttle'], data['brake']  = queue_s, queue_t, queue_b 
+
+
 
     # dump data to json file
     try:

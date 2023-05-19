@@ -124,6 +124,7 @@ def main(root,seq_len,nt):
     
 
 
+
 # main function that call get_stack for a sample data folder
 if __name__ == '__main__':
     logging.basicConfig(filename='./utilx/log.txt', level=logging.DEBUG)

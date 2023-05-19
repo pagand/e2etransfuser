@@ -8,7 +8,6 @@ from tqdm import tqdm
 
 
 Folder =[]
-
 # function that takes a queue, minmum length (m) and json file address as input and write 'vel' element 
 # of json file into queue and pop the last element of queue  
 def update_queue(queue_s, queue_t, queue_b, json_file):

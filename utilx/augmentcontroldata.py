@@ -120,7 +120,7 @@ def main(root,seq_len,nt):
                     prog_bar.update(1)
             time.sleep(20*len(samples)/7)
     prog_bar.close()     
-    return ins#list(set(ins)-set(outs)
+    return ins#list(set(ins)-set(outs) 
 
 
 

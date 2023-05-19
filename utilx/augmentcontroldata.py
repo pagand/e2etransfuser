@@ -119,7 +119,7 @@ def main(root,seq_len,nt):
                     # to keep track
                     ins.append(sample)
                     get_queue(os.path.join(rsample, 'measurements'),seq_len)
-                    #folder = get_queue(os.path.join(rsample, 'measurements'),seq_len)
+                    #folder = get_queue(os.path.join(rsample, 'measurements'),seq_len) 
                     #outs.append(folder)
                     #prog_bar.set_postfix(sample)
                     prog_bar.update(1)

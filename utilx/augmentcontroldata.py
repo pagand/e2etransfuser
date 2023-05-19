@@ -57,10 +57,6 @@ def background(f):
 
 # function that takes folder address as input and call update_queue function for each json file in the folder sorted according to their names
 # then wait to have at least m elements in queue and call update_json function for each json file in the folder sorted according to their names
-
-
-
-
 @background
 def get_queue(folder,seq_len):
     start = time.time()

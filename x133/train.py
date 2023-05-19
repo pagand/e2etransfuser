@@ -19,9 +19,6 @@ from torch.utils.tensorboard import SummaryWriter
 import wandb
 
 
-
-
-
 class AverageMeter(object):
     def __init__(self):
         self.val = 0

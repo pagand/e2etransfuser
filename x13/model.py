@@ -434,7 +434,7 @@ class x13(nn.Module): #
             norm_layer =nn.LayerNorm
 
             self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d((config.fusion_embed_dim_q+config.fusion_embed_dim_kv)//2, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+            nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
@@ -464,7 +464,6 @@ class x13(nn.Module): #
         # comment 1
 
         self.fuse_BN = nn.BatchNorm2d(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])
-        self.downsize_feat = nn.Linear(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1],(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])//2)
         self.measurements = nn.Sequential(
 							nn.Linear(1+2+6, config.n_fmap_b1[-1][-1]),
 							nn.ReLU(inplace=True),
@@ -510,8 +509,8 @@ class x13(nn.Module): #
             for j in range(depth):
                 blocks.append(
                 Fusion_Block(
-                    dim_in=(embed_dim_q+embed_dim_kv)//2,
-                    dim_out=(embed_dim_q+embed_dim_kv)//2,
+                    dim_in=embed_dim_q+embed_dim_kv,
+                    dim_out=embed_dim_q+embed_dim_kv,
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
@@ -684,9 +683,8 @@ class x13(nn.Module): #
         measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
         fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
         features_cat = rearrange(fuse , 'b c h w-> b (h w) c')
-        downsized_features = self.downsize_feat(features_cat)
         for i, blk in enumerate(self.blocks):
-            x = blk(downsized_features, H, W)
+            x = blk(features_cat, H, W)
         x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
         hx = self.attn_neck(x)
         hx = torch.cat([hx, measurement_feature], dim=1) 

@@ -288,8 +288,6 @@ class Fusion_Block(nn.Module):
         self.with_cls_token = False
 
         self.norm1 = norm_layer(dim_in)
-        self.norm2 = norm_layer(dim_out)
-
         self.attn = Attention_2D(
             dim_in, dim_out, num_heads, qkv_bias, attn_drop, drop,
         )
@@ -306,17 +304,15 @@ class Fusion_Block(nn.Module):
             drop=drop
         )
 
-    def forward(self, features_RGB, features_SC, h, w):
-        res = features_RGB
+    def forward(self, features, h, w):
+        res = features
 
-        features_RGB = self.norm1(features_RGB)
-        features_SC = self.norm2(features_SC)
-        
-        attn = self.attn(features_RGB, features_SC, h, w)
-        features_RGB = res + self.drop_path(attn)
-        features_RGB = features_RGB + self.drop_path(self.mlp(self.norm3(features_RGB)))
+        x = self.norm1(features)
+        attn = self.attn(x, x, h, w)
+        x = res + self.drop_path(attn)
+        x = x + self.drop_path(self.mlp(self.norm3(x)))
 
-        return features_RGB
+        return x
     
 class x13(nn.Module): #
     def __init__(self, config, device):
@@ -438,7 +434,7 @@ class x13(nn.Module): #
             norm_layer =nn.LayerNorm
 
             self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.fusion_embed_dim_q, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+            nn.Conv2d((config.fusion_embed_dim_q+config.fusion_embed_dim_kv)//2, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
@@ -468,6 +464,7 @@ class x13(nn.Module): #
         # comment 1
 
         self.fuse_BN = nn.BatchNorm2d(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])
+        self.downsize_feat = nn.Linear(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1],(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])//2)
         self.measurements = nn.Sequential(
 							nn.Linear(1+2+6, config.n_fmap_b1[-1][-1]),
 							nn.ReLU(inplace=True),
@@ -513,8 +510,8 @@ class x13(nn.Module): #
             for j in range(depth):
                 blocks.append(
                 Fusion_Block(
-                    dim_in=embed_dim_q,
-                    dim_out=embed_dim_kv,
+                    dim_in=(embed_dim_q+embed_dim_kv)//2,
+                    dim_out=(embed_dim_q+embed_dim_kv)//2,
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
@@ -685,12 +682,11 @@ class x13(nn.Module): #
 
         # control v3
         measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
-#        fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
-#        features_cat = rearrange(fuse , 'b c h w-> b (h w) c')
-        features_RGB = rearrange(RGB_features8 , 'b c h w-> b (h w) c')
-        features_SC = rearrange(SC_features5 , 'b c h w-> b (h w) c')
+        fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
+        features_cat = rearrange(fuse , 'b c h w-> b (h w) c')
+        downsized_features = self.downsize_feat(features_cat)
         for i, blk in enumerate(self.blocks):
-            x = blk(features_RGB,features_SC, H, W)
+            x = blk(downsized_features, H, W)
         x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
         hx = self.attn_neck(x)
         hx = torch.cat([hx, measurement_feature], dim=1) 

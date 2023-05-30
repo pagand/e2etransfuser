@@ -1,4 +1,4 @@
-# Proposed model
+# X13
 
 Steps:
 1. Check the configuration setting inside config.py

@@ -704,30 +704,30 @@ class x13(nn.Module): #
 
         
         # TODO 2 comment  if self.config.augment_control_data
-        out_control = list()
-        for _ in range(self.config.pred_len):
-            ins = torch.cat([control_pred, next_route], dim=1) # control v4
-            hx = self.gru_control(ins, hx) # control v5
-            # d_xy = self.pred_dwp(hx+tls_bias) #why adding??
-            d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
-            control_pred = control_pred + d_control # control v2/3/4
-            out_control.append(control_pred)
-        pred_control = torch.stack(out_control, dim=1)
-        steer = pred_control[:,:,0]* 2 - 1.
-        throttle = pred_control[:,:,1] * self.config.max_throttle
-        brake = pred_control[:,:,2] #brake: hard 1.0 or no 0.0
+        # out_control = list()
+        # for _ in range(self.config.pred_len):
+        #     ins = torch.cat([control_pred, next_route], dim=1) # control v4
+        #     hx = self.gru_control(ins, hx) # control v5
+        #     # d_xy = self.pred_dwp(hx+tls_bias) #why adding??
+        #     d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
+        #     control_pred = control_pred + d_control # control v2/3/4
+        #     out_control.append(control_pred)
+        # pred_control = torch.stack(out_control, dim=1)
+        # steer = pred_control[:,:,0]* 2 - 1.
+        # throttle = pred_control[:,:,1] * self.config.max_throttle
+        # brake = pred_control[:,:,2] #brake: hard 1.0 or no 0.0
 
         
         # TODO  2 comment  if not self.config.augment_control_data 
-        # ins = torch.cat([control_pred, next_route], dim=1) # control v4
-        # # ins = control_pred# control v2
-        # hx = self.gru_control(ins, fuse) # control v2/3/4
-        # d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
-        # # d_control = self.pred_control(hx+tls_bias)  # making add (#v3)
-        # control_pred = control_pred + d_control # control v2/3/4
-        # steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
-        # throttle = control_pred[:,1] * self.config.max_throttle
-        # brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
+        ins = torch.cat([control_pred, next_route], dim=1) # control v4
+        # ins = control_pred# control v2
+        hx = self.gru_control(ins, fuse) # control v2/3/4
+        d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
+        # d_control = self.pred_control(hx+tls_bias)  # making add (#v3)
+        control_pred = control_pred + d_control # control v2/3/4
+        steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
+        throttle = control_pred[:,1] * self.config.max_throttle
+        brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
 
 
         

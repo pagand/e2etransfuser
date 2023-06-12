@@ -114,10 +114,10 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			gt_brake = torch.stack(gt_brake, dim=1).to(device, dtype=torch.float)
 
 		else:
-			gt_steer = data['steer'].to(device, dtype=torch.float)
+			gt_steer = data['steer'][0].to(device, dtype=torch.float)
 			gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
-			gt_throttle = data['throttle'].to(device, dtype=torch.float)
-			gt_brake = data['brake'].to(device, dtype=torch.float)
+			gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
+			gt_brake = data['brake'][0].to(device, dtype=torch.float)
 		gt_red_light = data['red_light'].to(device, dtype=torch.float)
 		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 		gt_command = data['command'].to(device, dtype=torch.float)
@@ -345,10 +345,10 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 				gt_brake = [data['brake'][i].to(device, dtype=torch.float) for i in range( len(data['brake']))]
 				gt_brake = torch.stack(gt_brake, dim=1).to(device, dtype=torch.float)
 			else:
-				gt_steer = data['steer'].to(device, dtype=torch.float)
+				gt_steer = data['steer'][0].to(device, dtype=torch.float)
 				gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
-				gt_throttle = data['throttle'].to(device, dtype=torch.float)
-				gt_brake = data['brake'].to(device, dtype=torch.float)
+				gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
+				gt_brake = data['brake'][0].to(device, dtype=torch.float)
 
 
 

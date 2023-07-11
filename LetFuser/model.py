@@ -469,8 +469,9 @@ class x13(nn.Module): #
             # nn.Linear(2*config.n_fmap_b3[4][0], 3), #v1
             # nn.Sigmoid()
             nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]), #v2
+            nn.ReLU(inplace=True), #CHANGED!
             nn.Linear(config.n_fmap_b3[3][-1], 3),
-            nn.Tanh()  # v5 Sigmoid
+            #nn.Tanh()  # v5 Sigmoid  #CHANGED!
 
             # nn.Linear(config.n_fmap_b3[4][0], 3), #v3
             # nn.Sigmoid()

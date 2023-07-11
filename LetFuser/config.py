@@ -84,7 +84,7 @@ class GlobalConfig:
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD', 'Town01long', 'Town02long', 'Town03long', 'Town04long', 'Town06long'] 
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD', 'Town01long', 'Town02long', 'Town03long', 'Town04long', 'Town06long'] #
     val_towns = ['Town05'] # 'Town05long'
 
     for dir in root_files:

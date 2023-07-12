@@ -351,6 +351,9 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 				gt_brake = data['brake'][0].to(device, dtype=torch.float)
 
 
+			
+
+
 
 			gt_red_light = data['red_light'].to(device, dtype=torch.float)
 			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
@@ -362,9 +365,12 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)
 			loss_wp = F.l1_loss(pred_wp, gt_waypoints)
-			loss_str = F.l1_loss(steer, gt_steer)
-			loss_thr = F.l1_loss(throttle, gt_throttle)
-			loss_brk = F.l1_loss(brake, gt_brake)
+
+			# To be consistent with non-augment appraoches:
+			loss_str = F.l1_loss(steer[:,0], gt_steer[:,0])
+			loss_thr = F.l1_loss(throttle[:,0], gt_throttle[:,0])
+			loss_brk = F.l1_loss(brake[:,0], gt_brake[:,0])
+
 			loss_redl = F.l1_loss(red_light, gt_red_light)
 			loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
 			loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)

@@ -5,11 +5,11 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     wandb = False #True
     gpu_id = '0'
-    model = 'May16_new_main_total'
+    model = 'Jun11_newdata_main_total'
     low_data = True
     wandb_name = model 
     logdir = 'log/'+model
-    model = 'randomized_low_data' # for wandb
+    model = 'new_data' # for wandb
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
     init_stop_counter = 15
 
@@ -25,10 +25,10 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 20 #20
+    batch_size = 1 #20
     total_epoch = 35 #30
 
-    random_data_len = int(180000 *low_data_rate) #int(280000 * 0.2 ) 
+    random_data_len = int(160000 *low_data_rate) #int(280000 * 0.2 ) 
 	
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
@@ -65,8 +65,7 @@ class GlobalConfig:
     #root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
     #root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
    # root_dir = '/localscratch/pagand/e2e/data'
-#    root_dir = '/localscratch/mmahdavi/transfuser/data' # '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data2'  for the PAMI dataset
-    root_dir = '/project/mars-lab/e2e/new_dataset'
+    root_dir = '/localscratch/mmahdavi/transfuser/new_dataset' # '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data2'  for the PAMI dataset
     train_data, val_data = [], []
 
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'

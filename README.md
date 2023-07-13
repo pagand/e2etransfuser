@@ -101,12 +101,15 @@ For more information on running CARLA servers (e.g. on a machine without a displ
 
 The main variables to set for this script are `SCENARIOS` and `ROUTES`. 
 
-### Dataset location
+### Dataset Augmentation
 
-Remeber to put the dataset in the following directory:
+In order to generate long route and add to the current data, apply the data generation for long route. We have added [Town01long, Town02long, Town03long,Town04long, Town06long] for training and Town05long for validation.
+
+To augment the vehicular control for the next n-step, use the script bellow.
 
 ```Shell
-e2etransfuser/transfuser_pmlr/data
+cd utilx
+python augmentcontroldata.py
 ```
 
 ## TRAINING

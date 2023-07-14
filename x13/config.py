@@ -11,7 +11,7 @@ class GlobalConfig:
     wandb_name = 'baselines_long'
 
     n_class = 23
-    batch_size = 20 #20
+    batch_size = 32 #20
     
 
     # MGN parameter

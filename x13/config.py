@@ -1,17 +1,17 @@
 import os
 
 class GlobalConfig:
-    num_worker = 4# for debugging 0
+    num_worker = 0# for debugging 0
     gpu_id = '0'
     wandb = False
     low_data = True
-    model = 'x13'
+    model = 'x13_1img'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
-    wandb_name = 'baselines'
+    wandb_name = 'baselines_long'
 
     n_class = 23
-    batch_size = 1 #20
+    batch_size = 20 #20
     
 
     # MGN parameter
@@ -32,8 +32,8 @@ class GlobalConfig:
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
-    val_towns = ['Town05'] # 'Town05'
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD', 'Town01long', 'Town02long', 'Town03long', 'Town04long', 'Town06long']
+    val_towns = ['Town05'] # 'Town05long'
 
     for dir in root_files:
         scn_files = os.listdir(os.path.join(root_dir,dir))
@@ -69,8 +69,8 @@ class GlobalConfig:
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
-    input_resolution = [160,768] # PMLR dataset #768
-    # input_resolution = [160,160] # PMLR dataset #512
+    #input_resolution = [160,768] # PMLR dataset #768
+    input_resolution = [160,160] # 1 image
     # coverage_area = 64
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
 

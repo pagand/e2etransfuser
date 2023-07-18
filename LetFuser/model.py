@@ -314,9 +314,9 @@ class Fusion_Block(nn.Module):
 
         return x
     
-class x13(nn.Module): #
+class letfuser(nn.Module): #
     def __init__(self, config, device):
-        super(x13, self).__init__()
+        super(letfuser, self).__init__()
         self.config = config
         self.gpu_device = device
         #------------------------------------------------------------------------------------------------

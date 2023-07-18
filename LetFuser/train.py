@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
-from model import x13
+from model import letfuser
 from data import CARLA_Data
 # from data import CARLA_Data
 from config import GlobalConfig
@@ -431,7 +431,7 @@ def main():
 
 	#IMPORT MODEL
 	print("IMPORT ARSITEKTUR DL DAN COMPILE")
-	model = x13(config, device).float().to(device)
+	model = letfuser(config, device).float().to(device)
 	model_parameters = filter(lambda p: p.requires_grad, model.parameters())
 	params = sum([np.prod(p.size()) for p in model_parameters])
 	print('Total trainable parameters: ', params)

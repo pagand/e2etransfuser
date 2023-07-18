@@ -13,6 +13,7 @@ carla/*
 cs-venus*
 my_test.sh
 x13/model_*
+LetFuser/*_copy.py
 
 utilx/log.txt
 

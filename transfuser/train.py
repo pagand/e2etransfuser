@@ -102,9 +102,9 @@ class Engine(object):
 			# driving labels
 			command = data['command'].to(args.device)
 			gt_velocity = data['velocity'].to(args.device, dtype=torch.float32)
-			gt_steer = data['steer'].to(args.device, dtype=torch.float32)
-			gt_throttle = data['throttle'].to(args.device, dtype=torch.float32)
-			gt_brake = data['brake'].to(args.device, dtype=torch.float32)
+			gt_steer = data['steer'][0].to(args.device, dtype=torch.float32)
+			gt_throttle = data['throttle'][0].to(args.device, dtype=torch.float32)
+			gt_brake = data['brake'][0].to(args.device, dtype=torch.float32)
 
 			# target point
 			target_point = torch.stack(data['target_point'], dim=1).to(args.device, dtype=torch.float32)
@@ -170,9 +170,9 @@ class Engine(object):
 				# driving labels
 				command = data['command'].to(args.device)
 				gt_velocity = data['velocity'].to(args.device, dtype=torch.float32)
-				gt_steer = data['steer'].to(args.device, dtype=torch.float32)
-				gt_throttle = data['throttle'].to(args.device, dtype=torch.float32)
-				gt_brake = data['brake'].to(args.device, dtype=torch.float32)
+				gt_steer = data['steer'][0].to(args.device, dtype=torch.float32)
+				gt_throttle = data['throttle'][0].to(args.device, dtype=torch.float32)
+				gt_brake = data['brake'][0].to(args.device, dtype=torch.float32)
 
 				# target point
 				target_point = torch.stack(data['target_point'], dim=1).to(args.device, dtype=torch.float32)

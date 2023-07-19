@@ -376,8 +376,13 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			loss_redl = F.l1_loss(red_light, gt_red_light)
 			loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
 			loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)
-
-			total_loss = loss_seg + loss_wp + loss_str + loss_thr + loss_brk + loss_redl + loss_stops + loss_speed
+			
+			# compute all losses (horizon) for loss_str, loss_thr, loss_brk to avoid over fitting
+			#total_loss = loss_seg + loss_wp + loss_str + loss_thr + loss_brk + loss_redl + loss_stops + loss_speed
+			total_loss = loss_seg + loss_wp + F.l1_loss(steer, gt_steer) \
+											+ F.l1_loss(throttle, gt_throttle) \
+											+ F.l1_loss(brake, gt_brake) \
+											+ loss_redl + loss_stops + loss_speed
 
 			score['total_loss'].update(total_loss.item())
 			score['ss_loss'].update(loss_seg.item()) 

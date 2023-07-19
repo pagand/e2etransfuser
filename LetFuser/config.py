@@ -14,9 +14,9 @@ class GlobalConfig:
     MGN = True
 	
 	
-    wandb_name = 'x13_small_data'
+    wandb_name = 'baselines'
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    model = 'Letfuser_control_attn_' # run name
+    model = 'Letfuser_PC_DISTL' # run name
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 	
@@ -43,7 +43,7 @@ class GlobalConfig:
 
     n_class = 23
     batch_size = 16 #20
-    total_epoch = 35 #30
+    total_epoch = 20 #30
     
 
     random_data_len = int(188660 *low_data_rate) #int(280000 * 0.2 ) 

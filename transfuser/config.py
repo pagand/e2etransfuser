@@ -16,7 +16,7 @@ class GlobalConfig:
     logdir = 'log/'+model #+'_w1' for 1 weather only
 
     total_epoch = 40
-    batch_size = 1#50
+    batch_size = 50
     val_cycle = 1
 
 	# Data
@@ -49,7 +49,7 @@ class GlobalConfig:
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD', 'Town01long', 'Town02long', 'Town03long', 'Town04long', 'Town06long']
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:

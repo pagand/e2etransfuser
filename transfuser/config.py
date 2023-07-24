@@ -5,13 +5,13 @@ class GlobalConfig:
     """ base architecture configurations """
     num_worker = 0# for debugging 0
     gpu_id = '0'
-    wandb = True
+    wandb = False # True
     low_data = False #True
-    wandb_name = 'baselines2.3'
+    wandb_name = 'baselines'
 
-    kind = 'baseline2.3' 
+    kind = 'baseline' 
 
-    model = 'transfuser_2.3_long'
+    model = 'transfuser_1.8_3img_nv1_768'
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 
@@ -45,15 +45,15 @@ class GlobalConfig:
 #    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'  # for the PMLR dataset
 #    root_dir = '/localscratch/mmahdavi/transfuser/new_dataset'
 #    root_dir = '/localscratch/mmahdavi/transfuser/data'
-    root_dir = '/localscratch/pagand/data'
+    root_dir = '/localscratch/mmahdavi/data'
 
     train_data, val_data = [], []
 
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-  #  train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD', 'Town01long', 'Town02long', 'Town03long', 'Town04long', 'Town06long'] #
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
+  #  train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD', 'Town01long', 'Town02long', 'Town03long', 'Town04long', 'Town06long'] #
     val_towns = ['Town05'] # 'Town05'
 
     for dir in root_files:
@@ -87,10 +87,8 @@ class GlobalConfig:
     ignore_rear = True # don't consider rear cameras
     n_views = 1 # no. of camera views
 
-
-
     # input_resolution = 256
-    input_resolution = [160,160] #[160,160]  # PMLR dataset #768
+    input_resolution = [160,768] #[160,160]  # PMLR dataset #768
 
 
     scale = 1 # image pre-processing

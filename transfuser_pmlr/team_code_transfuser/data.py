@@ -17,6 +17,8 @@ class CARLA_Data(Dataset):
 
     def __init__(self, root, config, shared_dict=None):
 
+        self.dataset = config.dataset
+
         self.seq_len = np.array(config.seq_len)
         assert (config.img_seq_len == 1)
         self.pred_len = np.array(config.pred_len)
@@ -305,7 +307,11 @@ class CARLA_Data(Dataset):
         ego_waypoint = (degree_matrix @ ego_waypoint.T).T
 
         if label.shape[0] > 0:
-            label_pad[:label.shape[0], :] = label
+            if label.shape[0]>20:
+                label_pad[:20, :] = label[:20,:]
+                print("it happened!")
+            else:
+                label_pad[:label.shape[0], :] = label
 
         if(self.use_point_pillars == True):
             # We need to have a fixed number of LiDAR points for the batching to work, so we pad them and save to total amound of real LiDAR points.
@@ -325,9 +331,14 @@ class CARLA_Data(Dataset):
 
         # other measurement
         # do you use the last frame that already happend or use the next frame?
-        data['steer'] = measurements[self.seq_len-1]['steer']
-        data['throttle'] = measurements[self.seq_len-1]['throttle']
-        data['brake'] = measurements[self.seq_len-1]['brake']
+        if self.dataset=="2.3":
+            data['steer'] = measurements[self.seq_len-1]['steer'][0]
+            data['throttle'] = measurements[self.seq_len-1]['throttle'][0]
+            data['brake'] = measurements[self.seq_len-1]['brake'][0]
+        else:
+            data['steer'] = measurements[self.seq_len-1]['steer']
+            data['throttle'] = measurements[self.seq_len-1]['throttle']
+            data['brake'] = measurements[self.seq_len-1]['brake']
         data['light'] = measurements[self.seq_len-1]['light_hazard']
         data['speed'] = measurements[self.seq_len-1]['speed']
         data['theta'] = measurements[self.seq_len-1]['theta']

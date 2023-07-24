@@ -32,7 +32,7 @@ def main():
     torch.cuda.empty_cache()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--id', type=str, default='baselines', help='Unique experiment identifier.')
+    parser.add_argument('--id', type=str, default='baselines1.8', help='Unique experiment identifier.')
     parser.add_argument('--epochs', type=int, default=41, help='Number of train epochs.')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate.')
     parser.add_argument('--batch_size', type=int, default=64, help='Batch size for one GPU. When training with multiple GPUs the effective batch size will be batch_size*num_gpus')
@@ -42,8 +42,8 @@ def main():
     parser.add_argument('--setting', type=str, default='05_withheld', help='What training setting to use. Options: '
                                                                    'all: Train on all towns no validation data. '
                                                                    '02_05_withheld: Do not train on Town 02 and Town 05. Use the data as validation data.')
-    #parser.add_argument('--root_dir', type=str, default=r'/localscratch/mmahdavi/transfuser/data', help='Root directory of your training data')
     parser.add_argument('--root_dir', type=str, default=r'/localscratch/mmahdavi/transfuser/new_dataset', help='Root directory of your training data')
+    #parser.add_argument('--root_dir', type=str, default=r'/localscratch/mmahdavi/transfuser/new_dataset', help='Root directory of your training data')
     #parser.add_argument('--root_dir', type=str, default=r'/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data', help='Root directory of your training data')
     parser.add_argument('--schedule', type=int, default=1,
                         help='Whether to train with a learning rate schedule. 1 = True')

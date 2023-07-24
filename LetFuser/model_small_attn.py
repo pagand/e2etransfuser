@@ -421,7 +421,7 @@ class x13(nn.Module): #
             norm_layer =nn.LayerNorm
 
             self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d((config.fusion_embed_dim_q+config.fusion_embed_dim_kv)-96, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+            nn.Conv2d((config.fusion_embed_dim_q+config.fusion_embed_dim_kv)//2, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
@@ -458,7 +458,7 @@ class x13(nn.Module): #
         # comment 1
 
         self.fuse_BN = nn.BatchNorm2d(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])
-        self.downsize_feat = nn.Linear(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1],(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])-96)
+        self.downsize_feat = nn.Linear(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1],(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])//2)
         self.measurements = nn.Sequential(
 							nn.Linear(1+2+6, config.n_fmap_b1[-1][-1]),
 							nn.ReLU(inplace=True),
@@ -504,8 +504,8 @@ class x13(nn.Module): #
             for j in range(depth):
                 blocks.append(
                 Fusion_Block(
-                    dim_in=(embed_dim_q+embed_dim_kv)-96,
-                    dim_out=(embed_dim_q+embed_dim_kv)-96,
+                    dim_in=(embed_dim_q+embed_dim_kv)//2,
+                    dim_out=(embed_dim_q+embed_dim_kv)//2,
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,

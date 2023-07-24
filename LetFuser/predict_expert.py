@@ -190,3 +190,4 @@ test_log = test(dataloader_test, model, config, device)
 
 #kosongkan cuda chace
 torch.cuda.empty_cache()
+

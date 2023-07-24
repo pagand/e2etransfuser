@@ -30,7 +30,7 @@ parser.add_argument('--logdir', type=str, default='log', help='Directory to log 
 # Config
 config = GlobalConfig()
 if config.wandb:
-		wandb.init(project=config.wandb_name ,  entity="marslab", name = config.model)
+		wandb.init(project=config.wandb_name ,  entity="ai-mars", name = config.model)
 
 args = parser.parse_args(['--id', config.kind ,'--device','cuda','--epochs',str(config.total_epoch), '--lr', str(config.lr), '--val_every', str(config.val_cycle), '--batch_size', str(config.batch_size) ,'--logdir',config.logdir])
 args.logdir = os.path.join(args.logdir, args.id)
@@ -102,9 +102,9 @@ class Engine(object):
 			# driving labels
 			command = data['command'].to(args.device)
 			gt_velocity = data['velocity'].to(args.device, dtype=torch.float32)
-			gt_steer = data['steer'].to(args.device, dtype=torch.float32)
-			gt_throttle = data['throttle'].to(args.device, dtype=torch.float32)
-			gt_brake = data['brake'].to(args.device, dtype=torch.float32)
+			gt_steer = data['steer'][0].to(args.device, dtype=torch.float32)
+			gt_throttle = data['throttle'][0].to(args.device, dtype=torch.float32)
+			gt_brake = data['brake'][0].to(args.device, dtype=torch.float32)
 
 			# target point
 			target_point = torch.stack(data['target_point'], dim=1).to(args.device, dtype=torch.float32)
@@ -170,9 +170,9 @@ class Engine(object):
 				# driving labels
 				command = data['command'].to(args.device)
 				gt_velocity = data['velocity'].to(args.device, dtype=torch.float32)
-				gt_steer = data['steer'].to(args.device, dtype=torch.float32)
-				gt_throttle = data['throttle'].to(args.device, dtype=torch.float32)
-				gt_brake = data['brake'].to(args.device, dtype=torch.float32)
+				gt_steer = data['steer'][0].to(args.device, dtype=torch.float32)
+				gt_throttle = data['throttle'][0].to(args.device, dtype=torch.float32)
+				gt_brake = data['brake'][0].to(args.device, dtype=torch.float32)
 
 				# target point
 				target_point = torch.stack(data['target_point'], dim=1).to(args.device, dtype=torch.float32)

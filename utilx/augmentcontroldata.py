@@ -6,10 +6,10 @@ import asyncio
 import time
 from tqdm import tqdm
 
-Folder =[]
 
+Folder =[]
 # function that takes a queue, minmum length (m) and json file address as input and write 'vel' element 
-# of json file into queue and pop the last element of queue
+# of json file into queue and pop the last element of queue  
 def update_queue(queue_s, queue_t, queue_b, json_file):
     # read json file
     try:
@@ -30,15 +30,15 @@ def update_queue(queue_s, queue_t, queue_b, json_file):
 
     return queue_s, queue_t, queue_b
 
-# function that takes a queue and json file address as input and write queue into 'vel' element of json 
+# function that takes a queue and json file address as input and write queue into 'vel' element of json      
 def update_json(queue_s, queue_t, queue_b, json_file):
-    #read a json file
+    #read a json file 
+
     
     with open(json_file) as f:
         data = json.load(f)
-    
-    
-    # write queue into control elements of json
+
+    # write queue into control elements of json 
     data['steer'],data['throttle'], data['brake']  = queue_s, queue_t, queue_b 
 
     # dump data to json file
@@ -60,7 +60,7 @@ def background(f):
 def get_queue(folder,seq_len):
     start = time.time()
     
-    # get list of json files in the folder sorted according to their names
+    # get list of json files in the folder sorted according to their names 
     files = sorted(os.listdir(folder))
 
     # initialize queue
@@ -81,7 +81,7 @@ def get_queue(folder,seq_len):
                     logging.error('failed to write {} file in {} folder'.format(files[ind-seq_len+1], folder))
                 
                 
-    # continue to update json for the last m files
+    # continue to update json for the last m files     
     for i in range(seq_len-1,0, -1):
         queue_s.append(queue_s[-1])
         queue_t.append(queue_t[-1])
@@ -93,9 +93,7 @@ def get_queue(folder,seq_len):
     
     #logging.info('Processing folder: {} Executed elpsed time: {}'.format(folder, time.time()-start))
     Folder.append(folder.split('/')[-2])
-    # return folder.split('/')[-1]
-
-
+    # return folder.split('/')[-1] 
 
 def main(root,seq_len,nt):
     sub_folders = os.listdir(root)
@@ -113,32 +111,30 @@ def main(root,seq_len,nt):
                     # to keep track
                     ins.append(sample)
                     get_queue(os.path.join(rsample, 'measurements'),seq_len)
-                    #folder = get_queue(os.path.join(rsample, 'measurements'),seq_len)
+                    #folder = get_queue(os.path.join(rsample, 'measurements'),seq_len) 
                     #outs.append(folder)
                     #prog_bar.set_postfix(sample)
                     prog_bar.update(1)
-            time.sleep(len(samples)/7)
+            time.sleep(20*len(samples)/7)
     prog_bar.close()     
-    return ins#list(set(ins)-set(outs))
-    
-    
-
+    return ins#list(set(ins)-set(outs) 
 
 # main function that call get_stack for a sample data folder
 if __name__ == '__main__':
     logging.basicConfig(filename='./utilx/log.txt', level=logging.DEBUG)
     start = time.time()
-    data_address = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data1'
-    ntotal = 617 # total folders
+    data_address = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data0'
+    ntotal = 45 # total folders
     ins = main(data_address,seq_len=3,nt = ntotal)
     print('Waiting for all background process to finish ...')
     time.sleep(ntotal/10)
     logging.info('Number of incomplete files: {}'.format(len(ins)- len(Folder)))
     logging.info('Incompleted folders: {}'.format(list(set(ins)-set(Folder))))
     # all_tasks = asyncio.all_tasks()
-    # await asyncio.wait(all_tasks)
+    # await asyncio.wait(all_tasks) 
+
+
 
     logging.info('TOTAL elapsed time {}'.format( time.time()-start))
 
 
-    

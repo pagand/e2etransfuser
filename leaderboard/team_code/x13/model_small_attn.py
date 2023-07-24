@@ -421,7 +421,7 @@ class x13(nn.Module): #
             norm_layer =nn.LayerNorm
 
             self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+            nn.Conv2d((config.fusion_embed_dim_q+config.fusion_embed_dim_kv)//2, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
@@ -458,6 +458,7 @@ class x13(nn.Module): #
         # comment 1
 
         self.fuse_BN = nn.BatchNorm2d(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])
+        self.downsize_feat = nn.Linear(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1],(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1])//2)
         self.measurements = nn.Sequential(
 							nn.Linear(1+2+6, config.n_fmap_b1[-1][-1]),
 							nn.ReLU(inplace=True),
@@ -503,8 +504,8 @@ class x13(nn.Module): #
             for j in range(depth):
                 blocks.append(
                 Fusion_Block(
-                    dim_in=embed_dim_q+embed_dim_kv,
-                    dim_out=embed_dim_q+embed_dim_kv,
+                    dim_in=(embed_dim_q+embed_dim_kv)//2,
+                    dim_out=(embed_dim_q+embed_dim_kv)//2,
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
@@ -612,19 +613,19 @@ class x13(nn.Module): #
                 rot = 130 #60 # 43.3
                 height_coverage = 120
                 width_coverage = 300
-                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
             elif i==1:
                 width = 224 # 224
                 rot = -65 #-60 # -43.3
                 height_coverage = 120
                 width_coverage = 300
-                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
             elif i==2:
                 width = 320 # 320
                 rot = 0
                 height_coverage = 160
                 width_coverage = 320
-                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
 
         top_view_sc = big_top_view[:,:,:wi,:]
 
@@ -677,8 +678,9 @@ class x13(nn.Module): #
         measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
         fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
         features_cat = rearrange(fuse , 'b c h w-> b (h w) c')
+        downsized_features = self.downsize_feat(features_cat)
         for i, blk in enumerate(self.blocks):
-            x = blk(features_cat, H, W)
+            x = blk(downsized_features, H, W)
         x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
         hx = self.attn_neck(x)
         hx = torch.cat([hx, measurement_feature], dim=1) 
@@ -705,30 +707,30 @@ class x13(nn.Module): #
 
         
         # TODO 2 comment  if self.config.augment_control_data
-        out_control = list()
-        for _ in range(self.config.pred_len):
-            ins = torch.cat([control_pred, next_route], dim=1) # control v4
-            hx = self.gru_control(ins, hx) # control v5
-            # d_xy = self.pred_dwp(hx+tls_bias) #why adding??
-            d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
-            control_pred = control_pred + d_control # control v2/3/4
-            out_control.append(control_pred)
-        pred_control = torch.stack(out_control, dim=1)
-        steer = pred_control[:,:,0]* 2 - 1.
-        throttle = pred_control[:,:,1] * self.config.max_throttle
-        brake = pred_control[:,:,2] #brake: hard 1.0 or no 0.0
+        #out_control = list()
+        #for _ in range(self.config.pred_len):
+        #    ins = torch.cat([control_pred, next_route], dim=1) # control v4
+        #    hx = self.gru_control(ins, hx) # control v5
+        #    # d_xy = self.pred_dwp(hx+tls_bias) #why adding??
+        #    d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
+        #    control_pred = control_pred + d_control # control v2/3/4
+        #    out_control.append(control_pred)
+        #pred_control = torch.stack(out_control, dim=1)
+        #steer = pred_control[:,:,0]* 2 - 1.
+        #throttle = pred_control[:,:,1] * self.config.max_throttle
+        #brake = pred_control[:,:,2] #brake: hard 1.0 or no 0.0
 
         
         # TODO  2 comment  if not self.config.augment_control_data 
-       # ins = torch.cat([control_pred, next_route], dim=1) # control v4
-       # # ins = control_pred# control v2
-       # hx = self.gru_control(ins, fuse) # control v2/3/4
-       # d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
-       # #d_control = self.pred_control(hx+tls_bias)  # making add (#v3)
-       # control_pred = control_pred + d_control # control v2/3/4
-       # steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
-       # throttle = control_pred[:,1] * self.config.max_throttle
-       # brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
+        ins = torch.cat([control_pred, next_route], dim=1) # control v4
+        # ins = control_pred# control v2
+        hx = self.gru_control(ins, fuse) # control v2/3/4
+        d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
+        # d_control = self.pred_control(hx+tls_bias)  # making add (#v3)
+        control_pred = control_pred + d_control # control v2/3/4
+        steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
+        throttle = control_pred[:,1] * self.config.max_throttle
+        brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
         
 
         return ss_f, pred_wp, steer, throttle, brake, red_light, stop_sign, top_view_sc, speed # redl_stops[:,0] , top_view_sc       
@@ -900,6 +902,7 @@ class x13(nn.Module): #
         angle = np.degrees(np.pi / 2 - np.arctan2(aim[1], aim[0])) / 90
         pid_steer = self.turn_controller.step(angle)
         pid_steer = np.clip(pid_steer, -1.0, 1.0)
+
         desired_speed = np.linalg.norm(waypoints[0] - waypoints[1]) * 2.0
         delta = np.clip(desired_speed - speed, 0.0, self.config.clip_delta)
         pid_throttle = self.speed_controller.step(delta)
@@ -912,7 +915,6 @@ class x13(nn.Module): #
             steer = np.clip(self.config.cw_pid[0]*pid_steer + self.config.cw_mlp[0]*mlp_steer, -1.0, 1.0)
             throttle = np.clip(self.config.cw_pid[1]*pid_throttle + self.config.cw_mlp[1]*mlp_throttle, 0.0, self.config.max_throttle)
             brake = 0.0
-
             if (pid_throttle >= self.config.min_act_thrt) and (mlp_throttle < self.config.min_act_thrt):
                 steer = pid_steer
                 throttle = pid_throttle
@@ -925,7 +927,6 @@ class x13(nn.Module): #
                 throttle = 0.0
                 pid_brake = 1.0
                 brake = np.clip(self.config.cw_pid[2]*pid_brake + self.config.cw_mlp[2]*mlp_brake, 0.0, 1.0)
-
         elif ctrl_opt == "both_must":
             #opsi 2: vehicle jalan jika dan hanya jika kedua controller aktif. jika salah satu saja non aktif, maka vehicle berhenti
             steer = np.clip(self.config.cw_pid[0]*pid_steer + self.config.cw_mlp[0]*mlp_steer, -1.0, 1.0)

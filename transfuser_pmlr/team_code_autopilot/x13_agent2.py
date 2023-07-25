@@ -6,6 +6,7 @@ import time
 import cv2
 import carla
 from collections import deque
+import random
 
 from torch import torch
 
@@ -14,13 +15,14 @@ import carla
 import numpy as np
 from PIL import Image
 
-from leaderboard.autoagents import autonomous_agent
-from x133.model import x13
-from x133.config import GlobalConfig
-from x133.data import scale_and_crop_image, scale_and_crop_image_cv, rgb_to_depth, swap_RGB2BGR
-from team_code.planner import RoutePlanner
+import autonomous_agent
+from x13.model import x13
+from x13.config import GlobalConfig
+from x13.data import scale_and_crop_image, scale_and_crop_image_cv, rgb_to_depth, swap_RGB2BGR
+from planner import RoutePlanner
 import torchvision.transforms as T
 from torchvision.utils import save_image
+
 
 
 SAVE_PATH = os.environ.get('SAVE_PATH', None)
@@ -31,6 +33,7 @@ def get_entry_point():
 
 class x13Agent(autonomous_agent.AutonomousAgent):
 	def setup(self, path_to_conf_file):
+
 		self.track = autonomous_agent.Track.SENSORS
 		self.config_path = path_to_conf_file
 		self.step = -1
@@ -49,6 +52,29 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		#control weights untuk PID dan MLP dari tuningan MGN
 		#urutan steer, throttle, brake
 		# self.cw = [[self.config.cw_pid[0], self.config.cw_pid[1], self.config.cw_pid[2]], [self.config.cw_mlp[0], self.config.cw_mlp[1], self.config.cw_mlp[2]]]
+		
+		self.weathers = {
+            'Clear': carla.WeatherParameters.ClearNoon,
+            'Cloudy': carla.WeatherParameters.CloudySunset,
+            'Wet': carla.WeatherParameters.WetSunset,
+            'MidRain': carla.WeatherParameters.MidRainSunset,
+            'WetCloudy': carla.WeatherParameters.WetCloudySunset,
+            'HardRain': carla.WeatherParameters.HardRainNoon,
+            'SoftRain': carla.WeatherParameters.SoftRainSunset,
+        }
+		self.azimuths = [45.0 * i for i in range(8)]
+		self.daytimes = {
+            'Night': -80.0,
+            'Twilight': 0.0,
+            'Dawn': 5.0,
+            'Sunset': 15.0,
+            'Morning': 35.0,
+            'Noon': 75.0,
+        }
+		
+		self.weathers_ids = list(self.weathers)
+#		self._vehicle = CarlaDataProvider.get_hero_actor()
+#		self._world = self._vehicle.get_world()
 
 		self.save_path = None
 		if SAVE_PATH is not None:
@@ -129,19 +155,19 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 				 	'id': 'rgb_right'
 				 	},
-				{
-						'type': 'sensor.camera.depth',
-						'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
-						'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
-						'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
-						'id': 'depth_left'
-						},
-				{
-						'type': 'sensor.camera.depth',
-						'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
-						'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
-						'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
-						'id': 'depth_right'
+					{
+							'type': 'sensor.camera.depth',
+							'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
+							'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
+							'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
+							'id': 'depth_left'
+							},
+					{
+							'type': 'sensor.camera.depth',
+							'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
+							'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
+							'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
+							'id': 'depth_right'
 							},
                                 #{
 				# 	'type': 'sensor.camera.rgb',
@@ -173,7 +199,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 	def tick(self, input_data):
 		self.step += 1
 		rgb = []
-		for pos in ['left','front', 'right']:
+		for pos in ['left', 'front', 'right']:
 			rgb_cam = 'rgb_' + pos
 			rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
 			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
@@ -182,7 +208,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 #		cv2.imwrite('rgb.png', rgb)
 
 		depth = []
-		for pos in ['left','front', 'right']:
+		for pos in ['left', 'front', 'right']:
 
 			depth_cam = 'depth_' + pos
 			depth_pos = cv2.cvtColor(input_data[depth_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
@@ -210,7 +236,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		pos = self._get_position(result)
 		result['gps'] = pos
 		next_wp, next_cmd = self._route_planner.run_step(pos)
-		# result['next_command'] = next_cmd.value
+		result['next_command'] = next_cmd.value
 
 		theta = compass + np.pi/2
 		R = np.array([
@@ -260,7 +286,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 			return control
 		"""
 		gt_velocity = torch.FloatTensor([tick_data['speed']]).to('cuda', dtype=torch.float32)
-		# command = torch.FloatTensor([tick_data['next_command']]).to('cuda', dtype=torch.float32)
+		gt_command = torch.FloatTensor([tick_data['next_command']]).to('cuda', dtype=torch.float32)
 
 		tick_data['target_point'] = [torch.FloatTensor([tick_data['target_point'][0]]), torch.FloatTensor([tick_data['target_point'][1]])]
 		target_point = torch.stack(tick_data['target_point'], dim=1).to('cuda', dtype=torch.float32)
@@ -302,13 +328,13 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		a = 0
 		# forward pass
 		#pred_seg, pred_wp, psteer, pthrottle, pbrake, predl,stop_sign, pred_sc,speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
-		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pstops, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity)
+		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, stop_sign, pred_sc, speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,gt_command)
 		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
 		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)
 
 		# pid_steer, pid_throttle, pid_brake, pid_metadata = self.net.pid_control(pred_wp, gt_velocity) #PID ONLY
-		steer, throttle, brake, metadata = self.net.mlp_pid_control(pred_wp, gt_velocity, mlp_steer, mlp_throttle, mlp_brake, predl, CONTROL_OPTION) #MIX MLP AND PID
+		steer, throttle, brake, metadata = self.net.mlp_pid_control(pred_wp, gt_velocity, mlp_steer[0][0], mlp_throttle[0][0], mlp_brake[0][0], predl, CONTROL_OPTION) #MIX MLP AND PID
 		# if brake < 0.05: brake = 0.0
 		# if throttle > brake: brake = 0.0
 
@@ -325,9 +351,34 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		if SAVE_PATH is not None and self.step % 10 == 0:
 			self.save(tick_data)
 			self.save2(pred_seg, pred_sc)
+			self.shuffle_weather()
 
 		return control
 
+	def shuffle_weather(self):
+		# change weather for visual diversity
+		index = random.choice(range(len(self.weathers)))
+		dtime, altitude = random.choice(list(self.daytimes.items()))
+		altitude = np.random.normal(altitude, 10)
+		self.weather_id = self.weathers_ids[index] + dtime
+
+		weather = self.weathers[self.weathers_ids[index]]
+		weather.sun_altitude_angle = altitude
+		weather.sun_azimuth_angle = np.random.choice(self.azimuths)
+	#	self._world.set_weather(weather)
+		Mapagent=MapAgent(self.config_path)
+	
+		Mapagent._world.set_weather(weather)
+		
+		# night mode
+		vehicles = Mapagent._world.get_actors().filter('*vehicle*')
+		if weather.sun_altitude_angle < 0.0:
+			for vehicle in vehicles:
+				vehicle.set_light_state(carla.VehicleLightState(self._vehicle_lights))
+		else:
+			for vehicle in vehicles:
+				vehicle.set_light_state(carla.VehicleLightState.NONE)
+		
 	def save(self, tick_data):
 		frame = self.step // 10
 

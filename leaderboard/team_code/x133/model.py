@@ -6,6 +6,10 @@ import torch.nn.functional as F
 import torchvision.models as models
 import torchvision.transforms as transforms
 
+
+
+
+
 def kaiming_init_layer(layer):
     nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
 
@@ -205,12 +209,12 @@ class x13(nn.Module): #
         return ss_f, pred_wp, steer, throttle, brake, red_light, stop_sign, top_view_sc
 
 
-    def gen_top_view_sc(self, depth, semseg): #gt_seg, rgb_f
+    def gen_top_view_sc(self, depth, semseg): #,rgb_f
         #proses awal
         depth_in = depth * 1000.0 #normalize to 1 - 1000
         _, label_img = torch.max(semseg, dim=1) #pada axis C
         cloud_data_n = torch.ravel(torch.tensor([[n for _ in range(self.h*self.w)] for n in range(depth.shape[0])])).to(self.gpu_device)
-
+        
         #normalize to frame
         cloud_data_x = torch.round(((depth_in * self.x_matrix) + (self.cover_area[1]/2)) * (self.w-1) / self.cover_area[1]).ravel()
         cloud_data_z = torch.round((depth_in * -(self.h-1) / self.cover_area[0]) + (self.h-1)).ravel()
@@ -222,14 +226,14 @@ class x13(nn.Module): #
         #stack n x z cls dan plot
         coorx = torch.stack([cloud_data_n, label_img.ravel(), cloud_data_z, cloud_data_x])
         coor_clsn = torch.unique(coorx[:, idx_xz], dim=1).long() #tensor must be long so that it can be used as an index
-
         top_view_sc = torch.zeros_like(semseg) #this is faster because automatically the size, data type, and device are the same as those of the input (semseg)
         top_view_sc[coor_clsn[0], coor_clsn[1], coor_clsn[2], coor_clsn[3]] = 1.0 #axis format from NCHW
+
 
         return top_view_sc
 
 
-    def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl, ctrl_opt="one_of"):
+    def mlp_pid_control(self, waypoints, velocity, mlp_steer, mlp_throttle, mlp_brake, redl, stops, ctrl_opt="one_of"):
         assert(waypoints.size(0)==1)
         waypoints = waypoints[0].data.cpu().numpy()
         red_light = True if redl.data.cpu().numpy() > 0.5 else False
@@ -305,6 +309,9 @@ class x13(nn.Module): #
                 brake = mlp_brake
         else:
             sys.exit("ERROR, FALSE CONTROL OPTION")
+
+
+
 
         metadata = {
             'control_option': ctrl_opt,

@@ -90,21 +90,21 @@ class DataAgent(AutoPilot):
             result += [
                     {
                         'type': 'sensor.camera.rgb',
-                        'x': 1.3, 'y': 0.0, 'z':2.3,#1.8
+                        'x': 1.3, 'y': 0.0, 'z':1.8,
                         'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
                         'width': self.cam_config['width'], 'height': self.cam_config['height'], 'fov': self.cam_config['fov'],
                         'id': 'rgb_front'
                     },
                     {
                         'type': 'sensor.camera.rgb',
-                        'x': 1.3, 'y': 0.0, 'z':2.3,#1.8
+                        'x': 1.3, 'y': 0.0, 'z':1.8,
                         'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
                         'width': self.cam_config['width'], 'height': self.cam_config['height'], 'fov': self.cam_config['fov'],
                         'id': 'rgb_left'
                     },
                     {
                         'type': 'sensor.camera.rgb',
-                        'x': 1.3, 'y': 0.0, 'z':2.3,#1.8
+                        'x': 1.3, 'y': 0.0, 'z':1.8,
                         'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
                         'width': self.cam_config['width'], 'height': self.cam_config['height'], 'fov': self.cam_config['fov'],
                         'id': 'rgb_right'
@@ -119,42 +119,42 @@ class DataAgent(AutoPilot):
                     },
                     {
                         'type': 'sensor.camera.semantic_segmentation',
-                        'x': 1.3, 'y': 0.0, 'z':2.3,#1.8
+                        'x': 1.3, 'y': 0.0, 'z':1.8,
                         'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
                         'width': self.cam_config['width'], 'height': self.cam_config['height'], 'fov': self.cam_config['fov'],
                         'id': 'semantics_front'
                     },
                     {
                         'type': 'sensor.camera.semantic_segmentation',
-                        'x': 1.3, 'y': 0.0, 'z':2.3,#1.8
+                        'x': 1.3, 'y': 0.0, 'z':1.8,
                         'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
                         'width': self.cam_config['width'], 'height': self.cam_config['height'], 'fov': self.cam_config['fov'],
                         'id': 'semantics_left'
                     },
                     {
                         'type': 'sensor.camera.semantic_segmentation',
-                        'x': 1.3, 'y': 0.0, 'z':2.3,#1.8
+                        'x': 1.3, 'y': 0.0, 'z':1.8,
                         'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
                         'width': self.cam_config['width'], 'height': self.cam_config['height'], 'fov': self.cam_config['fov'],
                         'id': 'semantics_right'
                     },
                     {
                         'type': 'sensor.camera.depth',
-                        'x': 1.3, 'y': 0.0, 'z':2.3,#1.8
+                        'x': 1.3, 'y': 0.0, 'z':1.8,
                         'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
                         'width': self.cam_config['width'], 'height': self.cam_config['height'], 'fov': self.cam_config['fov'],
                         'id': 'depth_front'
                     },
                     {
                         'type': 'sensor.camera.depth',
-                        'x': 1.3, 'y': 0.0, 'z':2.3,#1.8
+                        'x': 1.3, 'y': 0.0, 'z':1.8,
                         'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
                         'width': self.cam_config['width'], 'height': self.cam_config['height'], 'fov': self.cam_config['fov'],
                         'id': 'depth_left'
                     },
                     {
                         'type': 'sensor.camera.depth',
-                        'x': 1.3, 'y': 0.0, 'z':2.3,#1.8
+                        'x': 1.3, 'y': 0.0, 'z':1.8,
                         'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
                         'width': self.cam_config['width'], 'height': self.cam_config['height'], 'fov': self.cam_config['fov'],
                         'id': 'depth_right'

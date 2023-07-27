@@ -469,9 +469,9 @@ class x13(nn.Module): #
             # nn.Linear(2*config.n_fmap_b3[4][0], 3), #v1
             # nn.Sigmoid()
             nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]), #v2
-            nn.ReLU(inplace=True), #CHANGED!
+            #nn.ReLU(inplace=True), #CHANGED!
             nn.Linear(config.n_fmap_b3[3][-1], 3),
-            #nn.Tanh()  # v5 Sigmoid  #CHANGED!
+            nn.Tanh()  # v5 Sigmoid  #CHANGED!
 
             # nn.Linear(config.n_fmap_b3[4][0], 3), #v3
             # nn.Sigmoid()
@@ -705,30 +705,30 @@ class x13(nn.Module): #
 
         
         # TODO 2 comment  if self.config.augment_control_data
-        out_control = list()
-        for _ in range(self.config.pred_len):
-            ins = torch.cat([control_pred, next_route], dim=1) # control v4
-            hx = self.gru_control(ins, hx) # control v5
-            # d_xy = self.pred_dwp(hx+tls_bias) #why adding??
-            d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
-            control_pred = control_pred + d_control # control v2/3/4
-            out_control.append(control_pred)
-        pred_control = torch.stack(out_control, dim=1)
-        steer = pred_control[:,:,0]* 2 - 1.
-        throttle = pred_control[:,:,1] * self.config.max_throttle
-        brake = pred_control[:,:,2] #brake: hard 1.0 or no 0.0
+        #out_control = list()
+        #for _ in range(self.config.pred_len):
+        #    ins = torch.cat([control_pred, next_route], dim=1) # control v4
+        #    hx = self.gru_control(ins, hx) # control v5
+        #    # d_xy = self.pred_dwp(hx+tls_bias) #why adding??
+        #    d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
+        #    control_pred = control_pred + d_control # control v2/3/4
+        #    out_control.append(control_pred)
+        #pred_control = torch.stack(out_control, dim=1)
+        #steer = pred_control[:,:,0]* 2 - 1.
+        #throttle = pred_control[:,:,1] * self.config.max_throttle
+        #brake = pred_control[:,:,2] #brake: hard 1.0 or no 0.0
 
         
         # TODO  2 comment  if not self.config.augment_control_data 
-       # ins = torch.cat([control_pred, next_route], dim=1) # control v4
-       # # ins = control_pred# control v2
-       # hx = self.gru_control(ins, fuse) # control v2/3/4
-       # d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
-       # #d_control = self.pred_control(hx+tls_bias)  # making add (#v3)
-       # control_pred = control_pred + d_control # control v2/3/4
-       # steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
-       # throttle = control_pred[:,1] * self.config.max_throttle
-       # brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
+        ins = torch.cat([control_pred, next_route], dim=1) # control v4
+        # ins = control_pred# control v2
+        hx = self.gru_control(ins, fuse) # control v2/3/4
+        d_control = self.pred_control(torch.cat([hx,tls_bias], dim=1)) # control v2
+        # d_control = self.pred_control(hx+tls_bias)  # making add (#v3)
+        control_pred = control_pred + d_control # control v2/3/4
+        steer = control_pred[:,0] * 2 - 1. # convert from [0,1] to [-1,1]
+        throttle = control_pred[:,1] * self.config.max_throttle
+        brake = control_pred[:,2] #brake: hard 1.0 or no 0.0
         
 
         return ss_f, pred_wp, steer, throttle, brake, red_light, stop_sign, top_view_sc, speed # redl_stops[:,0] , top_view_sc       
@@ -900,6 +900,7 @@ class x13(nn.Module): #
         angle = np.degrees(np.pi / 2 - np.arctan2(aim[1], aim[0])) / 90
         pid_steer = self.turn_controller.step(angle)
         pid_steer = np.clip(pid_steer, -1.0, 1.0)
+
         desired_speed = np.linalg.norm(waypoints[0] - waypoints[1]) * 2.0
         delta = np.clip(desired_speed - speed, 0.0, self.config.clip_delta)
         pid_throttle = self.speed_controller.step(delta)
@@ -912,7 +913,6 @@ class x13(nn.Module): #
             steer = np.clip(self.config.cw_pid[0]*pid_steer + self.config.cw_mlp[0]*mlp_steer, -1.0, 1.0)
             throttle = np.clip(self.config.cw_pid[1]*pid_throttle + self.config.cw_mlp[1]*mlp_throttle, 0.0, self.config.max_throttle)
             brake = 0.0
-
             if (pid_throttle >= self.config.min_act_thrt) and (mlp_throttle < self.config.min_act_thrt):
                 steer = pid_steer
                 throttle = pid_throttle
@@ -925,7 +925,6 @@ class x13(nn.Module): #
                 throttle = 0.0
                 pid_brake = 1.0
                 brake = np.clip(self.config.cw_pid[2]*pid_brake + self.config.cw_mlp[2]*mlp_brake, 0.0, 1.0)
-
         elif ctrl_opt == "both_must":
             #opsi 2: vehicle jalan jika dan hanya jika kedua controller aktif. jika salah satu saja non aktif, maka vehicle berhenti
             steer = np.clip(self.config.cw_pid[0]*pid_steer + self.config.cw_mlp[0]*mlp_steer, -1.0, 1.0)

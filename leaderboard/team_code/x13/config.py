@@ -5,7 +5,7 @@ import random
 class GlobalConfig:
     num_worker = 0# for debugging 0
     gpu_id = '0'
-    camera_z=1.8
+    camera_z= 2.3 #1.8
 
 
     # Model variations
@@ -17,7 +17,7 @@ class GlobalConfig:
 	
     wandb_name = 'Letfuser'
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    model = 'Letfuser_small_attn_1.8' # run name
+    model = 'Letfuser_attn_1.8' # run name
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 	

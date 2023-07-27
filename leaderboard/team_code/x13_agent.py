@@ -103,7 +103,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
                 return [
 				{
 					'type': 'sensor.camera.rgb',
-                                        'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
+                    'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
 					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 					'id': 'rgb_front'
@@ -308,7 +308,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)
 
 		# pid_steer, pid_throttle, pid_brake, pid_metadata = self.net.pid_control(pred_wp, gt_velocity) #PID ONLY
-		steer, throttle, brake, metadata = self.net.mlp_pid_control(pred_wp, gt_velocity, mlp_steer[0][0], mlp_throttle[0][0], mlp_brake[0][0], predl, CONTROL_OPTION) #MIX MLP AND PID
+		steer, throttle, brake, metadata = self.net.mlp_pid_control(pred_wp, gt_velocity, mlp_steer, mlp_throttle, mlp_brake, predl, CONTROL_OPTION) #MIX MLP AND PID
 		# if brake < 0.05: brake = 0.0
 		# if throttle > brake: brake = 0.0
 

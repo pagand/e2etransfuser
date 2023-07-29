@@ -30,7 +30,7 @@ parser.add_argument('--logdir', type=str, default='log', help='Directory to log 
 # Config
 config = GlobalConfig()
 if config.wandb:
-		wandb.init(project=config.wandb_name ,  entity="marslab", name = config.model)
+		wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
 
 args = parser.parse_args(['--id', config.kind ,'--device','cuda','--epochs',str(config.total_epoch), '--lr', str(config.lr), '--val_every', str(config.val_cycle), '--batch_size', str(config.batch_size) ,'--logdir',config.logdir])
 args.logdir = os.path.join(args.logdir, args.id)

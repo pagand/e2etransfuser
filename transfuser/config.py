@@ -3,7 +3,7 @@ import random
 
 class GlobalConfig:
     """ base architecture configurations """
-    num_worker = 4# for debugging 0
+    num_worker = 0# for debugging 0
     gpu_id = '0'
     wandb = False
     low_data = True
@@ -68,7 +68,7 @@ class GlobalConfig:
                     break
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.2*len(train_data)))
+        train_data = random.sample(train_data,int(0.02*len(train_data)))
         val_data = random.sample(val_data,int(0.2*len(val_data)))
 
     # visualizing transformer attention maps

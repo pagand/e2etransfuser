@@ -41,7 +41,7 @@ class GlobalConfig:
 
     n_class = 23
     batch_size = 16 #20
-    total_epoch = 35 #30
+    total_epoch = 20 #30
     
     random_data_len = int(180000 *low_data_rate) #int(280000 * 0.2 ) 
 	

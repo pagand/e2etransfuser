@@ -35,7 +35,7 @@ class CARLA_Data(Dataset):
         self.stop_sign = []
 
         for sub_root in root:
-            preload_file = os.path.join(sub_root, 'x13_rgb_dep_vel_nxr_ctrl_ts_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
+            preload_file = os.path.join(sub_root, 'Letfuser_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
           
 
             # dump to npy if no preload

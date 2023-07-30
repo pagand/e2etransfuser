@@ -97,6 +97,7 @@ def get_queue(folder,seq_len):
 
 def main(root,seq_len,nt):
     sub_folders = os.listdir(root)
+    sub_folders = [sub_folders[0]]
     ins = []
     prog_bar = tqdm(total=nt)
     for folders in sub_folders:

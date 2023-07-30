@@ -18,6 +18,7 @@ class GlobalConfig:
     total_epoch = 40
     batch_size = 50
     val_cycle = 1
+    camera_z = 1.8
 
 	# Data
     seq_len = 1 # input timesteps

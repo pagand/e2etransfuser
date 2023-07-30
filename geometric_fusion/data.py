@@ -19,12 +19,13 @@ class CARLA_Data(Dataset):
 
         self.input_resolution = config.input_resolution
         self.scale = config.scale
+        self.config = config
 
         self.lidar = []
         self.front = []
-        self.left = []
-        self.right = []
-        self.rear = []
+        # self.left = []
+        # self.right = []
+        # self.rear = []
         self.x = []
         self.y = []
         self.x_command = []
@@ -42,9 +43,9 @@ class CARLA_Data(Dataset):
             # dump to npy if no preload
             if not os.path.exists(preload_file):
                 preload_front = []
-                preload_left = []
-                preload_right = []
-                preload_rear = []
+                # preload_left = []
+                # preload_right = []
+                # preload_rear = []
                 preload_lidar = []
                 preload_x = []
                 preload_y = []
@@ -59,18 +60,18 @@ class CARLA_Data(Dataset):
 
                 # list sub-directories in root 
                 root_files = os.listdir(sub_root)
-                routes = [folder for folder in root_files if not os.path.isfile(os.path.join(sub_root,folder))]
-                for route in routes:
-                    route_dir = os.path.join(sub_root, route)
-                    print(route_dir)
+                scenarios = [folder for folder in root_files if not os.path.isfile(os.path.join(sub_root,folder))]
+                for scenario in scenarios:
+                    scenario_dir = os.path.join(sub_root, scenario)
+                    # print(route_dir)
                     # subtract final frames (pred_len) since there are no future waypoints
                     # first frame of sequence not used
-                    num_seq = (len(os.listdir(route_dir+"/rgb_front/"))-self.pred_len-2)//self.seq_len
+                    num_seq = (len(os.listdir(scenario_dir+"/rgb/"))-self.pred_len-2)//self.seq_len
                     for seq in range(num_seq):
                         fronts = []
-                        lefts = []
-                        rights = []
-                        rears = []
+                        # lefts = []
+                        # rights = []
+                        # rears = []
                         lidars = []
                         xs = []
                         ys = []
@@ -81,16 +82,16 @@ class CARLA_Data(Dataset):
                             
                             # images
                             filename = f"{str(seq*self.seq_len+1+i).zfill(4)}.png"
-                            fronts.append(route_dir+"/rgb_front/"+filename)
-                            lefts.append(route_dir+"/rgb_left/"+filename)
-                            rights.append(route_dir+"/rgb_right/"+filename)
-                            rears.append(route_dir+"/rgb_rear/"+filename)
+                            fronts.append(scenario_dir+"/rgb/"+filename)
+                            # lefts.append(route_dir+"/rgb_left/"+filename)
+                            # rights.append(route_dir+"/rgb_right/"+filename)
+                            # rears.append(route_dir+"/rgb_rear/"+filename)
 
                             # point cloud
-                            lidars.append(route_dir + f"/lidar/{str(seq*self.seq_len+1+i).zfill(4)}.npy")
+                            lidars.append(scenario_dir + f"/lidar/{str(seq*self.seq_len+1+i).zfill(4)}.npy")
                             
                             # position
-                            with open(route_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
+                            with open(scenario_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
                                 data = json.load(read_file)
                             xs.append(data['x'])
                             ys.append(data['y'])
@@ -108,10 +109,10 @@ class CARLA_Data(Dataset):
                         # read files sequentially (future frames)
                         for i in range(self.seq_len, self.seq_len + self.pred_len):
                             # point cloud
-                            lidars.append(route_dir + f"/lidar/{str(seq*self.seq_len+1+i).zfill(4)}.npy")
+                            lidars.append(scenario_dir + f"/lidar/{str(seq*self.seq_len+1+i).zfill(4)}.npy")
                             
                             # position
-                            with open(route_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
+                            with open(scenario_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
                                 data = json.load(read_file)
                             xs.append(data['x'])
                             ys.append(data['y'])
@@ -123,9 +124,9 @@ class CARLA_Data(Dataset):
                                 thetas.append(data['theta'])
 
                         preload_front.append(fronts)
-                        preload_left.append(lefts)
-                        preload_right.append(rights)
-                        preload_rear.append(rears)
+                        # preload_left.append(lefts)
+                        # preload_right.append(rights)
+                        # preload_rear.append(rears)
                         preload_lidar.append(lidars)
                         preload_x.append(xs)
                         preload_y.append(ys)
@@ -134,9 +135,9 @@ class CARLA_Data(Dataset):
                 # dump to npy
                 preload_dict = {}
                 preload_dict['front'] = preload_front
-                preload_dict['left'] = preload_left
-                preload_dict['right'] = preload_right
-                preload_dict['rear'] = preload_rear
+                # preload_dict['left'] = preload_left
+                # preload_dict['right'] = preload_right
+                # preload_dict['rear'] = preload_rear
                 preload_dict['lidar'] = preload_lidar
                 preload_dict['x'] = preload_x
                 preload_dict['y'] = preload_y
@@ -153,9 +154,9 @@ class CARLA_Data(Dataset):
             # load from npy if available
             preload_dict = np.load(preload_file, allow_pickle=True)
             self.front += preload_dict.item()['front']
-            self.left += preload_dict.item()['left']
-            self.right += preload_dict.item()['right']
-            self.rear += preload_dict.item()['rear']
+            # self.left += preload_dict.item()['left']
+            # self.right += preload_dict.item()['right']
+            # self.rear += preload_dict.item()['rear']
             self.lidar += preload_dict.item()['lidar']
             self.x += preload_dict.item()['x']
             self.y += preload_dict.item()['y']
@@ -177,38 +178,36 @@ class CARLA_Data(Dataset):
         """Returns the item at index idx. """
         data = dict()
         data['fronts'] = []
-        data['lefts'] = []
-        data['rights'] = []
-        data['rears'] = []
+        # data['lefts'] = []
+        # data['rights'] = []
+        # data['rears'] = []
         data['lidars'] = []
         data['bev_points'] = []
         data['cam_points'] = []
 
         seq_fronts = self.front[index]
-        seq_lefts = self.left[index]
-        seq_rights = self.right[index]
-        seq_rears = self.rear[index]
+        # seq_lefts = self.left[index]
+        # seq_rights = self.right[index]
+        # seq_rears = self.rear[index]
         seq_lidars = self.lidar[index]
         seq_x = self.x[index]
         seq_y = self.y[index]
         seq_theta = self.theta[index]
 
         full_lidar = []
-        pos = []
-        neg = []
         for i in range(self.seq_len):
             data['fronts'].append(torch.from_numpy(np.array(
-                scale_and_crop_image(Image.open(seq_fronts[i]), scale=self.scale, crop=self.input_resolution))))
-            if not self.ignore_sides:
-                data['lefts'].append(torch.from_numpy(np.array(
-                    scale_and_crop_image(Image.open(seq_lefts[i]), scale=self.scale, crop=self.input_resolution))))
-                data['rights'].append(torch.from_numpy(np.array(
-                    scale_and_crop_image(Image.open(seq_rights[i]), scale=self.scale, crop=self.input_resolution))))
-            if not self.ignore_rear:
-                data['rears'].append(torch.from_numpy(np.array(
-                    scale_and_crop_image(Image.open(seq_rears[i]), scale=self.scale, crop=self.input_resolution))))
+                scale_and_crop_image(Image.open(seq_fronts[-1]), scale=self.scale, crop=self.input_resolution))))
+            # if not self.ignore_sides:
+            #     data['lefts'].append(torch.from_numpy(np.array(
+            #         scale_and_crop_image(Image.open(seq_lefts[i]), scale=self.scale, crop=self.input_resolution))))
+            #     data['rights'].append(torch.from_numpy(np.array(
+            #         scale_and_crop_image(Image.open(seq_rights[i]), scale=self.scale, crop=self.input_resolution))))
+            # if not self.ignore_rear:
+            #     data['rears'].append(torch.from_numpy(np.array(
+            #         scale_and_crop_image(Image.open(seq_rears[i]), scale=self.scale, crop=self.input_resolution))))
             
-            lidar_unprocessed = np.load(seq_lidars[i])[...,:3] # lidar: XYZI
+            lidar_unprocessed = np.load(seq_lidars[i], allow_pickle=True)[1][...,:3] # lidar: XYZI
             full_lidar.append(lidar_unprocessed)
         
             # fix for theta=nan in some measurements
@@ -221,7 +220,7 @@ class CARLA_Data(Dataset):
 
         # future frames
         for i in range(self.seq_len, self.seq_len + self.pred_len):
-            lidar_unprocessed = np.load(seq_lidars[i])
+            lidar_unprocessed = np.load(seq_lidars[i], allow_pickle=True)
             full_lidar.append(lidar_unprocessed)      
 
         # lidar and waypoint processing to local coordinates
@@ -243,7 +242,7 @@ class CARLA_Data(Dataset):
                 lidar_processed = lidar_to_histogram_features(full_lidar[i], crop=self.input_resolution)
                 data['lidars'].append(lidar_processed)
 
-                bev_points, cam_points = lidar_bev_cam_correspondences(full_lidar[i], crop=self.input_resolution)
+                bev_points, cam_points = lidar_bev_cam_correspondences(full_lidar[i], self.config ,crop=self.input_resolution)
                 data['bev_points'].append(bev_points)
                 data['cam_points'].append(cam_points)
 
@@ -272,13 +271,13 @@ def correspondences_at_one_scale(valid_bev_points, valid_cam_points, crop, scale
     """
     Compute projections between LiDAR BEV and image space
     """
-    cam_to_bev_proj_locs = np.zeros((crop, crop, 5, 2))
-    bev_to_cam_proj_locs = np.zeros((crop, crop, 5, 2))
+    cam_to_bev_proj_locs = np.zeros((crop[1], crop[0], 5, 2))
+    bev_to_cam_proj_locs = np.zeros((crop[1], crop[0], 5, 2))
 
-    tmp_bev = np.empty((crop, crop, ), dtype=object)
-    tmp_cam = np.empty((crop, crop, ), dtype=object)
-    for i in range(crop):
-        for j in range(crop):
+    tmp_bev = np.empty((crop[1], crop[0], ), dtype=object)
+    tmp_cam = np.empty((crop[1], crop[0], ), dtype=object)
+    for i in range(crop[1]):
+        for j in range(crop[0]):
             tmp_bev[i,j] = []
             tmp_cam[i,j] = []
 
@@ -286,8 +285,8 @@ def correspondences_at_one_scale(valid_bev_points, valid_cam_points, crop, scale
         tmp_bev[valid_bev_points[i][0]//scale, valid_bev_points[i][1]//scale].append(valid_cam_points[i]//scale)
         tmp_cam[valid_cam_points[i][0]//scale, valid_cam_points[i][1]//scale].append(valid_bev_points[i]//scale)
 
-    for i in range(crop):
-        for j in range(crop):
+    for i in range(crop[1]):
+        for j in range(crop[0]):
             cam_to_bev_points = tmp_bev[i,j]
             bev_to_cam_points = tmp_cam[i,j]
 
@@ -306,18 +305,19 @@ def correspondences_at_one_scale(valid_bev_points, valid_cam_points, crop, scale
     return cam_to_bev_proj_locs, bev_to_cam_proj_locs
 
 
-def lidar_bev_cam_correspondences(world, crop=256):
+def lidar_bev_cam_correspondences(world, config, crop=256):
     """
     Convert LiDAR point cloud to camera co-ordinates
     """
     pixels_per_world = 8
-    w = 400
-    h = 300
-    fov = 100
+    fov = config.fov
+    cam_height = config.cam_height
+    w = config.img_width#400
+    h =config.img_height # 300
+    # fov = 100
     F = w / (2 * np.tan(fov * np.pi / 360))
     fy = F
     fx = 1.1 * F
-    cam_height = 2.3
 
     # get valid points in 32x32 grid
     world[:,1] *= -1
@@ -333,10 +333,10 @@ def lidar_bev_cam_correspondences(world, crop=256):
     result[:,0] = np.clip(result[..., 0], 0, w-1)
     result[:,1] = np.clip(result[..., 1], 0, h-1)
 
-    start_x = w // 2 - crop // 2
-    start_y = h // 2 - crop // 2
-    end_x = start_x + crop
-    end_y = start_y + crop
+    start_x = w // 2 - crop[0]//2
+    start_y = h // 2 - crop[1]//2
+    end_x = start_x + crop[0]
+    end_y = start_y + crop[1]
 
     valid_lidar_points = []
     valid_bev_points = []
@@ -347,15 +347,15 @@ def lidar_bev_cam_correspondences(world, crop=256):
             result[i][1] -= start_y
             valid_lidar_points.append(lidar[i])
             valid_cam_points.append([int(result[i][0]), int(result[i][1])])
-            bev_x = min(int((lidar[i][0] + 16) * pixels_per_world), crop-1)
-            bev_y = min(int(lidar[i][1] * pixels_per_world), crop-1)
+            bev_x = min(int((lidar[i][0] + 16) * pixels_per_world), crop[0]-1)
+            bev_y = min(int(lidar[i][1] * pixels_per_world), crop[1]-1)
             valid_bev_points.append([bev_x, bev_y])
 
     valid_lidar_points = np.array(valid_lidar_points)
     valid_bev_points = np.array(valid_bev_points)
     valid_cam_points = np.array(valid_cam_points)
 
-    bev_points, cam_points = correspondences_at_one_scale(valid_bev_points, valid_cam_points, 8, 32)
+    bev_points, cam_points = correspondences_at_one_scale(valid_bev_points, valid_cam_points, [config.vert_anchors, config.horz_anchors], 32) #8,32
 
     return bev_points, cam_points
 
@@ -368,8 +368,8 @@ def lidar_to_histogram_features(lidar, crop=256):
         # 256 x 256 grid
         pixels_per_meter = 8
         hist_max_per_pixel = 5
-        x_meters_max = 16
-        y_meters_max = 32
+        x_meters_max = int(crop[1]/pixels_per_meter/2)#16 
+        y_meters_max = int(crop[0]/pixels_per_meter) #32
         xbins = np.linspace(-2*x_meters_max, 2*x_meters_max+1, 2*x_meters_max*pixels_per_meter+1)
         ybins = np.linspace(-y_meters_max, 0, y_meters_max*pixels_per_meter+1)
         hist = np.histogramdd(point_cloud[...,:2], bins=(xbins, ybins))[0]
@@ -395,9 +395,9 @@ def scale_and_crop_image(image, scale=1, crop=256):
     (width, height) = (int(image.width // scale), int(image.height // scale))
     im_resized = image.resize((width, height))
     image = np.asarray(im_resized)
-    start_x = height//2 - crop//2
-    start_y = width//2 - crop//2
-    cropped_image = image[start_x:start_x+crop, start_y:start_y+crop]
+    start_x = height//2 - crop[0]//2
+    start_y = width//2 - crop[1]//2
+    cropped_image = image[start_x:start_x+crop[0], start_y:start_y+crop[1]]
     cropped_image = np.transpose(cropped_image, (2,0,1))
     return cropped_image
 

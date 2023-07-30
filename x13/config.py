@@ -8,7 +8,7 @@ class GlobalConfig:
     model = 'x13_1img_1.8'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
-    wandb_name = 'baselines'
+    wandb_name = 'baselines_long'
 
     dataset = "1.8"  # comment model forward path TODO 2
 
@@ -71,8 +71,8 @@ class GlobalConfig:
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
-    #input_resolution = [160,768] # PMLR dataset #768 for 3 images input
-    input_resolution = [160,160] # PMLR dataset #512 for 1 image imput
+    #input_resolution = [160,768] # PMLR dataset #768
+    input_resolution = [160,160] # 1 image
     # coverage_area = 64
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
  

@@ -3,7 +3,7 @@ import os
 class GlobalConfig:
     """ base architecture configurations """
 	# Data
-    dataset="1.8"
+    dataset="2.3"
     seq_len = 1 # input timesteps
     # use different seq len for image and lidar
     img_seq_len = 1 

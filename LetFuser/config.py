@@ -7,15 +7,15 @@ class GlobalConfig:
     gpu_id = '0'
 
     # Model variations
-    wandb = True #False
+    wandb = False
     low_data = False #True
     attn = True # comment model forward path TODO 1
-    augment_control_data = False #True  # comment model forward path TODO 2
+    augment_control_data = True  # comment model forward path TODO 2
     MGN = True
 	
     wandb_name = 'Letfuser'
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    model = 'Letfuser_small2_attn_1.8' # run name
+    model = 'Letfuser_attn_augControl_1.8' # run name
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 	

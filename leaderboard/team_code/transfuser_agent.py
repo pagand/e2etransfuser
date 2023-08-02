@@ -91,15 +91,15 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 	def sensors(self):
 		return [
 
-			{
+			        {
 					'type': 'sensor.camera.rgb',
-                    'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
+                                        'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
 					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 					'id': 'rgb_front'
 					},
 				{
-			 	'type': 'sensor.camera.rgb',
+			 	        'type': 'sensor.camera.rgb',
 				 	'x': 1.3, 'y': 0.0, 'z': self.config.camera_z,
 				 	'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
 				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
@@ -140,12 +140,12 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 				# 	'width': 400, 'height': 300, 'fov': 100,
 				# 	'id': 'rgb_rear'
 				# 	},
-                {   
-                    'type': 'sensor.lidar.ray_cast',
-                    'x': 1.3, 'y': 0.0, 'z': 2.5,
-                    'roll': 0.0, 'pitch': 0.0, 'yaw': -90.0,
-                    'id': 'lidar'
-                    },
+                             {   
+                                 'type': 'sensor.lidar.ray_cast',
+                                 'x': 1.3, 'y': 0.0, 'z': 2.5,
+                                  'roll': 0.0, 'pitch': 0.0, 'yaw': -90.0,
+                                 'id': 'lidar'
+                             },
 				{
 					'type': 'sensor.other.imu',
 					'x': 0.0, 'y': 0.0, 'z': 0.0,

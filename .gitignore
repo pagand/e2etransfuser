@@ -20,7 +20,7 @@ utilx/log.txt
 x13/wandb
 !data/README.md
 transfuser_cvpr/
-transfuser_pmlr/data/
+#transfuser_pmlr/data/
 transfuser_pmlr/data0/
 transfuser_pmlr/log/
 transfuser_pmlr/results/
@@ -200,7 +200,7 @@ results/
 model_ckpt/
 #data/
 data1/
-transfuser_pmlr/leaderboard/data
+#transfuser_pmlr/leaderboard/data
 transfuser_pmlr/team_code_transfuser/log*
 
 /home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/leaderboard/scripts/run_evaluation2.sh

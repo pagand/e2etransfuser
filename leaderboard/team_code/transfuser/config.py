@@ -43,34 +43,34 @@ class GlobalConfig:
     #     # val_data.append(os.path.join(root_dir, town+'_x'))
 
     # PMLR data
-    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'  # for the PMLR dataset
+   # root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'  # for the PMLR dataset
 
     train_data, val_data = [], []
 
     ## For PMLR dataset
-    root_files = os.listdir(root_dir)
+   # root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
     train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
     val_towns = ['Town05'] # 'Town05'
 
-    for dir in root_files:
-        scn_files = os.listdir(os.path.join(root_dir,dir))
-        for routes in scn_files:
-            for t in routes.split("_"):
-                if t[0] != 'T':
-                    continue
-                if t in train_towns:
-                    train_data.append(os.path.join(root_dir,dir, routes))
-                    break
-                elif t in val_towns:
-                    val_data.append(os.path.join(root_dir,dir, routes))
-                    break
-                else:
-                    break
-    if low_data:
-        random.seed(0)
-        train_data = random.sample(train_data,int(0.2*len(train_data)))
-        val_data = random.sample(val_data,int(0.2*len(val_data)))
+   # for dir in root_files:
+   #     scn_files = os.listdir(os.path.join(root_dir,dir))
+   #     for routes in scn_files:
+   #         for t in routes.split("_"):
+   #             if t[0] != 'T':
+   #                 continue
+   #             if t in train_towns:
+   #                 train_data.append(os.path.join(root_dir,dir, routes))
+   #                 break
+   #             elif t in val_towns:
+   #                 val_data.append(os.path.join(root_dir,dir, routes))
+   #                 break
+   #             else:
+   #                 break
+   # if low_data:
+   #     random.seed(0)
+   #     train_data = random.sample(train_data,int(0.2*len(train_data)))
+   #     val_data = random.sample(val_data,int(0.2*len(val_data)))
 
     # visualizing transformer attention maps
     # TODO what is viz_data
@@ -84,10 +84,12 @@ class GlobalConfig:
     ignore_rear = True # don't consider rear cameras
     n_views = 1 # no. of camera views
 
+    camera_z=1.8
+
 
 
     # input_resolution = 256
-    input_resolution = [160,768] #  [160,160] for only one camera [160,768] for 3
+    input_resolution = [160,160] #  [160,160] for only one camera [160,768] for 3
 
 
     scale = 1 # image pre-processing

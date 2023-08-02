@@ -217,6 +217,7 @@ class CARLA_Data(Dataset):
                 seq_theta[i] = 0.
 
         #input 1 RGB, no sequence
+       # print(seq_fronts[-1])
         data['fronts'] = torch.from_numpy(np.array(
             scale_and_crop_image(Image.open(seq_fronts[-1]), scale=self.config.scale, crop=self.config.input_resolution))) #[ ]
         data['seg_fronts'] = torch.from_numpy(np.array(cls2one_hot(

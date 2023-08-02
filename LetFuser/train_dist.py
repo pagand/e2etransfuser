@@ -10,7 +10,8 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
-from LetFuser.model_dist import letfuser
+#from model_dist import letfuser
+from model_no_attn import letfuser
 from data import CARLA_Data
 # from data import CARLA_Data
 from config import GlobalConfig
@@ -434,8 +435,8 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-	#	wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
-		wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
+		wandb.init(project=config.wandb_name,  entity="ai-mars", name = config.model)
+	#	wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 

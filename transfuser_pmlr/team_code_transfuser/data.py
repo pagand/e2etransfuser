@@ -331,14 +331,10 @@ class CARLA_Data(Dataset):
 
         # other measurement
         # do you use the last frame that already happend or use the next frame?
-        if self.dataset=="2.3":
+        if True:
             data['steer'] = measurements[self.seq_len-1]['steer'][0]
             data['throttle'] = measurements[self.seq_len-1]['throttle'][0]
             data['brake'] = measurements[self.seq_len-1]['brake'][0]
-        else:
-            data['steer'] = measurements[self.seq_len-1]['steer']
-            data['throttle'] = measurements[self.seq_len-1]['throttle']
-            data['brake'] = measurements[self.seq_len-1]['brake']
         data['light'] = measurements[self.seq_len-1]['light_hazard']
         data['speed'] = measurements[self.seq_len-1]['speed']
         data['theta'] = measurements[self.seq_len-1]['theta']

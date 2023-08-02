@@ -4,16 +4,16 @@ class GlobalConfig:
     num_worker = 0# for debugging 0
     gpu_id = '0'
     wandb = True
-    low_data = False # True
-    model = 'x13_1img_1.8'
+    low_data = False #True
+    model = 'x13_3img_new1.8'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
-    wandb_name = 'baselines_long'
+    wandb_name = 'baselines_new'
 
     dataset = "1.8"  # comment model forward path TODO 2
 
     n_class = 23
-    batch_size = 32 #20
+    batch_size = 20
     
     # MGN parameter
     MGN = True
@@ -27,8 +27,8 @@ class GlobalConfig:
 
     #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # for the PMLR dataset
     #root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
-    #root_dir = '/localscratch/mmahdavi/transfuser/new_dataset'
-    root_dir = '/localscratch/mmahdavi/data'
+    root_dir = '/localscratch/mmahdavi/transfuser/new_dataset'
+    #root_dir = '/localscratch/mmahdavi/data'
 
     train_data, val_data = [], []
 
@@ -37,6 +37,7 @@ class GlobalConfig:
     # train_towns = ['Town04']
     train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
     #train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD', 'Town01long', 'Town02long', 'Town03long', 'Town04long', 'Town06long'] #
+   # train_towns=['Town05']
     val_towns = ['Town05'] # 'Town05long'
 
     for dir in root_files:
@@ -71,8 +72,8 @@ class GlobalConfig:
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
-    #input_resolution = [160,768] # PMLR dataset #768
-    input_resolution = [160,160] # 1 image
+    input_resolution = [160,768] # PMLR dataset #768
+    #input_resolution = [160,160] # 1 image
     # coverage_area = 64
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
  

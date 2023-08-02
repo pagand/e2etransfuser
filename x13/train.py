@@ -237,7 +237,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 	with torch.no_grad():
 		prog_bar = tqdm(total=len(data_loader))
 
-		#validasi....
+		#validate....
 		total_batch = len(data_loader)
 		batch_ke = 0
 		for data in data_loader:

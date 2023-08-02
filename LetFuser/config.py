@@ -7,15 +7,15 @@ class GlobalConfig:
     gpu_id = '0'
 
     # Model variations
-    wandb = False
+    wandb = True
     low_data = False #True
-    attn = True # comment model forward path TODO 1
+    attn = False #True # comment model forward path TODO 1
     augment_control_data = True  # comment model forward path TODO 2
     MGN = True
 	
-    wandb_name = 'Letfuser'
+    wandb_name = 'Letfuser_NewDataset'
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    model = 'Letfuser_attn_augControl_1.8' # run name
+    model = 'Letfuser_No_attn_withaugControl_dist_1.8' # run name
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 	
@@ -40,10 +40,10 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 16 #20
+    batch_size = 20 #20
     total_epoch = 20 #30
     
-    random_data_len = int(180000 *low_data_rate) #int(280000 * 0.2 ) 
+    random_data_len = int(284000 *low_data_rate) #int(280000 * 0.2 ) 
 	
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
@@ -80,6 +80,7 @@ class GlobalConfig:
     root_dir = '/localscratch/mmahdavi/transfuser/new_dataset'
     #root_dir = '/localscratch/pagand/data'
     #root_dir = '/localscratch/mmahdavi/data'
+    #root_dir = '/project/mars-lab/e2e/new_dataset'
 
     train_data, val_data = [], []
 

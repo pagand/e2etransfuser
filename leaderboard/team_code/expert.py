@@ -101,6 +101,8 @@ class AutoPilot(MapAgent):
 
         #buat static weather, kalau mau dinamik, check line 16x
         # self._world.set_weather(WEATHERS[WEATHERX])
+        
+        self.step = -1
 
         self._turn_controller = PIDController(K_P=1.25, K_I=0.75, K_D=0.3, n=40)
         self._speed_controller = PIDController(K_P=5.0, K_I=0.5, K_D=1.0, n=40)
@@ -163,14 +165,15 @@ class AutoPilot(MapAgent):
             self._init()
 
         # change weather for visual diversity
-        """
+
         if self.step % 10 == 0:
             index = random.choice(range(len(WEATHERS)))
             self.weather_id = WEATHERS_IDS[index]
             weather = WEATHERS[WEATHERS_IDS[index]]
             print (self.weather_id, weather)
             self._world.set_weather(weather)
-        """
+        
+        self.step += 1
 
         data = self.tick(input_data)
         gps = self._get_position(data)
@@ -189,7 +192,7 @@ class AutoPilot(MapAgent):
             self.save(near_node, far_node, near_command, steer, throttle, brake, target_speed, data)
 
         return control
-
+    
     def _should_brake(self):
         actors = self._world.get_actors()
 

@@ -45,7 +45,8 @@ class GlobalConfig:
 #    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'  # for the PMLR dataset
 #    root_dir = '/localscratch/mmahdavi/transfuser/new_dataset'
 #    root_dir = '/localscratch/mmahdavi/transfuser/data'
-    root_dir = '/localscratch/mmahdavi/data'
+#    root_dir = '/localscratch/mmahdavi/data'
+    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data2'
 
     train_data, val_data = [], []
 

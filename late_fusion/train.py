@@ -132,9 +132,9 @@ class Engine(object):
 				
 				# create batch and move to GPU
 				fronts_in = data['fronts']
-				lefts_in = data['lefts']
-				rights_in = data['rights']
-				rears_in = data['rears']
+#				lefts_in = data['lefts']
+#				rights_in = data['rights']
+#				rears_in = data['rears']
 				lidars_in = data['lidars']
 				fronts = []
 				lefts = []
@@ -143,11 +143,11 @@ class Engine(object):
 				lidars = []
 				for i in range(config.seq_len):
 					fronts.append(fronts_in[i].to(args.device, dtype=torch.float32))
-					if not config.ignore_sides:
-						lefts.append(lefts_in[i].to(args.device, dtype=torch.float32))
-						rights.append(rights_in[i].to(args.device, dtype=torch.float32))
-					if not config.ignore_rear:
-						rears.append(rears_in[i].to(args.device, dtype=torch.float32))
+#					if not config.ignore_sides:
+#						lefts.append(lefts_in[i].to(args.device, dtype=torch.float32))
+#						rights.append(rights_in[i].to(args.device, dtype=torch.float32))
+#					if not config.ignore_rear:
+#						rears.append(rears_in[i].to(args.device, dtype=torch.float32))
 					lidars.append(lidars_in[i].to(args.device, dtype=torch.float32))
 
 				# driving labels
@@ -162,11 +162,11 @@ class Engine(object):
 
 				# inference
 				encoding = [model.image_encoder(fronts)]
-				if not config.ignore_sides:
-					encoding.append(model.image_encoder(lefts))
-					encoding.append(model.image_encoder(rights))
-				if not config.ignore_rear:
-					encoding.append(model.image_encoder(rears))
+#				if not config.ignore_sides:
+#					encoding.append(model.image_encoder(lefts))
+#					encoding.append(model.image_encoder(rights))
+#				if not config.ignore_rear:
+#					encoding.append(model.image_encoder(rears))
 
 				# encode lidar
 				encoding.append(model.lidar_encoder(lidars))

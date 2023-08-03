@@ -1,4 +1,4 @@
-# LeTFuser: Light-weight End-to-end Transformer-Based Sensor Fusion for Autonomous Driving with Multi-Task Learning
+# DMFuser: Distilled Multi-Task Learning for  End-to-end Transformer-Based Sensor Fusion in Autonomous Driving
 
 
 <img src="transfuser_pmlr/figures/demo.gif">

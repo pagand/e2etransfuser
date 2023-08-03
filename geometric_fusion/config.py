@@ -5,10 +5,10 @@ class GlobalConfig:
 	# Data
     num_worker = 0# for debugging 0
     gpu_id = '0'
-    wandb = False
-    low_data = True
+    wandb = True
+    low_data = False
     wandb_name = 'baselines'
-    model = 'GF_'
+    model = 'GF_3img_PC'
     logdir = 'log/'+model #+'_w1' for 1 weather only
     total_epoch = 40
     batch_size = 50
@@ -67,7 +67,7 @@ class GlobalConfig:
     ignore_sides = True # don't consider side cameras
     ignore_rear = True # don't consider rear cameras
 
-    input_resolution = [160,160]
+    input_resolution = [160,160] #768, 160
 
     scale = 1 # image pre-processing
     crop = 256 # image pre-processing

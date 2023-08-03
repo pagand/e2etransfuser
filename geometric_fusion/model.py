@@ -156,6 +156,7 @@ class Encoder(nn.Module):
             bev_encoding_layer1 = torch.diagonal(bev_encoding_layer1, 0).permute(4,3,0,1,2).contiguous()
             bev_encoding_layer1 = torch.sum(bev_encoding_layer1, -1)
             bev_encoding_layer1 = self.image_projection1(bev_encoding_layer1.permute(0,2,3,1)).permute(0,3,1,2).contiguous()
+            
             lidar_features_layer1 = F.interpolate(bev_encoding_layer1, scale_factor=8, mode='bilinear')
             lidar_features_layer1 = self.lidar_deconv1(lidar_features_layer1)
             lidar_features = lidar_features + lidar_features_layer1

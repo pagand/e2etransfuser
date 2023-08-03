@@ -97,6 +97,7 @@ def get_queue(folder,seq_len):
 
 def main(root,seq_len,nt):
     sub_folders = os.listdir(root)
+    sub_folders = [sub_folders[0]]
     ins = []
     prog_bar = tqdm(total=nt)
     for folders in sub_folders:
@@ -123,8 +124,8 @@ def main(root,seq_len,nt):
 if __name__ == '__main__':
     logging.basicConfig(filename='./utilx/log.txt', level=logging.DEBUG)
     start = time.time()
-    data_address = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data0'
-    ntotal = 45 # total folders
+    data_address = '/project/mars-lab/e2e/new_dataset/Scenario11/Town01_Scenario11/Town01_Scenario11_route2_05_11_15_52_59'
+    ntotal = 1 # total folders
     ins = main(data_address,seq_len=3,nt = ntotal)
     print('Waiting for all background process to finish ...')
     time.sleep(ntotal/10)

@@ -5,13 +5,13 @@ class GlobalConfig:
     """ base architecture configurations """
     num_worker = 0# for debugging 0
     gpu_id = '0'
-    wandb = False # True
+    wandb = True
     low_data = False #True
-    wandb_name = 'baselines'
+    wandb_name = 'baselines_new'
 
     kind = 'baseline' 
 
-    model = 'transfuser_1.8_3img_nv1_768'
+    model = 'transfuser_new1.8_1img'
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 
@@ -43,10 +43,9 @@ class GlobalConfig:
 
     # PMLR data
 #    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'  # for the PMLR dataset
-#    root_dir = '/localscratch/mmahdavi/transfuser/new_dataset'
+    root_dir = '/localscratch/mmahdavi/transfuser/new_dataset'
 #    root_dir = '/localscratch/mmahdavi/transfuser/data'
 #    root_dir = '/localscratch/mmahdavi/data'
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data2'
 
     train_data, val_data = [], []
 
@@ -73,7 +72,7 @@ class GlobalConfig:
                     break
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.2*len(train_data)))
+        train_data = random.sample(train_data,int(0.02*len(train_data)))
         val_data = random.sample(val_data,int(0.2*len(val_data)))
 
     # visualizing transformer attention maps
@@ -89,8 +88,7 @@ class GlobalConfig:
     n_views = 1 # no. of camera views
 
     # input_resolution = 256
-    input_resolution = [160,768] #[160,160]  # PMLR dataset #768
-
+    input_resolution = [160,160] #[160,160]  # PMLR dataset #768
 
     scale = 1 # image pre-processing
 

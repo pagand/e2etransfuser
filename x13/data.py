@@ -35,7 +35,7 @@ class CARLA_Data(Dataset):
         self.stop_sign = []
 
         for sub_root in root:
-            preload_file = os.path.join(sub_root, 'x13_rgb_dep_vel_nxr_ctrl_ts_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
+            preload_file = os.path.join(sub_root, 'Letfuser_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
           
 
             # dump to npy if no preload
@@ -217,6 +217,7 @@ class CARLA_Data(Dataset):
                 seq_theta[i] = 0.
 
         #input 1 RGB, no sequence
+       # print(seq_fronts[-1])
         data['fronts'] = torch.from_numpy(np.array(
             scale_and_crop_image(Image.open(seq_fronts[-1]), scale=self.config.scale, crop=self.config.input_resolution))) #[ ]
         data['seg_fronts'] = torch.from_numpy(np.array(cls2one_hot(

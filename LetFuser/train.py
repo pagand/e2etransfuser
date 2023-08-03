@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
-from model import x13
+from model import letfuser
 from data import CARLA_Data
 # from data import CARLA_Data
 from config import GlobalConfig
@@ -113,16 +113,10 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			gt_brake = torch.stack(gt_brake, dim=1).to(device, dtype=torch.float)
 
 		else:
-                    if config.dataset == "2.3":
                         gt_steer = data['steer'][0].to(device, dtype=torch.float)
                         gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
                         gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
                         gt_brake = data['brake'][0].to(device, dtype=torch.float)
-                    else:
-                        gt_steer = data['steer'].to(device, dtype=torch.float)
-                        gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
-                        gt_throttle = data['throttle'].to(device, dtype=torch.float)
-                        gt_brake = data['brake'].to(device, dtype=torch.float)
 		gt_red_light = data['red_light'].to(device, dtype=torch.float)
 		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 		gt_command = data['command'].to(device, dtype=torch.float)
@@ -350,16 +344,10 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 				gt_brake = [data['brake'][i].to(device, dtype=torch.float) for i in range( len(data['brake']))]
 				gt_brake = torch.stack(gt_brake, dim=1).to(device, dtype=torch.float)
 			else:
-				if config.dataset=="2.3":
-					gt_steer = data['steer'][0].to(device, dtype=torch.float)
-					gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
-					gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
-					gt_brake = data['brake'][0].to(device, dtype=torch.float)
-				else:
-					gt_steer = data['steer'].to(device, dtype=torch.float)
-					gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
-					gt_throttle = data['throttle'].to(device, dtype=torch.float)
-					gt_brake = data['brake'].to(device, dtype=torch.float)
+				gt_steer = data['steer'][0].to(device, dtype=torch.float)
+				gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
+				gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
+				gt_brake = data['brake'][0].to(device, dtype=torch.float)
 
 			gt_red_light = data['red_light'].to(device, dtype=torch.float)
 			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
@@ -372,8 +360,8 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			loss_seg = BCEDice(pred_seg, seg_fronts)
 			loss_wp = F.l1_loss(pred_wp, gt_waypoints)
 
-			# To be consistent with non-augment appraoches:
-			if config.dataset=="2.3":
+			if config.augment_control_data:
+				# To be consistent with non-augment appraoches only compute the first error
 				loss_str = F.l1_loss(steer[:,0], gt_steer[:,0])
 				loss_thr = F.l1_loss(throttle[:,0], gt_throttle[:,0])
 				loss_brk = F.l1_loss(brake[:,0], gt_brake[:,0])
@@ -385,8 +373,13 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			loss_redl = F.l1_loss(red_light, gt_red_light)
 			loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
 			loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)
-
-			total_loss = loss_seg + loss_wp + loss_str + loss_thr + loss_brk + loss_redl + loss_stops + loss_speed
+			
+			# compute all losses (horizon) for loss_str, loss_thr, loss_brk to avoid over fitting
+			#total_loss = loss_seg + loss_wp + loss_str + loss_thr + loss_brk + loss_redl + loss_stops + loss_speed
+			total_loss = loss_seg + loss_wp + F.l1_loss(steer, gt_steer) \
+											+ F.l1_loss(throttle, gt_throttle) \
+											+ F.l1_loss(brake, gt_brake) \
+											+ loss_redl + loss_stops + loss_speed
 
 			score['total_loss'].update(total_loss.item())
 			score['ss_loss'].update(loss_seg.item()) 
@@ -439,7 +432,7 @@ def main():
 
 	#IMPORT MODEL
 	print("IMPORT ARSITEKTUR DL DAN COMPILE")
-	model = x13(config, device).float().to(device)
+	model = letfuser(config, device).float().to(device)
 	model_parameters = filter(lambda p: p.requires_grad, model.parameters())
 	params = sum([np.prod(p.size()) for p in model_parameters])
 	print('Total trainable parameters: ', params)

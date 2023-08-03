@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH -J tsf1.8_3img    # Name that will show up in squeueu
+#SBATCH -J tsf_1img    # Name that will show up in squeueu
 #SBATCH --gres=gpu:1         # Request 4 GPU "generic resource"
 #SBATCH --time=4-00:00       # Max job time is 3 hours
 #SBATCH --output=%N-%j.out   # Terminal output to file named (hostname)-(jobid).out
 #SBATCH --partition=long     # long partition (allows up to 7 days runtime)
-#SBATCH --nodelist=cs-venus-05   # if needed, set the node you want (similar to -w xyz)
+#SBATCH --nodelist=cs-venus-09   # if needed, set the node you want (similar to -w xyz)
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=6
 

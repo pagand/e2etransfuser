@@ -11,7 +11,7 @@ class GlobalConfig:
 
     kind = 'baseline' 
 
-    model = 'transfuser_'
+    model = 'transfuser_3img'
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 
@@ -86,7 +86,7 @@ class GlobalConfig:
 
 
     # input_resolution = 256
-    input_resolution = [160,160] #[160,160]  # PMLR dataset #768
+    input_resolution = [160,768] #[160,160]  # PMLR dataset #768
 
 
     scale = 1 # image pre-processing

@@ -69,7 +69,7 @@ class GlobalConfig:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
     # MGN parameter
-    loss_weights = [1, 1, 1, 1, 1, 1, 0, 1]
+    loss_weights = [1, 1, 1, 1, 1, 1, 1, 1]  #1 for distilation
     lw_alpha = 1.5
 
 	# for Data
@@ -104,7 +104,7 @@ class GlobalConfig:
 
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.02*len(train_data)))
+        train_data = random.sample(train_data,int(0.015*len(train_data)))
         val_data = random.sample(val_data,int(0.1*len(val_data)))
         #val_data = random.sample(val_data,int(len(val_data)))
 

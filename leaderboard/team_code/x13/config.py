@@ -5,7 +5,7 @@ import random
 class GlobalConfig:
     num_worker = 0# for debugging 0
     gpu_id = '0'
-    camera_z= 2.3 #1.8
+    camera_z= 1.8
 
 
     # Model variations

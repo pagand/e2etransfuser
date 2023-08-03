@@ -88,7 +88,7 @@ class GlobalConfig:
 
 
     # input_resolution = 256
-    input_resolution = [160,160] #  [160,160] for only one camera [160,768] for 3
+    input_resolution = [160,768] #  [160,160] for only one camera [160,768] for 3
 
 
     scale = 1 # image pre-processing
@@ -143,16 +143,13 @@ class GlobalConfig:
     # for evaluation
     camera_width = 960
     camera_height = 480
-    # img_width_cut = 320
+    img_width_cut = 320
     img_resolution = (160,320)  # always same
 
     # camera intrinsic
     img_width = 352
     img_height = 160
     fov = 2*60
-    
-    
-    
     
     def __init__(self, **kwargs):
         for k,v in kwargs.items():

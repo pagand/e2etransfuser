@@ -170,11 +170,12 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 	def tick(self, input_data):
 		self.step += 1
 		rgb = []
-		for pos in ['left','front','right']:  # only 'front'  for 1 image,  [ 'left','front','right'] for 3 images
+		for pos in [ 'left','front','right']:
 			rgb_cam = 'rgb_' + pos
 			rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
-			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_resolution[1], self.config.img_resolution[1], self.config.img_resolution[0], self.config.img_resolution[0])
+			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
 			rgb.append(rgb_pos)
+
 		rgb = np.concatenate(rgb, axis=1)
 	
 
@@ -304,7 +305,13 @@ class TransFuserAgent(autonomous_agent.AutonomousAgent):
 			#				   self.lidar_processed, target_point, gt_velocity)
 			self.pred_wp = self.net(self.input_buffer['rgb'], 
 							   self.lidar_processed, target_point, gt_velocity)
+			print(self.pred_wp)
+			print(gt_velocity)
 		steer, throttle, brake, metadata = self.net.control_pid(self.pred_wp, gt_velocity)
+		print(steer)
+		print(throttle)
+		print(brake)
+		print()
 		self.pid_metadata = metadata
 
 		if brake < 0.05: brake = 0.0

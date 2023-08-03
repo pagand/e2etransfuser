@@ -172,22 +172,23 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		
 	def tick(self, input_data):
 		self.step += 1
+
 		rgb = []
-		for pos in ['left','front', 'right']:
+		for pos in [ 'front']:
 			rgb_cam = 'rgb_' + pos
 			rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
 			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
 			rgb.append(rgb_pos)
+
 		rgb = np.concatenate(rgb, axis=1)
-#		cv2.imwrite('rgb.png', rgb)
-
+		
 		depth = []
-		for pos in ['left','front', 'right']:
-
+		for pos in [ 'front']:
 			depth_cam = 'depth_' + pos
 			depth_pos = cv2.cvtColor(input_data[depth_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
 			depth_pos = self.scale_crop(Image.fromarray(depth_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
 			depth.append(depth_pos)
+
 		depth = np.concatenate(depth, axis=1)
 
 	#prv	rgb_left = cv2.cvtColor(input_data['rgb_left'][1][:, :, :3], cv2.COLOR_BGR2RGB)
@@ -303,12 +304,17 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		# forward pass
 		#pred_seg, pred_wp, psteer, pthrottle, pbrake, predl,stop_sign, pred_sc,speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
 		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pstops, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity)
+		print(pred_wp)
+
 		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
 		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)
 
 		# pid_steer, pid_throttle, pid_brake, pid_metadata = self.net.pid_control(pred_wp, gt_velocity) #PID ONLY
 		steer, throttle, brake, metadata = self.net.mlp_pid_control(pred_wp, gt_velocity, mlp_steer, mlp_throttle, mlp_brake, predl, CONTROL_OPTION) #MIX MLP AND PID
+		print(steer)
+		print(throttle)
+		print(brake)
 		# if brake < 0.05: brake = 0.0
 		# if throttle > brake: brake = 0.0
 

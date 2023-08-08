@@ -140,21 +140,21 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         
 		{
 			'type': 'sensor.camera.rgb',
-    			'x': 1.3, 'y': 0.0, 'z':2.3,
+    			'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
 			'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
 			'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 			'id': 'rgb_front'
 			},
 		{
 	 		'type': 'sensor.camera.rgb',
-		 	'x': 1.3, 'y': 0.0, 'z': 2.3,
+		 	'x': 1.3, 'y': 0.0, 'z': self.config.camera_z,
 		 	'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
 		 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 		 	'id': 'rgb_left'
 		 	},
 		{
 		 	'type': 'sensor.camera.rgb',
-		 	'x': 1.3, 'y': 0.0, 'z':2.3,
+		 	'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
 		 	'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
 		 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 		 	'id': 'rgb_right'
@@ -182,7 +182,7 @@ class HybridAgent(autonomous_agent.AutonomousAgent):
         if(SAVE_PATH != None): #Debug camera for visualizations
             sensors.append({
                             'type': 'sensor.camera.rgb',
-                            'x': -4.5, 'y': 0.0, 'z':2.3,
+                            'x': -4.5, 'y': 0.0, 'z':self.config.camera_z,
                             'roll': 0.0, 'pitch': -15.0, 'yaw': 0.0,
                             'width': 960, 'height': 480, 'fov': 100,
                             'id': 'rgb_back'

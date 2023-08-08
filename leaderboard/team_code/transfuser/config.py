@@ -3,7 +3,7 @@ import random
 
 class GlobalConfig:
     """ base architecture configurations """
-    num_worker = 4# for debugging 0
+    num_worker = 0# for debugging 0
     gpu_id = '0'
     wandb = False
     low_data = True
@@ -18,7 +18,8 @@ class GlobalConfig:
     total_epoch = 40
     batch_size = 50
     val_cycle = 1
-    camera_z = 1.8
+
+    camera_z = 2.3
 
 	# Data
     seq_len = 1 # input timesteps
@@ -84,12 +85,10 @@ class GlobalConfig:
     ignore_rear = True # don't consider rear cameras
     n_views = 1 # no. of camera views
 
-    camera_z=1.8
-
 
 
     # input_resolution = 256
-    input_resolution = [160,768] #  [160,160] for only one camera [160,768] for 3
+    input_resolution = [160,160] #  [160,160] for only one camera [160,768] for 3
 
 
     scale = 1 # image pre-processing

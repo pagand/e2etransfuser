@@ -20,7 +20,9 @@ class GlobalConfig:
     camera_pos = [1.3, 0.0, 2.3] #x, y, z mounting position of the camera
     camera_width = 960 # Camera width in pixel
     camera_height = 480 # Camera height in pixel
-    ## Added by Mohammad 
+    camera_z = 1.8
+
+## Added by Mohammad 
     fov = 120
     img_width_cut = 320
     input_resolution = [160,704]

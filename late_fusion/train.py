@@ -221,7 +221,9 @@ class Engine(object):
 
 # Config
 config = GlobalConfig()
-
+if config.wandb:
+        wandb.init(project=config.wandb_name,  entity="ai-mars", name = config.model)
+        
 # Data
 train_set = CARLA_Data(root=config.train_data, config=config)
 val_set = CARLA_Data(root=config.val_data, config=config)

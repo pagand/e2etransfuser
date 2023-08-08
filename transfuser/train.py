@@ -110,9 +110,15 @@ class Engine(object):
 			target_point = torch.stack(data['target_point'], dim=1).to(args.device, dtype=torch.float32)
 			pred_wp = model(fronts+lefts+rights+rears, lidars, target_point, gt_velocity)
 			
+			print("predicted waypoint is:")
+			print(pred_wp)
 			
 			gt_waypoints = [torch.stack(data['waypoints'][i], dim=1).to(args.device, dtype=torch.float32) for i in range(config.seq_len, len(data['waypoints']))]
 			gt_waypoints = torch.stack(gt_waypoints, dim=1).to(args.device, dtype=torch.float32)
+			print("gt_waypoints is:")
+			print(gt_waypoints)
+			print()
+				
 			loss = F.l1_loss(pred_wp, gt_waypoints, reduction='none').mean()
 			loss.backward()
 			loss_epoch += float(loss.item())
@@ -179,8 +185,11 @@ class Engine(object):
 
 				pred_wp = model(fronts+lefts+rights+rears, lidars, target_point, gt_velocity)
 
+
+
 				gt_waypoints = [torch.stack(data['waypoints'][i], dim=1).to(args.device, dtype=torch.float32) for i in range(config.seq_len, len(data['waypoints']))]
 				gt_waypoints = torch.stack(gt_waypoints, dim=1).to(args.device, dtype=torch.float32)
+
 				wp_epoch += float(F.l1_loss(pred_wp, gt_waypoints, reduction='none').mean())
 
 				num_batches += 1

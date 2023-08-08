@@ -11,11 +11,11 @@ class GlobalConfig:
 
     kind = 'baseline' 
 
-    model = 'transfuser_new1.8_1img'
+    model = 'transfuser_new1.8_3img_2'
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 
-    total_epoch = 40
+    total_epoch = 60
     batch_size = 20#50
     val_cycle = 1
 
@@ -52,7 +52,7 @@ class GlobalConfig:
     ## For PMLR dataset
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10']
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
   #  train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD', 'Town01long', 'Town02long', 'Town03long', 'Town04long', 'Town06long'] #
     val_towns = ['Town05'] # 'Town05'
 
@@ -88,7 +88,7 @@ class GlobalConfig:
     n_views = 1 # no. of camera views
 
     # input_resolution = 256
-    input_resolution = [160,160] #[160,160]  # PMLR dataset #768
+    input_resolution = [160,768] #[160,160]  # PMLR dataset #768
 
     scale = 1 # image pre-processing
 

@@ -9,7 +9,7 @@ class GlobalConfig:
 
 
 
-    root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data2'  #14_weathers_full_data clear_noon_full_data
+    root_dir = '/localscratch/mmahdavi/data'  #14_weathers_full_data clear_noon_full_data
     train_data, val_data = [], []
     root_files = os.listdir(root_dir)
 

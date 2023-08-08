@@ -2,7 +2,6 @@ import os
 import json
 import cv2
 from PIL import Image, ImageFile
-# ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 import numpy as np
 import torch 
@@ -17,9 +16,9 @@ class CARLA_Data(Dataset):
         self.pred_len = config.pred_len
 
         self.front = []
-        self.left = []
-        self.right = []
-        self.rear = []
+        # self.left = []
+        # self.right = []
+        # self.rear = []
         self.x = []
         self.y = []
         self.x_command = []
@@ -30,8 +29,6 @@ class CARLA_Data(Dataset):
         self.brake = []
         self.command = []
         self.velocity = []
-
-        #tambahan
         self.seg_front = []
         self.depth_front = []
         self.red_light = []
@@ -39,13 +36,14 @@ class CARLA_Data(Dataset):
 
         for sub_root in root:
             preload_file = os.path.join(sub_root, 'x13_rgb_dep_vel_nxr_ctrl_ts_'+str(self.seq_len)+'_'+str(self.pred_len)+'.npy')
+          
 
             # dump to npy if no preload
             if not os.path.exists(preload_file):
                 preload_front = []
-                preload_left = []
-                preload_right = []
-                preload_rear = []
+                # preload_left = []
+                # preload_right = []
+                # preload_rear = []
                 preload_x = []
                 preload_y = []
                 preload_x_command = []
@@ -56,8 +54,6 @@ class CARLA_Data(Dataset):
                 preload_brake = []
                 preload_command = []
                 preload_velocity = []
-
-                #tambahan
                 preload_seg_front = []
                 preload_depth_front = []
                 preload_red_light = []
@@ -65,23 +61,27 @@ class CARLA_Data(Dataset):
 
                 # list sub-directories in root 
                 root_files = os.listdir(sub_root)
-                routes = [folder for folder in root_files if not os.path.isfile(os.path.join(sub_root,folder))]
-                for route in routes:
-                    route_dir = os.path.join(sub_root, route)
-                    print(route_dir)
+                scenarios = [folder for folder in root_files if not os.path.isfile(os.path.join(sub_root,folder))]
+                # for route in routes:
+                #     routep = os.path.join(sub_root,route)
+                #     scn_files = os.listdir(routep)
+                #     scenarios = [folder for folder in scn_files if not os.path.isfile(os.path.join(routep,folder))]
+
+                for scenario in scenarios:
+
+                    scenario_dir = os.path.join(sub_root, scenario)
+                    # print(scenario_dir)
                     # subtract final frames (pred_len) since there are no future waypoints
                     # first frame of sequence not used
-                    num_seq = (len(os.listdir(route_dir+"/rgb_front/"))-self.pred_len-2)//self.seq_len
+                    num_seq = (len(os.listdir(scenario_dir+"/rgb/"))-self.pred_len-2)//self.seq_len
                     for seq in range(num_seq):
                         fronts = []
-                        lefts = []
-                        rights = []
-                        rears = []
+                        # lefts = []
+                        # rights = []
+                        # rears = []
                         xs = []
                         ys = []
                         thetas = []
-
-                        #tambahan
                         seg_fronts = []
                         depth_fronts = []
 
@@ -90,17 +90,15 @@ class CARLA_Data(Dataset):
                             
                             # images
                             filename = f"{str(seq*self.seq_len+1+i).zfill(4)}.png"
-                            fronts.append(route_dir+"/rgb_front/"+filename)
-                            lefts.append(route_dir+"/rgb_left/"+filename)
-                            rights.append(route_dir+"/rgb_right/"+filename)
-                            rears.append(route_dir+"/rgb_rear/"+filename)
-
-                            #tambahan
-                            seg_fronts.append(route_dir+"/seg_front/"+filename)
-                            depth_fronts.append(route_dir+"/depth_front/"+filename)
+                            fronts.append(scenario_dir+"/rgb/"+filename)
+                            # lefts.append(route_dir+"/rgb_left/"+filename)
+                            # rights.append(route_dir+"/rgb_right/"+filename)
+                            # rears.append(route_dir+"/rgb_rear/"+filename)
+                            seg_fronts.append(scenario_dir+"/semantics/"+filename)
+                            depth_fronts.append(scenario_dir+"/depth/"+filename)
 
                             # position
-                            with open(route_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
+                            with open(scenario_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
                                 data = json.load(read_file)
                             xs.append(data['x'])
                             ys.append(data['y'])
@@ -114,15 +112,14 @@ class CARLA_Data(Dataset):
                         preload_brake.append(data['brake'])
                         preload_command.append(data['command'])
                         preload_velocity.append(data['speed'])
-
-                        #tambahan
-                        preload_red_light.append(data['is_red_light_present'])
-                        preload_stop_sign.append(data['is_stop_sign_present'])
+                        preload_red_light.append(data['light_hazard'])
+                        preload_stop_sign.append(data['stop_sign_hazard'])
+                        
 
                         # read files sequentially (future frames)
                         for i in range(self.seq_len, self.seq_len + self.pred_len):
                             # position
-                            with open(route_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
+                            with open(scenario_dir + f"/measurements/{str(seq*self.seq_len+1+i).zfill(4)}.json", "r") as read_file:
                                 data = json.load(read_file)
                             xs.append(data['x'])
                             ys.append(data['y'])
@@ -134,23 +131,21 @@ class CARLA_Data(Dataset):
                                 thetas.append(data['theta'])
 
                         preload_front.append(fronts)
-                        preload_left.append(lefts)
-                        preload_right.append(rights)
-                        preload_rear.append(rears)
+                        # preload_left.append(lefts)
+                        # preload_right.append(rights)
+                        # preload_rear.append(rears)
                         preload_x.append(xs)
                         preload_y.append(ys)
                         preload_theta.append(thetas)
-
-                        #tambahan
                         preload_seg_front.append(seg_fronts)
                         preload_depth_front.append(depth_fronts)
 
                 # dump to npy
                 preload_dict = {}
                 preload_dict['front'] = preload_front
-                preload_dict['left'] = preload_left
-                preload_dict['right'] = preload_right
-                preload_dict['rear'] = preload_rear
+                # preload_dict['left'] = preload_left
+                # preload_dict['right'] = preload_right
+                # preload_dict['rear'] = preload_rear
                 preload_dict['x'] = preload_x
                 preload_dict['y'] = preload_y
                 preload_dict['x_command'] = preload_x_command
@@ -161,8 +156,6 @@ class CARLA_Data(Dataset):
                 preload_dict['brake'] = preload_brake
                 preload_dict['command'] = preload_command
                 preload_dict['velocity'] = preload_velocity
-
-                #tqambahan
                 preload_dict['seg_front'] = preload_seg_front
                 preload_dict['depth_front'] = preload_depth_front
                 preload_dict['red_light'] = preload_red_light
@@ -173,9 +166,9 @@ class CARLA_Data(Dataset):
             # load from npy if available
             preload_dict = np.load(preload_file, allow_pickle=True)
             self.front += preload_dict.item()['front']
-            self.left += preload_dict.item()['left']
-            self.right += preload_dict.item()['right']
-            self.rear += preload_dict.item()['rear']
+            # self.left += preload_dict.item()['left']
+            # self.right += preload_dict.item()['right']
+            # self.rear += preload_dict.item()['rear']
             self.x += preload_dict.item()['x']
             self.y += preload_dict.item()['y']
             self.x_command += preload_dict.item()['x_command']
@@ -186,8 +179,6 @@ class CARLA_Data(Dataset):
             self.brake += preload_dict.item()['brake']
             self.command += preload_dict.item()['command']
             self.velocity += preload_dict.item()['velocity']
-
-            #tambahan
             self.seg_front += preload_dict.item()['seg_front']
             self.depth_front += preload_dict.item()['depth_front']
             self.red_light += preload_dict.item()['red_light']
@@ -196,21 +187,16 @@ class CARLA_Data(Dataset):
             print("Preloading " + str(len(preload_dict.item()['front'])) + " sequences from " + preload_file)
 
     def __len__(self):
-        """Returns the length of the dataset. """
         return len(self.front)
 
     def __getitem__(self, index):
-        """Returns the item at index idx. """
         data = dict()
         data['fronts'] = []
         # data['lefts'] = []
         # data['rights'] = []
         # data['rears'] = []
-
-        #tambahan
         data['seg_fronts'] = []
         data['depth_fronts'] = []
-
         seq_fronts = self.front[index]
         # seq_lefts = self.left[index]
         # seq_rights = self.right[index]
@@ -218,8 +204,6 @@ class CARLA_Data(Dataset):
         seq_x = self.x[index]
         seq_y = self.y[index]
         seq_theta = self.theta[index]
-
-        #tambahan
         seq_seg_fronts = self.seg_front[index]
         seq_depth_fronts = self.depth_front[index]
 
@@ -228,33 +212,13 @@ class CARLA_Data(Dataset):
         # print(seq_seg_fronts[-1])
 
         for i in range(self.seq_len):
-            # data['fronts'].append(torch.from_numpy(np.array(
-            #     scale_and_crop_image(Image.open(seq_fronts[i]), scale=self.config.scale, crop=self.config.input_resolution))))
-            """
-            if not self.config.ignore_sides:
-                data['lefts'].append(torch.from_numpy(np.array(
-                    scale_and_crop_image(Image.open(seq_lefts[i]), scale=self.config.scale, crop=self.config.input_resolution))))
-                data['rights'].append(torch.from_numpy(np.array(
-                    scale_and_crop_image(Image.open(seq_rights[i]), scale=self.config.scale, crop=self.config.input_resolution))))
-            if not self.config.ignore_rear:
-                data['rears'].append(torch.from_numpy(np.array(
-                    scale_and_crop_image(Image.open(seq_rears[i]), scale=self.config.scale, crop=self.config.input_resolution))))
-            """
-            #tambahan
-            # data['seg_fronts'].append(torch.from_numpy(np.array(cls2one_hot(
-            #     scale_and_crop_image_cv(cv2.imread(seq_seg_fronts[i]), scale=self.config.scale, crop=self.config.input_resolution)))))
-            # data['depth_fronts'].append(torch.from_numpy(np.array(rgb_to_depth(
-            #     scale_and_crop_image_cv(cv2.imread(seq_depth_fronts[i], cv2.COLOR_BGR2RGB), scale=self.config.scale, crop=self.config.input_resolution)))))
-        
             # fix for theta=nan in some measurements
             if np.isnan(seq_theta[i]):
                 seq_theta[i] = 0.
 
-        #input 1 RGB aja, no sequence
+        #input 1 RGB, no sequence
         data['fronts'] = torch.from_numpy(np.array(
             scale_and_crop_image(Image.open(seq_fronts[-1]), scale=self.config.scale, crop=self.config.input_resolution))) #[ ]
-
-        #tambahan, ga perlu diikutkan loop seq_len karena cuma diambil yang terakhir aja
         data['seg_fronts'] = torch.from_numpy(np.array(cls2one_hot(
             scale_and_crop_image_cv(cv2.imread(seq_seg_fronts[-1]), scale=self.config.scale, crop=self.config.input_resolution)))) #[ ]
         data['depth_fronts'] = torch.from_numpy(np.array(rgb_to_depth(
@@ -289,10 +253,7 @@ class CARLA_Data(Dataset):
         data['steer'] = self.steer[index]
         data['throttle'] = self.throttle[index]
         data['brake'] = self.brake[index]
-        # data['command'] = self.command[index]
         data['velocity'] = self.velocity[index]
-
-        #tambahan
         data['red_light'] = self.red_light[index]
         data['stop_sign'] = self.stop_sign[index]
         
@@ -304,7 +265,6 @@ def swap_RGB2BGR(matrix):
     matrix[:,:,0] = blue
     matrix[:,:,2] = red
     return matrix
-
 
 def scale_and_crop_image(image, scale=1, crop=256):
     """
@@ -326,27 +286,18 @@ def scale_and_crop_image_cv(image, scale=1, crop=256):
     return cropped_image
 
 def cls2one_hot(ss_gt):
-    #inputnya adalah CHW hasil dari crop image
     ss_gt = ss_gt[:1,:,:].reshape(ss_gt.shape[1], ss_gt.shape[2])
     result = (np.arange(23) == ss_gt[...,None]).astype(int) #len(classes_ss_su
     result = np.transpose(result, (2, 0, 1))   # (H, W, C) --> (C, H, W)
-    # np.save("00009_ss.npy", result) #SUDAH BENAR!
-    # print(result)
-    # print(result.shape)
     return result
 
 
 def rgb_to_depth(de_gt):
-    #inputnya adalah CHW hasil dari crop image, pindah channel last
-    # print(de_gt.shape)
     de_gt = de_gt.transpose(1, 2, 0)
     arrayd = de_gt.astype(np.float32)
-    normalized_depth = np.zeros(np.dot(arrayd, [65536.0, 256.0, 1.0]).shape,dtype="float32")
-    normalized_depth += np.dot(arrayd, [65536.0, 256.0, 1.0]) # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
+    normalized_depth = np.dot(arrayd, [65536.0, 256.0, 1.0]) # Apply (R + G * 256 + B * 256 * 256) / (256 * 256 * 256 - 1).
     depthx = normalized_depth/16777215.0  # (256.0 * 256.0 * 256.0 - 1.0) --> rangenya 0 - 1
     result = np.expand_dims(depthx, axis=0)
-    # print(result)
-    # print(result.shape)
     return result
 
 

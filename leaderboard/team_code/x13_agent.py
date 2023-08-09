@@ -321,9 +321,9 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		# forward pass
 		#pred_seg, pred_wp, psteer, pthrottle, pbrake, predl,stop_sign, pred_sc,speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
 		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, stop_sign, pred_sc, speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,gt_command)
-		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
-		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
-		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)
+		mlp_steer = np.clip(psteer.cpu().data.numpy()[0][0], -1.0, 1.0)
+		mlp_throttle = np.clip(pthrottle.cpu().data.numpy()[0][0], 0.0, self.config.max_throttle)
+		mlp_brake = np.round(pbrake.cpu().data.numpy()[0][0], decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)
 
 		# pid_steer, pid_throttle, pid_brake, pid_metadata = self.net.pid_control(pred_wp, gt_velocity) #PID ONLY
 		steer, throttle, brake, metadata = self.net.mlp_pid_control(pred_wp, gt_velocity, mlp_steer, mlp_throttle, mlp_brake, predl, CONTROL_OPTION) #MIX MLP AND PID

@@ -61,7 +61,6 @@ class CARLA_Data(Dataset):
                 routes = [folder for folder in root_files if not os.path.isfile(os.path.join(sub_root,folder))]
                 for route in routes:
                     route_dir = os.path.join(sub_root, route)
-                    print(route_dir)
                     # subtract final frames (pred_len) since there are no future waypoints
                     # first frame of sequence not used
                     

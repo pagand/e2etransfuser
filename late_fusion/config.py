@@ -6,10 +6,14 @@ class GlobalConfig:
     seq_len = 1 # input timesteps
     pred_len = 4 # future waypoints predicted
 
-
-
-
-    root_dir = '/localscratch/mmahdavi/data'  #14_weathers_full_data clear_noon_full_data
+    model = 'late_fusion'
+    logdir = 'log/'+model#+'_w1'
+    gpu_id = '0'
+        
+    wandb = False
+    wandb_name = 'baselines_new'    
+    
+    root_dir = '/localscratch/mmahdavi/transfuser/new_dataset'  #14_weathers_full_data clear_noon_full_data
     train_data, val_data = [], []
     root_files = os.listdir(root_dir)
 
@@ -60,10 +64,6 @@ class GlobalConfig:
     clip_delta = 0.25 # maximum change in speed input to logitudinal controller
 
 
-    #tambahan buat predict_expert
-    model = 'late_fusion'
-    logdir = 'log/'+model#+'_w1'
-    gpu_id = '0'
     #buat prediksi expert, test
     test_data = []
     test_weather = 'ClearNoon' #ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset, Run1_ClearNoon, Run2_ClearNoon, Run3_ClearNoon

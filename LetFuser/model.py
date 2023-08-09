@@ -668,11 +668,11 @@ class letfuser(nn.Module): #
         # hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
         
         # No attention TODO 1 if not config.atten
-        # measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
-        # fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
-        # hx = self.necks_net(fuse)
-        # hx = torch.cat([hx, measurement_feature], dim=1) 
-        # fuse = hx.clone()#NEW
+        #measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
+        #fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
+        #hx = self.necks_net(fuse)
+        #hx = torch.cat([hx, measurement_feature], dim=1) 
+        #fuse = hx.clone()#NEW
 
         # With attention TODO 1 if config.atten
         measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))

@@ -15,7 +15,7 @@ class GlobalConfig:
 	
     wandb_name = 'Letfuser_NewDataset'
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    model = 'Letfuser_No_attn_withaugControl_dist_1.8' # run name
+    model = 'Letfuser_no_attn_distiled_1.8' # run name
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 	
@@ -40,8 +40,8 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 20 #20
-    total_epoch = 20 #30
+    batch_size = 32 #20
+    total_epoch = 50
     
     random_data_len = int(284000 *low_data_rate) #int(280000 * 0.2 ) 
 	
@@ -66,7 +66,7 @@ class GlobalConfig:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
     # MGN parameter
-    loss_weights = [1, 1, 1, 1, 1, 1, 0, 1]
+    loss_weights = [1, 1, 1, 1, 1, 1, 1, 1]
     lw_alpha = 1.5
 
 	# for Data
@@ -142,7 +142,7 @@ class GlobalConfig:
     crop = 160 # image pre-processing # CVPR dataset
     lr = 1e-4 # learning rate AdamW
     weight_decay = 1e-3
-    lr_patience = 3
+    lr_patience = 2
 
     # Controller
     #control weights untuk PID dan MLP dari tuningan MGN

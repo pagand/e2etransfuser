@@ -14,14 +14,14 @@ torch.backends.cudnn.benchmark = True
 from model import LateFusion
 from data import CARLA_Data
 from config import GlobalConfig
-
+import wandb
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--id', type=str, default='late_fusion_t2', help='Unique experiment identifier.')
 parser.add_argument('--device', type=str, default='cuda', help='Device to use')
 parser.add_argument('--epochs', type=int, default=101, help='Number of train epochs.')
 parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate.')
-parser.add_argument('--val_every', type=int, default=5, help='Validation frequency (epochs).')
+parser.add_argument('--val_every', type=int, default=1, help='Validation frequency (epochs).')
 parser.add_argument('--batch_size', type=int, default=20, help='Batch size')
 parser.add_argument('--logdir', type=str, default='log', help='Directory to log data to.')
 
@@ -83,9 +83,9 @@ class Engine(object):
 			# driving labels
 			command = data['command'].to(args.device)
 			gt_velocity = data['velocity'].to(args.device, dtype=torch.float32)
-			gt_steer = data['steer'].to(args.device, dtype=torch.float32)
-			gt_throttle = data['throttle'].to(args.device, dtype=torch.float32)
-			gt_brake = data['brake'].to(args.device, dtype=torch.float32)
+			gt_steer = data['steer'][0].to(args.device, dtype=torch.float32)
+			gt_throttle = data['throttle'][0].to(args.device, dtype=torch.float32)
+			gt_brake = data['brake'][0].to(args.device, dtype=torch.float32)
 
 			# target point
 			target_point = torch.stack(data['target_point'], dim=1).to(args.device, dtype=torch.float32)
@@ -153,9 +153,9 @@ class Engine(object):
 				# driving labels
 				command = data['command'].to(args.device)
 				gt_velocity = data['velocity'].to(args.device, dtype=torch.float32)
-				gt_steer = data['steer'].to(args.device, dtype=torch.float32)
-				gt_throttle = data['throttle'].to(args.device, dtype=torch.float32)
-				gt_brake = data['brake'].to(args.device, dtype=torch.float32)
+				gt_steer = data['steer'][0].to(args.device, dtype=torch.float32)
+				gt_throttle = data['throttle'][0].to(args.device, dtype=torch.float32)
+				gt_brake = data['brake'][0].to(args.device, dtype=torch.float32)
 
 				# target point
 				target_point = torch.stack(data['target_point'], dim=1).to(args.device, dtype=torch.float32)
@@ -221,13 +221,15 @@ class Engine(object):
 
 # Config
 config = GlobalConfig()
-
+if config.wandb:
+        wandb.init(project=config.wandb_name,  entity="ai-mars", name = config.model)
+        
 # Data
 train_set = CARLA_Data(root=config.train_data, config=config)
 val_set = CARLA_Data(root=config.val_data, config=config)
 
-dataloader_train = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
-dataloader_val = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
+dataloader_train = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=0, pin_memory=True)
+dataloader_val = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
 # Model
 model = LateFusion(config, args.device)

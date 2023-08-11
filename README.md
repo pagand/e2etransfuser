@@ -1,7 +1,7 @@
 # DMFuser: Distilled Multi-Task Learning for  End-to-end Transformer-Based Sensor Fusion in Autonomous Driving
 
 
-<img src="transfuser_pmlr/figures/demo.gif">
+<img src="transfuser_pami/figures/demo.gif">
 
 
 ## Contents
@@ -61,7 +61,7 @@ pip install transformers
 ```
 
 ## Dataset
-Our dataset is generated via a privileged agent which we call the autopilot (`/transfuser_pmlr/team_code_autopilot/autopilot.py`) in 8 CARLA towns using the routes and scenario files provided in [this folder](./transfuser_pmlr/leaderboard/data/training/). See the [transfuser_pmlr/tools/dataset](./transfuser_pmlr/tools/dataset) folder for detailed documentation regarding the training routes and scenarios. 
+Our dataset is generated via a privileged agent which we call the autopilot (`/transfuser_pami/team_code_autopilot/autopilot.py`) in 8 CARLA towns using the routes and scenario files provided in [this folder](./transfuser_pami/leaderboard/data/training/). See the [transfuser_pami/tools/dataset](./transfuser_pami/tools/dataset) folder for detailed documentation regarding the training routes and scenarios. 
 
 The dataset is structured as follows:
 ```
@@ -77,20 +77,12 @@ The dataset is structured as follows:
             - measurements: contains ego-agent's position, velocity and other metadata
 ```
 
-### Option 1: Downloading dataset
-You can download the dataset (210GB) by running:
+
+### Option 1: MAIN Data generation
+We have provided the scripts for data generation that we used to train our autopilot agent. To generate data, the first step is to launch a CARLA server:
 
 ```Shell
-cd transfuser_pmlr
-chmod +x download_data.sh
-./download_data.sh
-```
-
-### Option 2: Data generation
-In addition to the dataset itself, we have provided the scripts for data generation with our autopilot agent. To generate data, the first step is to launch a CARLA server:
-
-```Shell
-cd transfuser_pmlr
+cd transfuser_pami
 ./CarlaUE4.sh --world-port=2000 -opengl
 ```
 
@@ -100,6 +92,16 @@ For more information on running CARLA servers (e.g. on a machine without a displ
 ```
 
 The main variables to set for this script are `SCENARIOS` and `ROUTES`. 
+
+
+### Option 2: Downloading 2.3 dataset
+A minimal dataset  (210GB) without the long scenario, where the camera is mounted in 2.3 m (instead of 1.8 m in the main data), can be downloaded  by running:
+
+```Shell
+cd transfuser_pami
+chmod +x download_data.sh
+./download_data.sh
+```
 
 ### Dataset Augmentation
 
@@ -130,12 +132,12 @@ python3 predict_expert.py is intended
 
 Under development
 
-### Transfuser PMLR 
+### Transfuser PAMI
 
 The code for training via imitation learning is provided in [train.py.](./team_code_transfuser/train.py) \
 A minimal example of running the training script on a single machine:
 ```Shell
-cd transfuser_pmlr/team_code_transfuser
+cd transfuser_pami/team_code_transfuser
 python train.py --batch_size 10 --logdir /path/to/logdir --root_dir /path/to/dataset_root/ --parallel_training 0
 ```
 The training script has many more useful features documented at the start of the main function. 

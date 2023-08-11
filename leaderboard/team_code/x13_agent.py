@@ -103,45 +103,45 @@ class x13Agent(autonomous_agent.AutonomousAgent):
                 return [
 				{
 					'type': 'sensor.camera.rgb',
-                                        'x': 1.3, 'y': 0.0, 'z':2.3,
+                                        'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
 					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 					'id': 'rgb_front'
 					},
 				{
 					'type': 'sensor.camera.depth',
-					'x': 1.3, 'y': 0.0, 'z':2.3,
+					'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
 					'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
 					'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 					'id': 'depth_front'
 					},
 				{
 			 	'type': 'sensor.camera.rgb',
-				 	'x': 1.3, 'y': 0.0, 'z': 2.3,
+				 	'x': 1.3, 'y': 0.0, 'z': self.config.camera_z,
 				 	'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
 				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 				 	'id': 'rgb_left'
 				 	},
 				{
 				 	'type': 'sensor.camera.rgb',
-				 	'x': 1.3, 'y': 0.0, 'z':2.3,
+				 	'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
 				 	'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
 				 	'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
 				 	'id': 'rgb_right'
 				 	},
-					{
-							'type': 'sensor.camera.depth',
-							'x': 1.3, 'y': 0.0, 'z':2.3,
-							'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
-							'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
-							'id': 'depth_left'
-							},
-					{
-							'type': 'sensor.camera.depth',
-							'x': 1.3, 'y': 0.0, 'z':2.3,
-							'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
-							'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
-							'id': 'depth_right'
+				{
+						'type': 'sensor.camera.depth',
+						'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
+						'roll': 0.0, 'pitch': 0.0, 'yaw': -60.0,
+						'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
+						'id': 'depth_left'
+						},
+				{
+						'type': 'sensor.camera.depth',
+						'x': 1.3, 'y': 0.0, 'z':self.config.camera_z,
+						'roll': 0.0, 'pitch': 0.0, 'yaw': 60.0,
+						'width': self.config.camera_width, 'height': self.config.camera_height, 'fov': self.config.fov,
+						'id': 'depth_right'
 							},
                                 #{
 				# 	'type': 'sensor.camera.rgb',
@@ -173,7 +173,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 	def tick(self, input_data):
 		self.step += 1
 		rgb = []
-		for pos in ['left', 'front', 'right']:
+		for pos in ['left','front', 'right']:
 			rgb_cam = 'rgb_' + pos
 			rgb_pos = cv2.cvtColor(input_data[rgb_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
 			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
@@ -182,7 +182,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 #		cv2.imwrite('rgb.png', rgb)
 
 		depth = []
-		for pos in ['left', 'front', 'right']:
+		for pos in ['left','front', 'right']:
 
 			depth_cam = 'depth_' + pos
 			depth_pos = cv2.cvtColor(input_data[depth_cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
@@ -210,7 +210,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		pos = self._get_position(result)
 		result['gps'] = pos
 		next_wp, next_cmd = self._route_planner.run_step(pos)
-		result['next_command'] = next_cmd.value
+		# result['next_command'] = next_cmd.value
 
 		theta = compass + np.pi/2
 		R = np.array([
@@ -260,7 +260,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 			return control
 		"""
 		gt_velocity = torch.FloatTensor([tick_data['speed']]).to('cuda', dtype=torch.float32)
-		gt_command = torch.FloatTensor([tick_data['next_command']]).to('cuda', dtype=torch.float32)
+		# command = torch.FloatTensor([tick_data['next_command']]).to('cuda', dtype=torch.float32)
 
 		tick_data['target_point'] = [torch.FloatTensor([tick_data['target_point'][0]]), torch.FloatTensor([tick_data['target_point'][1]])]
 		target_point = torch.stack(tick_data['target_point'], dim=1).to('cuda', dtype=torch.float32)
@@ -302,7 +302,7 @@ class x13Agent(autonomous_agent.AutonomousAgent):
 		a = 0
 		# forward pass
 		#pred_seg, pred_wp, psteer, pthrottle, pbrake, predl,stop_sign, pred_sc,speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,a)
-		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, stop_sign, pred_sc, speed = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity,gt_command)
+		pred_seg, pred_wp, psteer, pthrottle, pbrake, predl, pstops, pred_sc = self.net(self.input_buffer['rgb'], self.input_buffer['depth'], target_point, gt_velocity)
 		mlp_steer = np.clip(psteer.cpu().data.numpy(), -1.0, 1.0)
 		mlp_throttle = np.clip(pthrottle.cpu().data.numpy(), 0.0, self.config.max_throttle)
 		mlp_brake = np.round(pbrake.cpu().data.numpy(), decimals=0) #np.clip(pbrake.cpu().data.numpy(), 0.0, 1.0)

@@ -5,7 +5,7 @@ aim/log/*
 cilrs/log/*
 x13/log/*
 s13/log/*
-./data/*
+./traindata/*
 #./data1/*
 cvt0/*
 carla/*
@@ -20,17 +20,17 @@ utilx/log.txt
 x13/wandb
 !data/README.md
 transfuser_cvpr/
-transfuser_pmlr/data/
-transfuser_pmlr/data0/
-transfuser_pmlr/log/
-transfuser_pmlr/results/
+transfuser_pami/traindata/
+transfuser_pami/log/
+transfuser_pami/results/
+data0/*
+data/*
 
 wandb/
 .conda/
 .vscode/
-data/Town*
 log/
-log_pmlr/
+log_pami/
 x13_GT/
 *.pyc
 test_codes/
@@ -198,9 +198,7 @@ cython_debug/
 
 results/
 model_ckpt/
-data/
 #data1/
-transfuser_pmlr/leaderboard/data
 
 /home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/leaderboard/scripts/run_evaluation2.sh
-/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/leaderboard/team_code/transfuser_pmlr_agent.py
+/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/leaderboard/team_code/transfuser_pami_agent.py

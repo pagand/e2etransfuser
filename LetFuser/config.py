@@ -10,7 +10,7 @@ class GlobalConfig:
     wandb = False
     low_data = True
     attn = True # comment model forward path TODO 1
-    augment_control_data = False  # comment model forward path TODO 2
+    augment_control_data = True  # comment model forward path TODO 2
     MGN = True
 	
 	
@@ -76,7 +76,7 @@ class GlobalConfig:
     seq_len = 1 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
+    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pami/traindata'
     #root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
     #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
     train_data, val_data = [], []

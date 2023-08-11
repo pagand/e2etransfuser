@@ -87,11 +87,12 @@ class GlobalConfig:
 
 
     # input_resolution = 256
-    input_resolution = [160,768] #  [160,160] for only one camera [160,768] for 3
+    input_resolution = [160,160] #  [160,160] for only one camera [160,768] for 3
 
 
     scale = 1 # image pre-processing
     crop = 160 #256 # image pre-processing
+    img_width_cut = 320
 
     lr = 1e-4 # learning rate
 

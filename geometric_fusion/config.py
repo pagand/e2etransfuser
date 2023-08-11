@@ -24,7 +24,7 @@ class GlobalConfig:
     seq_len = 1 # input timesteps
     pred_len = 3 # future waypoints predicted
 
-    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data' 
+    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pami/traindata' 
     train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
     val_towns = ['Town05'] 
 

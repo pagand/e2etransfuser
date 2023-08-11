@@ -9,7 +9,7 @@ class GlobalConfig:
     logdir = 'log/'+model #+'_w1' for 1 weather only
     init_stop_counter = 15
     wandb_name = 'baselines'
-    camera_z = 1.8
+    camera_z = 2.3
 
     n_class = 23
     batch_size = 40 #20
@@ -69,7 +69,7 @@ class GlobalConfig:
 
     # input_resolution = [256,256] # CVPR dataset
     # input_resolution = 160 # PMLR dataset
-    input_resolution = [160,160] # [160,160] for 1 image 
+    input_resolution = [160,768] # [160,160] for 1 image 
     # input_resolution = [160,160] # PMLR dataset #512
     coverage_area = [64/256*input_resolution[0],64/256*input_resolution[1]]  #64
 

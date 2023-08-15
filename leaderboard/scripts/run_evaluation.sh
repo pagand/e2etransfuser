@@ -16,7 +16,7 @@ export REPETITIONS=1
 export RESUME=True
 
 export WEATHER=ClearNoon # ClearNoon, ClearSunset, CloudyNoon, CloudySunset, WetNoon, WetSunset, MidRainyNoon, MidRainSunset, WetCloudyNoon, WetCloudySunset, HardRainNoon, HardRainSunset, SoftRainNoon, SoftRainSunset
-export MODEL=x13 #x13 geometric_fusion late_fusion aim cilrs s13 x13
+export MODEL=letfuser #x13 letfuser geometric_fusion late_fusion aim cilrs s13 x13
 export CONTROL_OPTION=one_of #one_of both_must pid_only mlp_only, control option is only for s13 and x13 
 # export SAVE_PATH=data/NORMAL/${WEATHER}_short/${MODEL}-${CONTROL_OPTION} # ADVERSARIAL NORMAL
 export SAVE_PATH=data/ADVERSARIAL/${WEATHER}/${MODEL}-${CONTROL_OPTION} # ADVERSARIAL NORMAL
@@ -27,7 +27,7 @@ export PORT=2004 # same as the carla server port
 export TM_PORT=2054 # port for traffic manager, required when spawning multiple servers/clients
 #export TEAM_CONFIG=/home/mohammad/Mohammad_ws/autonomous_driving/e2etransfuser/log/testmin_cvt_v2/retrain
 #export TEAM_CONFIG=/localhome/pagand/projects/e2etransfuser/log/cvpr_1img
-export TEAM_CONFIG=log/x13_3img_23 #_160 checkpoint for transfuser
+export TEAM_CONFIG=log/DMFUSER #_160 checkpoint for transfuser
 export CHECKPOINT_ENDPOINT=${SAVE_PATH}/eval_result.json # results file
 # export TEAM_AGENT=leaderboard/team_code/${MODEL}_agent.py
 export TEAM_AGENT=leaderboard/team_code/${MODEL}_agent.py

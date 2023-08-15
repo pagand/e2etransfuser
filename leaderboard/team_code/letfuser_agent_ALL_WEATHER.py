@@ -22,6 +22,9 @@ from team_code.planner import RoutePlanner
 import torchvision.transforms as T
 from torchvision.utils import save_image
 
+from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
+import random
+
 
 SAVE_PATH = os.environ.get('SAVE_PATH', None)
 CONTROL_OPTION = os.environ.get('CONTROL_OPTION', None)
@@ -45,6 +48,27 @@ class letfuserAgent(autonomous_agent.AutonomousAgent):
 		self.net.load_state_dict(torch.load(os.path.join(path_to_conf_file, 'best_model.pth')))
 		self.net.cuda()
 		self.net.eval()
+
+		self.weathers = {
+            'Clear': carla.WeatherParameters.ClearNoon,
+            'Cloudy': carla.WeatherParameters.CloudySunset,
+            'Wet': carla.WeatherParameters.WetSunset,
+            'MidRain': carla.WeatherParameters.MidRainSunset,
+            'WetCloudy': carla.WeatherParameters.WetCloudySunset,
+            'HardRain': carla.WeatherParameters.HardRainNoon,
+            'SoftRain': carla.WeatherParameters.SoftRainSunset,
+        }
+		self.azimuths = [45.0 * i for i in range(8)]
+		self.daytimes = {
+            'Night': -80.0,
+            'Twilight': 0.0,
+            'Dawn': 5.0,
+            'Sunset': 15.0,
+            'Morning': 35.0,
+            'Noon': 75.0,
+        }
+		
+		self.weathers_ids = list(self.weathers)
 
 		#control weights untuk PID dan MLP dari tuningan MGN
 		#urutan steer, throttle, brake
@@ -76,7 +100,8 @@ class letfuserAgent(autonomous_agent.AutonomousAgent):
 	def _init(self):
 		self._route_planner = RoutePlanner(4.0, 50.0)
 		self._route_planner.set_route(self._global_plan, True)
-
+		self._world = CarlaDataProvider.get_world()
+		self._vehicle_lights = carla.VehicleLightState.Position | carla.VehicleLightState.LowBeam
 		self.initialized = True
 
 	def _get_position(self, tick_data):
@@ -311,6 +336,7 @@ class letfuserAgent(autonomous_agent.AutonomousAgent):
 		steer, throttle, brake, metadata = self.net.mlp_pid_control(pred_wp, gt_velocity, mlp_steer[0][0], mlp_throttle[0][0], mlp_brake[0][0], predl, CONTROL_OPTION) #MIX MLP AND PID
 		# if brake < 0.05: brake = 0.0
 		# if throttle > brake: brake = 0.0
+		
 
 		self.control_metadata = metadata
 		#tambahan metadata, replace value yang ada di fungsi control model
@@ -325,8 +351,31 @@ class letfuserAgent(autonomous_agent.AutonomousAgent):
 		if SAVE_PATH is not None and self.step % 10 == 0:
 			self.save(tick_data)
 			self.save2(pred_seg, pred_sc)
+		if self.step % 50 == 0:
+			self.shuffle_weather()
 
 		return control
+	
+	def shuffle_weather(self):
+		# change weather for visual diversity
+		index = random.choice(range(len(self.weathers)))
+		dtime, altitude = random.choice(list(self.daytimes.items()))
+		altitude = np.random.normal(altitude, 10)
+		self.weather_id = self.weathers_ids[index] + dtime
+
+		weather = self.weathers[self.weathers_ids[index]]
+		weather.sun_altitude_angle = altitude
+		weather.sun_azimuth_angle = np.random.choice(self.azimuths)
+		self._world.set_weather(weather)
+
+		# night mode
+		vehicles = self._world.get_actors().filter('*vehicle*')
+		if weather.sun_altitude_angle < 0.0:
+			for vehicle in vehicles:
+				vehicle.set_light_state(carla.VehicleLightState(self._vehicle_lights))
+		else:
+			for vehicle in vehicles:
+				vehicle.set_light_state(carla.VehicleLightState.NONE)
 
 	def save(self, tick_data):
 		frame = self.step // 10

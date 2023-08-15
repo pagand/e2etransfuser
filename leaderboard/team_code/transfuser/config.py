@@ -43,7 +43,7 @@ class GlobalConfig:
     #     # val_data.append(os.path.join(root_dir, town+'_x'))
 
     # PMLR data
-    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'  # for the PMLR dataset
+    root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pami/traindata'  # for the PMLR dataset
 
     train_data, val_data = [], []
 

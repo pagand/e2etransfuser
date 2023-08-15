@@ -128,6 +128,7 @@ class GlobalConfig:
     camera_height = 480
     img_width_cut = 320
     img_resolution = (160,704)
+    camera_z = 1.8
     
     # camera intrinsic
     img_width = 352

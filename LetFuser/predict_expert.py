@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
-from model import x13
+from LetFuser.model_nodist import x13
 from data import CARLA_Data
 from config import GlobalConfig
 

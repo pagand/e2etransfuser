@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
-from LetFuser.model import letfuser
+from model import letfuser
 from data import CARLA_Data
 # from data import CARLA_Data
 from config import GlobalConfig
@@ -526,8 +526,8 @@ def main():
 		])
 	writer = SummaryWriter(log_dir=config.logdir)
 	
-	# if config.wandb:
-	# 	wandb.watch(model, log="all")
+	if config.wandb:
+		wandb.watch(model, log="parameters", log_freq=100)
 
 	epoch = curr_ep
 	while epoch<=config.total_epoch:

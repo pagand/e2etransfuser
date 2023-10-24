@@ -7,7 +7,7 @@ import numpy as np
 import torch 
 from torch.utils.data import Dataset
 import matplotlib.pyplot as plt
-from LetFuser.config import GlobalConfig
+from config import GlobalConfig
 
 config = GlobalConfig()
 

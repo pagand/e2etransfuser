@@ -15,7 +15,7 @@ import numpy as np
 from PIL import Image
 
 from leaderboard.autoagents import autonomous_agent
-from LetFuser.model import letfuser
+from LetFuser.model import letfuser  # LetFuser.model for distilled model or LetFuser.model_nodist for no dist
 from LetFuser.config import GlobalConfig
 from LetFuser.data import scale_and_crop_image, scale_and_crop_image_cv, rgb_to_depth, swap_RGB2BGR
 from team_code.planner import RoutePlanner
@@ -179,7 +179,7 @@ class letfuserAgent(autonomous_agent.AutonomousAgent):
 			rgb_pos = self.scale_crop(Image.fromarray(rgb_pos), self.config.scale, self.config.img_width_cut, self.config.img_width_cut, self.config.img_resolution[0], self.config.img_resolution[0])
 			rgb.append(rgb_pos)
 		rgb = np.concatenate(rgb, axis=1)
-#		cv2.imwrite('rgb.png', rgb)
+		#	cv2.imwrite('rgb.png', rgb)
 
 		depth = []
 		for pos in ['left', 'front', 'right']:
@@ -190,9 +190,9 @@ class letfuserAgent(autonomous_agent.AutonomousAgent):
 			depth.append(depth_pos)
 		depth = np.concatenate(depth, axis=1)
 
-	#prv	rgb_left = cv2.cvtColor(input_data['rgb_left'][1][:, :, :3], cv2.COLOR_BGR2RGB)
-      #prv		rgb_right = cv2.cvtColor(input_data['rgb_right'][1][:, :, :3], cv2.COLOR_BGR2RGB)
-	#prv	rgb_rear = cv2.cvtColor(input_data['rgb_rear'][1][:, :, :3], cv2.COLOR_BGR2RGB)
+		#prv	rgb_left = cv2.cvtColor(input_data['rgb_left'][1][:, :, :3], cv2.COLOR_BGR2RGB)
+      	#prv		rgb_right = cv2.cvtColor(input_data['rgb_right'][1][:, :, :3], cv2.COLOR_BGR2RGB)
+		#prv	rgb_rear = cv2.cvtColor(input_data['rgb_rear'][1][:, :, :3], cv2.COLOR_BGR2RGB)
 		gps = input_data['gps'][1][:2]
 		speed = input_data['speed'][1]['speed']
 		compass = input_data['imu'][1][-1]
@@ -324,15 +324,16 @@ class letfuserAgent(autonomous_agent.AutonomousAgent):
 
 		if SAVE_PATH is not None and self.step % 10 == 0:
 			self.save(tick_data)
-			self.save2(pred_seg, pred_sc)
+			if self.config.save_depth_rgb_seg_sem: # to run faster
+				self.save2(pred_seg, pred_sc)
 
 		return control
 
 	def save(self, tick_data):
 		frame = self.step // 10
-
-		Image.fromarray(tick_data['rgb']).save(self.save_path / 'rgb' / ('%06d.png' % frame))
-		Image.fromarray(swap_RGB2BGR(tick_data['depth'])).save(self.save_path / 'depth' / ('%06d.png' % frame))
+		if self.config.save_depth_rgb_seg_sem: # to run faster
+			Image.fromarray(tick_data['rgb']).save(self.save_path / 'rgb' / ('%06d.png' % frame))
+			Image.fromarray(swap_RGB2BGR(tick_data['depth'])).save(self.save_path / 'depth' / ('%06d.png' % frame))
 
 		outfile = open(self.save_path / 'meta' / ('%06d.json' % frame), 'w')
 		# print(self.control_metadata)

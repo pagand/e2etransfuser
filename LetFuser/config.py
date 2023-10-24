@@ -7,7 +7,7 @@ class GlobalConfig:
     gpu_id = '0'
 
     # Model variations
-    wandb = False
+    wandb = True
     low_data = True
     attn = True # comment model forward path TODO 1
     augment_control_data = True  # comment model forward path TODO 2
@@ -42,7 +42,7 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 16 #20
+    batch_size = 14 #20
     total_epoch = 20 #30
     
 

@@ -10,7 +10,7 @@ class GlobalConfig:
     wandb = False
     low_data = True
     attn = True # comment model forward path TODO 1
-    augment_control_data = False  # comment model forward path TODO 2
+    augment_control_data = True  # comment model forward path TODO 2
     MGN = True
 
     save_depth_rgb_seg_sem = False  # to run faster in evaluation, it only save meta

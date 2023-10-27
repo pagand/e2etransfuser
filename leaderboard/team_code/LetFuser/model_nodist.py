@@ -517,6 +517,9 @@ class letfuser(nn.Module): #
                 )
             self.blocks = nn.ModuleList(blocks)
             self.input_buffer = {'depth': deque()}
+        # not used!!
+        self.downsize_feat = nn.Linear(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1],(config.n_fmap_b3[-1][-1]+config.n_fmap_b1[-1][-1]))
+
 
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command ):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
@@ -612,19 +615,19 @@ class letfuser(nn.Module): #
                 rot = 130 #60 # 43.3
                 height_coverage = 120
                 width_coverage = 300
-                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:width], ss_f[:,:,:,:width], rot, width, hi, height_coverage,width_coverage)
             elif i==1:
                 width = 224 # 224
                 rot = -65 #-60 # -43.3
                 height_coverage = 120
                 width_coverage = 300
-                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,-width:], ss_f[:,:,:,-width:], rot, width, hi, height_coverage,width_coverage)
             elif i==2:
                 width = 320 # 320
                 rot = 0
                 height_coverage = 160
                 width_coverage = 320
-                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
+                big_top_view = self.gen_top_view_sc(big_top_view, depth_f[:,:,224:hi-224], ss_f[:,:,:,224:hi-224], rot, width, hi,height_coverage,width_coverage)
 
         top_view_sc = big_top_view[:,:,:wi,:]
 

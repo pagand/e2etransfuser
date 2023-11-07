@@ -192,7 +192,9 @@ This repository hevealy depends on the following repos:
 
 - DATA from TransFuser PAMI 2022  [paper](https://arxiv.org/abs/2205.15997)
 
-- Transfuser CVPR 2021 Github [cvpr2021](https://github.com/autonomousvision/transfuser/tree/cvpr2021) branch.
+- Transfuser CVPR 2021  [Github](https://github.com/autonomousvision/transfuser/tree/cvpr2021).
+
+- CvT netowrk CVPR 2021 [Github](https://github.com/microsoft/CvT), [paper](https://openaccess.thecvf.com/content/ICCV2021/papers/Wu_CvT_Introducing_Convolutions_to_Vision_Transformers_ICCV_2021_paper.pdf)
 
 - TCP NeurIPS 2022  [Github](https://github.com/OpenPerceptionX/TCP)
 

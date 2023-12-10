@@ -3,6 +3,8 @@
 
 <img src="transfuser_pmlr/figures/demo.gif">
 
+[ArXiv paper](https://arxiv.org/pdf/2310.13135.pdf) 
+[Website](https://upaspro.com/letfuser-autonomous-driving-with-transformers/)
 
 ## Contents
 

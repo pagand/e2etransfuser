@@ -796,9 +796,6 @@ class letfuser(nn.Module): #
             out_control.append(D_control_pred)
         pred_control = torch.stack(out_control, dim=1)
         D_brake = pred_control[:,:,0]
-        
-
-
 
         #control decoder
         control_pred = self.controller(hx+tls_bias)

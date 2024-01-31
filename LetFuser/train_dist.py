@@ -435,7 +435,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		wandb.init(project=config.wandb_name,  entity="ai-mars", name = config.model)
+		wandb.init(project=config.wandb_name,  entity="transfuser", name = config.model)
 	#	wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")

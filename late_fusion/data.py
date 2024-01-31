@@ -296,9 +296,9 @@ def scale_and_crop_image(image, scale=1, crop=256):
     (width, height) = (int(image.width // scale), int(image.height // scale))
     im_resized = image.resize((width, height))
     image = np.asarray(im_resized)
-    start_x = height//2 - crop//2
-    start_y = width//2 - crop//2
-    cropped_image = image[start_x:start_x+crop, start_y:start_y+crop]
+    start_x = height//2 - crop[0]//2
+    start_y = width//2 - crop[1]//2
+    cropped_image = image[start_x:start_x+crop[0], start_y:start_y+crop[1]]
     cropped_image = np.transpose(cropped_image, (2,0,1))
     # cropped_image = cropped_image/255 # scale to [0,1]
     return cropped_image

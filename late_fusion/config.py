@@ -6,7 +6,7 @@ class GlobalConfig:
     seq_len = 1 # input timesteps
     pred_len = 4 # future waypoints predicted
 
-    model = 'late_fusion'
+    model = 'late_fusion_3img'
     logdir = 'log/'+model#+'_w1'
     gpu_id = '0'
         
@@ -40,7 +40,7 @@ class GlobalConfig:
     ignore_sides = True # don't consider side cameras
     ignore_rear = True # don't consider rear cameras
 
-    input_resolution = 160
+    input_resolution = [160,768]
 
     scale = 1 # image pre-processing
     crop = 160 # image pre-processing

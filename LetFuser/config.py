@@ -3,19 +3,19 @@ import random
 
 
 class GlobalConfig:
-    num_worker = 0# for debugging 0
+    num_worker = 10# for debugging 0
     gpu_id = '0'
 
     # Model variations
-    wandb = True
-    low_data = False #True
-    attn = False #True # comment model forward path TODO 1
+    wandb = False #True
+    low_data = False # True
+    attn = True # comment model forward path TODO 1
     augment_control_data = True  # comment model forward path TODO 2
     MGN = True
 	
-    wandb_name = 'Letfuser_NewDataset'
+    wandb_name = 'tests'
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    model = 'Letfuser_no_attn_distiled_1.8' # run name
+    model = 'DMFuser_distilled_' # run name
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
 	
@@ -40,7 +40,7 @@ class GlobalConfig:
         bottleneck = [335, 679, 335]
 
     n_class = 23
-    batch_size = 32 #20
+    batch_size =32
     total_epoch = 50
     
     random_data_len = int(284000 *low_data_rate) #int(280000 * 0.2 ) 
@@ -190,7 +190,7 @@ class GlobalConfig:
     ## fusion settings
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]
-    fusion_depth = 1 #1
+    fusion_depth = 1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4
     fusion_qkv = True

@@ -10,8 +10,8 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
-from model_nodist_1attention_1 import letfuser
-from data_main import CARLA_Data
+from model_nodist import letfuser
+from data import CARLA_Data
 # from data import CARLA_Data
 from config import GlobalConfig
 from torch.utils.tensorboard import SummaryWriter
@@ -102,6 +102,7 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 		gt_velocity = data['velocity'].to(device, dtype=torch.float)
 		gt_waypoints = [torch.stack(data['waypoints'][i], dim=1).to(device, dtype=torch.float) for i in range(config.seq_len, len(data['waypoints']))]
 		gt_waypoints = torch.stack(gt_waypoints, dim=1).to(device, dtype=torch.float)
+		
 		# correct the nan in GT steer
 		if config.augment_control_data:
 			gt_steer = [data['steer'][i].to(device, dtype=torch.float) for i in range(len(data['steer']))]
@@ -113,10 +114,10 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			gt_brake = torch.stack(gt_brake, dim=1).to(device, dtype=torch.float)
 
 		else:
-                        gt_steer = data['steer'][0].to(device, dtype=torch.float)
-                        gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
-                        gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
-                        gt_brake = data['brake'][0].to(device, dtype=torch.float)
+			gt_steer = data['steer'][0].to(device, dtype=torch.float)
+			gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
+			gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
+			gt_brake = data['brake'][0].to(device, dtype=torch.float)
 		gt_red_light = data['red_light'].to(device, dtype=torch.float)
 		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 		gt_command = data['command'].to(device, dtype=torch.float)
@@ -349,6 +350,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 				gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
 				gt_brake = data['brake'][0].to(device, dtype=torch.float)
 
+
 			gt_red_light = data['red_light'].to(device, dtype=torch.float)
 			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 			gt_command = data['command'].to(device, dtype=torch.float)
@@ -360,6 +362,7 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			loss_seg = BCEDice(pred_seg, seg_fronts)
 			loss_wp = F.l1_loss(pred_wp, gt_waypoints)
 
+			
 			if config.augment_control_data:
 				# To be consistent with non-augment appraoches only compute the first error
 				loss_str = F.l1_loss(steer[:,0], gt_steer[:,0])
@@ -424,7 +427,8 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		wandb.init(project=config.wandb_name,  entity="transfuser", name = config.model)
+	#	wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
+		wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 

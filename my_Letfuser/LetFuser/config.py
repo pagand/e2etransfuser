@@ -3,24 +3,22 @@ import random
 
 
 class GlobalConfig:
-    num_worker = 8# for debugging 0
+    num_worker = 10# for debugging 0
     gpu_id = '0'
 
     # Model variations
-    wandb = True
-    low_data = False # True
+    wandb = False
+    low_data = True
     attn = True # comment model forward path TODO 1
     augment_control_data = True  # comment model forward path TODO 2
     MGN = True
-    distillation = False
 	
     wandb_name = 'updates'
     kind = 'min_cvt' # ['effnet', cvt_effnet', 'cvt_cnn','min_cvt'] # for version1,2 min_cvt change the bottleneck and network arch in this config
-    model = 'DMFuser_nodist_1attention_1_' # run name
+    model = 'DMFuser_WPAttn_' # run name
     model += kind
     logdir = 'log/'+model #+'_w1' for 1 weather only
-	
-	
+
 #     model = 'May10_Main_big_gru1_total'
 #     wandb_name = model 
 #     logdir = 'log/'+model
@@ -36,15 +34,16 @@ class GlobalConfig:
         # version 1
         # bottleneck = [342, 687, 332]
         # version 2
-        bottleneck = [332,686,332] #[332, 683, 332]
+        bottleneck = [332, 683, 332]
     else:
-        bottleneck = [335, 679, 335]
+        bottleneck = [335, 679, 335] ## 
 
     n_class = 23
-    batch_size = 64 #64
-    total_epoch = 50
+    batch_size = 4 #20
+    total_epoch = 50 #30
     
-    random_data_len = int(284000 *low_data_rate) #int(280000 * 0.2 ) 
+
+    random_data_len = int(280000 *low_data_rate) #int(280000 * 0.2 ) 
 	
     cvt_freezed_epoch = 0  # nonzero only for version 1 Min-CVT
 
@@ -67,33 +66,22 @@ class GlobalConfig:
         raise Exception("The kind of architecture is not recognized. choose form these in the config: ['effnet', cvt_effnet', 'cvt_cnn']")
     
     # MGN parameter
-    if distillation:
-        loss_weights = [1, 1, 1, 1, 1, 1, 1, 1]
-    else:
-        loss_weights = [1, 1, 1, 1, 1, 1, 0, 1]
+    loss_weights = [1, 1, 1, 1, 1, 1, 1, 1]  #1 for distilation
     lw_alpha = 1.5
 
 	# for Data
-    seq_len = 1 # jumlah input seq
+    seq_len = 3 # jumlah input seq
     pred_len = 3 # future waypoints predicted
 
-    dataset="1.8"
-    camera_z = 1.8
-
-    #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data'  # for the PMLR dataset
-    #root_dir = '/localhome/pagand/projects/e2etransfuser/transfuser_pmlr/data'
-    root_dir = '/localscratch/mmahdavi/transfuser/new_dataset'
-    #root_dir = '/localscratch/pagand/data'
-    ##root_dir = '/localscratch/mmahdavi/data'
-    #root_dir = '/project/mars-lab/e2e/new_dataset'
-
+    root_dir = '/localhome/mmahdavi/Mohammad_ws/datasets/carla/1.8'
+    #root_dir = '/localscratch/mmahdavi/transfuser/data' #/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' for the PAMI dataset
+    #root_dir = '/home/mohammad/Mohammad_ws/autonomous_driving/transfuser/data' #'/localscratch/mmahdavi/transfuser/data' for the PAMI dataset
     train_data, val_data = [], []
 
     ## For PMLR dataset'/localscratch/mmahdavi/transfuser/data'
     root_files = os.listdir(root_dir)
     # train_towns = ['Town04']
-    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD']
-    #train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD', 'Town01long', 'Town02long', 'Town03long', 'Town04long', 'Town06long'] #
+    train_towns = ['Town01', 'Town02', 'Town03', 'Town04', 'Town06', 'Town07', 'Town10HD'] #
     val_towns = ['Town05'] # 'Town05long'
 
     for dir in root_files:
@@ -113,7 +101,7 @@ class GlobalConfig:
 
     if low_data:
         random.seed(0)
-        train_data = random.sample(train_data,int(0.02*len(train_data)))
+        train_data = random.sample(train_data,int(0.015*len(train_data)))
         val_data = random.sample(val_data,int(0.1*len(val_data)))
         #val_data = random.sample(val_data,int(len(val_data)))
 
@@ -137,11 +125,13 @@ class GlobalConfig:
     camera_height = 480
     img_width_cut = 320
     img_resolution = (160,704)
+    camera_z = 1.8
     
     # camera intrinsic
     img_width = 352
     img_height = 160
     fov = 2*60
+    
     scale = 1 # image pre-processing
     # crop = 256 # image pre-processing # CVPR dataset
     crop = 160 # image pre-processing # CVPR dataset
@@ -195,7 +185,7 @@ class GlobalConfig:
     ## fusion settings
     fusion_embed_dim_q = n_fmap_b3[3][-1] #n_fmap_b3[4][-1]
     fusion_embed_dim_kv = n_fmap_b1[3][-1]
-    fusion_depth = 1
+    fusion_depth = 1 #1
     fusion_num_heads = 8 #1
     fusion_mlp_ratio = 4
     fusion_qkv = True

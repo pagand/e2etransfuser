@@ -527,7 +527,7 @@ class letfuser(nn.Module): #
             temporal_blocks = []
             for j in range(depth):
                 temporal_blocks.append(
-                    EncoderLayer(config.n_fmap_b3[-1][0],config.temporal_fusion_heads,1024,config.fusion_drop_rate,True)
+                    EncoderLayer(config.n_fmap_b3[-1][0],config.temporal_fusion,1024,config.fusion_drop_rate,True)
                     )     
 
             self.temporal_blocks = nn.ModuleList(temporal_blocks)
@@ -758,7 +758,6 @@ class letfuser(nn.Module): #
         # fuse = hx.clone()#NEW
 
         # With attention TODO 1 if config.atten
-        t4 = time.time()
         measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
         fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
         features_cat = rearrange(fuse , 'b c h w-> b (h w) c')
@@ -767,7 +766,6 @@ class letfuser(nn.Module): #
         x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
         hx = self.attn_neck(x)
         temp_hx = hx.reshape(batch_size,self.seq_len,-1)
-        t5 = time.time()
         for i, blk in enumerate(self.temporal_blocks):
             temp_feat, temp_attn = blk(temp_hx.permute(1,0,2),self._encoder_pos_encodings)
         
@@ -776,7 +774,6 @@ class letfuser(nn.Module): #
         hx = torch.cat([hx, measurement_feature], dim=1) 
         fuse = hx.clone()#NEW
         
-        t6 = time.time()
 
         ## 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
@@ -796,10 +793,6 @@ class letfuser(nn.Module): #
         D_tls_bias2 = self.D_tls_bias_mixer2(D_tls_bias2.reshape(batch_size,self.seq_len,-1).permute(0,2,1)).squeeze(-1)
         D_tls_bias3 = self.D_tls_biasing_bypass3(RGB_features8)
         D_tls_bias3 = self.D_tls_bias_mixer3(D_tls_bias3.reshape(batch_size,self.seq_len,-1).permute(0,2,1)).squeeze(-1)
-
-        t7 = time.time()
-
-      #  print(t5-t4,t6-t5,t7-t6)
 
         for _ in range(self.config.pred_len):
             # ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x

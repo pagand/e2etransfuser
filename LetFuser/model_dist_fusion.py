@@ -6,8 +6,7 @@ import torch.nn.functional as F
 import torchvision.models as models
 import torchvision.transforms as transforms
 from transformers import CvtModel #, AutoImageProcessor
-from TransformerEncoder import EncoderLayer
-import PositionEncodings
+
 
 # can be ignored
 import matplotlib.pyplot as plt
@@ -19,7 +18,6 @@ import os
 import cv2
 from torchvision.transforms.functional import rotate
 # can be ignored
-
 
 
 def kaiming_init_layer(layer):
@@ -269,7 +267,7 @@ class Attention_2D(nn.Module):
         x = self.proj(x)
         x = self.proj_drop(x)
 
-        return x
+        return x,attn
     
 class Fusion_Block(nn.Module):
     def __init__(self,
@@ -288,12 +286,15 @@ class Fusion_Block(nn.Module):
         self.with_cls_token = False
 
         self.norm1 = norm_layer(dim_in)
+        self.norm2 = norm_layer(dim_in)
+
         self.attn = Attention_2D(
             dim_in, dim_out, num_heads, qkv_bias, attn_drop, drop,
         )
 
         self.drop_path = DropPath(drop_path) \
             if drop_path > 0. else nn.Identity()
+        
         self.norm3 = norm_layer(dim_in)
 
         dim_mlp_hidden = int(dim_out * mlp_ratio)
@@ -303,24 +304,30 @@ class Fusion_Block(nn.Module):
             act_layer=act_layer,
             drop=drop
         )
+ #       self.attn_mixer = nn.MultiheadAttention(496, 8, batch_first = True)
 
-    def forward(self, features, h, w):
+    def forward(self, features, features_pooled, h, w, hp, wp):
         res = features
-
+        res2 = features_pooled
         x = self.norm1(features)
-        attn = self.attn(x, x, h, w)
-        x = res + self.drop_path(attn)
-        x = x + self.drop_path(self.mlp(self.norm3(x)))
+        x2 = self.norm2(features_pooled)
+        attn, attention_matrix = self.attn(x, x, h, w)
+        attn_pooled, attention_pooled_matrix = self.attn(x2,x2,hp,wp)
+#        attn_mixed, attn_tensor = self.attn_mixer(attn, attn_pooled, attn_pooled)
 
-        return x
-    
+        x = res + self.drop_path(attn)# + self.drop_path(F.sigmoid(attn_mixed))
+        x = x + self.drop_path(self.mlp(self.norm3(x)))# + self.drop_path(torch.sigmoid(attn_mixed))
+
+        x2 = res2 + self.drop_path(attn_pooled)
+        x2 = x2 + self.drop_path(self.mlp(self.norm3(x2)))
+
+        return x,x2
     
 class letfuser(nn.Module): #
     def __init__(self, config, device):
         super(letfuser, self).__init__()
         self.config = config
         self.gpu_device = device
-        self.seq_len = config.seq_len
         #------------------------------------------------------------------------------------------------
         # CVT and effnet
         # self.pre = AutoImageProcessor.from_pretrained("microsoft/cvt-13")
@@ -377,11 +384,9 @@ class letfuser(nn.Module): #
         self.tls_biasing_bypass = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]),
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0]),
             nn.Sigmoid()
         )
-        self.tls_bias_mixer = nn.Linear(self.seq_len,1)
-
         # self.tls_biasing_bypass = nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
         #nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0])
         #------------------------------------------------------------------------------------------------
@@ -389,7 +394,7 @@ class letfuser(nn.Module): #
         self.cover_area = config.coverage_area
         self.n_class = config.n_class
         self.h, self.w = config.input_resolution[0], config.input_resolution[1]
-	
+
 	    #fx = self.config.img_width / (2 * np.tan(self.config.fov * np.pi / 360))
         #fy = self.config.img_height / (2 * np.tan(fovh * np.pi / 360))
 
@@ -425,10 +430,16 @@ class letfuser(nn.Module): #
             norm_layer =nn.LayerNorm
 
             self.attn_neck = nn.Sequential( #inputnya dari 2 bottleneck
-            nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=1, stride=1, padding=0),
+            nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1], kernel_size=3, stride=1, padding=0),
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(config.n_fmap_b3[4][1], config.n_fmap_b3[4][0])
+            )
+            self.attn_neck_pooled = nn.Sequential( #inputnya dari 2 bottleneck
+            nn.Conv2d(config.fusion_embed_dim_q+config.fusion_embed_dim_kv, config.n_fmap_b3[4][1]//2, kernel_size=1, stride=1, padding=0),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(config.n_fmap_b3[4][1]//2, config.n_fmap_b3[1][0])
             )
         else:
             self.necks_net = nn.Sequential( #inputnya dari 2 bottleneck
@@ -468,11 +479,11 @@ class letfuser(nn.Module): #
 							nn.Linear(config.n_fmap_b1[-1][-1], config.n_fmap_b3[3][0]),
 							nn.ReLU(inplace=True),
 						)
-        self.gru_control = nn.GRUCell(input_size=3+2, hidden_size=config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]) #control version2 +0  ,  control v4 +2
+        self.gru_control = nn.GRUCell(input_size=3+2, hidden_size=config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0]) #control version2 +0  ,  control v4 +2
         self.pred_control = nn.Sequential(
             # nn.Linear(2*config.n_fmap_b3[4][0], 3), #v1
             # nn.Sigmoid()
-            nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]), #v2
+            nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0]+2*config.n_fmap_b3[1][0], config.n_fmap_b3[3][-1]), #v2
             nn.ReLU(inplace=True), #CHANGED!
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             #nn.Tanh()  # v5 Sigmoid  #CHANGED!
@@ -484,8 +495,8 @@ class letfuser(nn.Module): #
         #wp predictor, input size 5 karena concat dari xy, next route xy, dan velocity
         # self.gru = nn.GRUCell(input_size=5+6, hidden_size=config.n_fmap_b3[4][0])
         # self.gru = nn.GRUCell(input_size=5, hidden_size=config.n_fmap_b3[4][0])
-        self.gru = nn.GRUCell(input_size=5-1, hidden_size=config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0])
-        self.pred_dwp = nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0], 2) #control v4
+        self.gru = nn.GRUCell(input_size=5-1, hidden_size=config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0])
+        self.pred_dwp = nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0]+2*config.n_fmap_b3[1][0], 2) #control v4
         #PID Controller
         self.turn_controller = PIDController(K_P=config.turn_KP, K_I=config.turn_KI, K_D=config.turn_KD, n=config.turn_n)
         self.speed_controller = PIDController(K_P=config.speed_KP, K_I=config.speed_KI, K_D=config.speed_KD, n=config.speed_n)
@@ -498,14 +509,11 @@ class letfuser(nn.Module): #
         #     nn.ReLU()
         # )
         self.controller = nn.Sequential(
-            nn.Linear(config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]),
+            nn.Linear(config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0], config.n_fmap_b3[3][-1]),
             nn.Linear(config.n_fmap_b3[3][-1], 3),
             nn.ReLU()
         )
-         #------------------------------------------------------------------------------------------------
-        # for transformers
         if config.attn:
-
             blocks = []
             for j in range(depth):
                 blocks.append(
@@ -523,86 +531,74 @@ class letfuser(nn.Module): #
                 )
                 )
             self.blocks = nn.ModuleList(blocks)
-
-            temporal_blocks = []
-            for j in range(depth):
-                temporal_blocks.append(
-                    EncoderLayer(config.n_fmap_b3[-1][0],config.temporal_fusion_heads,1024,config.fusion_drop_rate,True)
-                    )     
-
-            self.temporal_blocks = nn.ModuleList(temporal_blocks)
-
             self.input_buffer = {'depth': deque()}
-            pos_encoding_params=(10000, 1)
-            self._pos_encoder = PositionEncodings.PositionEncodings1D(
-            num_pos_feats=config.n_fmap_b3[-1][0],
-            temperature=pos_encoding_params[0],
-            alpha=pos_encoding_params[1]
-            )
-            encoder_pos_encodings = self._pos_encoder(self.seq_len).view(
-                        self.seq_len, 1, config.n_fmap_b3[-1][0])
-            self._encoder_pos_encodings = nn.Parameter(
-                encoder_pos_encodings, requires_grad=False)
-            
-            self.temp_to_current = nn.Linear(self.seq_len,1)
 
-            
+        self.pool = self.refined_downsample(embed_dim_q+embed_dim_kv, 5, 5)
         #------------------------------------------------------------------------------------------------
         # for distilation
         self.D_tls_biasing_bypass = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]),
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0]),
             nn.Sigmoid()
         )
         self.D_tls_biasing_bypass2 = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]),
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0]),
             nn.Sigmoid()
         )
         self.D_tls_biasing_bypass3 = nn.Sequential( 
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]),
+            nn.Linear(config.n_fmap_b3[4][-1], config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0]),
             nn.Sigmoid()
         )
-        self.D_tls_bias_mixer = nn.Linear(self.seq_len,1)
-        self.D_tls_bias_mixer2 = nn.Linear(self.seq_len,1)
-        self.D_tls_bias_mixer3 = nn.Linear(self.seq_len,1)
-        
-
-        self.D_gru = nn.GRUCell(input_size=5-1, hidden_size=config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0])
-        self.D_pred_dwp = nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0], 2)
-
+        self.D_gru = nn.GRUCell(input_size=5-1, hidden_size=config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0])
+        self.D_pred_dwp = nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0]+2*config.n_fmap_b3[1][0], 2)
 
         self.D_controller = nn.Sequential(
-            nn.Linear(config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]),
+            nn.Linear(config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0], config.n_fmap_b3[3][-1]),
             nn.Linear(config.n_fmap_b3[3][-1], 1),
             nn.ReLU()
         )
         self.D_controller3 = nn.Sequential(
-            nn.Linear(config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]),
+            nn.Linear(config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0], config.n_fmap_b3[3][-1]),
             nn.Linear(config.n_fmap_b3[3][-1], 1),
             nn.ReLU()
         )
-        self.D_gru_control = nn.GRUCell(input_size=1+2, hidden_size=config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]) #control version2 +0  ,  control v4 +2
-        self.D_gru_control3 = nn.GRUCell(input_size=1+2, hidden_size=config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]) #control version2 +0  ,  control v4 +2
+        self.D_gru_control = nn.GRUCell(input_size=1+2, hidden_size=config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0]) #control version2 +0  ,  control v4 +2
+        self.D_gru_control3 = nn.GRUCell(input_size=1+2, hidden_size=config.n_fmap_b3[4][0]+config.n_fmap_b3[3][0]+config.n_fmap_b3[1][0]) #control version2 +0  ,  control v4 +2
         self.D_pred_control = nn.Sequential(
-            nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]), #v2
+            nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0]+2*config.n_fmap_b3[1][0], config.n_fmap_b3[3][-1]), #v2
             nn.ReLU(inplace=True),
             nn.Linear(config.n_fmap_b3[3][-1], 1),
             )
         self.D_pred_control3 = nn.Sequential(
-            nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0], config.n_fmap_b3[3][-1]), #v2
+            nn.Linear(2*config.n_fmap_b3[4][0]+2*config.n_fmap_b3[3][0]+2*config.n_fmap_b3[1][0], config.n_fmap_b3[3][-1]), #v2
             nn.ReLU(inplace=True),
             nn.Linear(config.n_fmap_b3[3][-1], 1),
             )
 
+    def refined_downsample(self, dim, window_size, kernel_size):
+        if window_size==1:
+            return nn.Identity()
+        for i in range(4):
+            if 2**i == window_size:
+                break
+        block = nn.Sequential()
+        for num in range(i):
+            block.add_module('conv{}'.format(num), nn.Conv2d(dim, dim, kernel_size, 2, kernel_size//2, groups=dim))
+            #block.add_module('conv{}'.format(num), get_conv2d(dim, dim, kernel_size, 2, kernel_size//2, 1, dim, True))
+            block.add_module('bn{}'.format(num), nn.BatchNorm2d(dim))
+            if num != i-1:
+                # block.add_module('gelu{}'.format(num), nn.GELU())
+                block.add_module('linear{}'.format(num), nn.Conv2d(dim, dim, 1, 1, 0))
+        return block
+    
     def forward(self, rgb_f, depth_f, next_route, velo_in, gt_command ):#, gt_ss, gt_redl:
         #------------------------------------------------------------------------------------------------
         # CVT and conv (approach2) and Min CVT
-        batch_size = rgb_f.shape[0]//self.seq_len
         in_rgb = self.rgb_normalizer(rgb_f) #[i]
         out = self.cvt(in_rgb, output_hidden_states=True)
         RGB_features1 = self.conv1_down(in_rgb)
@@ -643,6 +639,10 @@ class letfuser(nn.Module): #
         #RGB_features6 = self.RGB_encoder.features[6](RGB_features5)
         #RGB_features7 = self.RGB_encoder.features[7](RGB_features6)
         #RGB_features8 = self.RGB_encoder.features[8](RGB_features7)
+
+
+        # plt.figure()
+        # plt.imshow(rgb_f[0].permute(1,2,0).cpu().type(torch.uint8))
 
         # bagian upsampling
         # ss_f = self.conv3_ss_f(cat([self.up(RGB_features8), RGB_features5], dim=1))
@@ -729,14 +729,12 @@ class letfuser(nn.Module): #
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         redl_stops = self.tls_predictor(RGB_features8)
-        red_light = redl_stops[:,0].reshape(batch_size,self.seq_len).mean(1) #gt_redl
+        red_light = redl_stops[:,0] #gt_redl
         tls_bias = self.tls_biasing_bypass(RGB_features8)
-        tls_bias = self.tls_bias_mixer(tls_bias.reshape(batch_size,self.seq_len,-1).permute(0,2,1)).squeeze(-1)
-
         bs,_,H,W = RGB_features8.shape
         #------------------------------------------------------------------------------------------------
         #Speed prediction
-        speed = self.speed_head(out[1].squeeze(-2)).reshape(batch_size,self.seq_len).mean(1) # RGB_features8
+        speed = self.speed_head(out[1].squeeze(-2)) # RGB_features8
         #------------------------------------------------------------------------------------------------
         #red light and stop sign detection
         # stop_sign = redl_stops[:,1]  # we don't have stop sign
@@ -751,32 +749,29 @@ class letfuser(nn.Module): #
         # hx = self.necks_net(cat([RGB_features8, SC_features5], dim=1))
         
         # No attention TODO 1 if not config.atten
-        # measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
-        # fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
-        # hx = self.necks_net(fuse)
-        # hx = torch.cat([hx, measurement_feature], dim=1) 
-        # fuse = hx.clone()#NEW
+       # measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
+       # fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
+       # hx = self.necks_net(fuse)
+       # hx = torch.cat([hx, measurement_feature], dim=1) 
+       # fuse = hx.clone()#NEW
 
         # With attention TODO 1 if config.atten
-        t4 = time.time()
         measurement_feature = self.measurements(torch.cat([next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1))
         fuse = self.fuse_BN(torch.cat([RGB_features8, SC_features5], dim=1))
+        fused_pooled = self.pool(fuse)
+        bs,_,Hp,Wp = fused_pooled.shape
+
         features_cat = rearrange(fuse , 'b c h w-> b (h w) c')
+        features_cat_pooled = rearrange(fused_pooled , 'b c h w-> b (h w) c')
+
         for i, blk in enumerate(self.blocks):
-            x = blk(features_cat, H, W)
+            x,x2 = blk(features_cat,features_cat_pooled, H, W, Hp, Wp)
+
         x = rearrange(x , 'b (h w) c-> b c h w', h=H,w=W)
         hx = self.attn_neck(x)
-        temp_hx = hx.reshape(batch_size,self.seq_len,-1)
-        t5 = time.time()
-        for i, blk in enumerate(self.temporal_blocks):
-            temp_feat, temp_attn = blk(temp_hx.permute(1,0,2),self._encoder_pos_encodings)
-        
-        hx = self.temp_to_current(temp_feat.permute(1,2,0)).squeeze(-1)
-
-        hx = torch.cat([hx, measurement_feature], dim=1) 
+        hxp = self.attn_neck_pooled(x2.permute(0,2,1).reshape(bs,-1,Hp,Wp)) 
+        hx = torch.cat([hx, hxp, measurement_feature], dim=1) 
         fuse = hx.clone()#NEW
-        
-        t6 = time.time()
 
         ## 
         xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
@@ -785,21 +780,13 @@ class letfuser(nn.Module): #
 
         # distilation single task
         D_tls_bias = self.D_tls_biasing_bypass(RGB_features8)
-        D_tls_bias = self.D_tls_bias_mixer(D_tls_bias.reshape(batch_size,self.seq_len,-1).permute(0,2,1)).squeeze(-1)
-
         D_xy = torch.zeros(size=(hx.shape[0], 2)).float().to(self.gpu_device)
         D_out_wp = list()
         D_hx = hx.clone()#NEW
         D_hx2 = hx.clone()
         D_hx3 = hx.clone()
         D_tls_bias2 = self.D_tls_biasing_bypass2(RGB_features8)
-        D_tls_bias2 = self.D_tls_bias_mixer2(D_tls_bias2.reshape(batch_size,self.seq_len,-1).permute(0,2,1)).squeeze(-1)
         D_tls_bias3 = self.D_tls_biasing_bypass3(RGB_features8)
-        D_tls_bias3 = self.D_tls_bias_mixer3(D_tls_bias3.reshape(batch_size,self.seq_len,-1).permute(0,2,1)).squeeze(-1)
-
-        t7 = time.time()
-
-      #  print(t5-t4,t6-t5,t7-t6)
 
         for _ in range(self.config.pred_len):
             # ins = torch.cat([xy, next_route, velo_in.unsqueeze(-1), F.one_hot((gt_command-1).to(torch.int64).long(), num_classes=6)], dim=1) # x
@@ -823,7 +810,6 @@ class letfuser(nn.Module): #
         # computing error for distilation single task (wp)
         D_feature_loss = torch.sum((D_hx-hx)*(D_hx-hx))+ torch.sum((D_tls_bias-tls_bias)*( D_tls_bias-tls_bias)) 
         #------------------------------------------------------------------------------------------------
-        
         # distilation single task (steer)
         D_control_pred = self.D_controller(D_hx2+D_tls_bias2)
         out_control = list()
@@ -1146,4 +1132,3 @@ class letfuser(nn.Module): #
             'next_point': None, #akan direplace di fungsi agent
         }
         return steer, throttle, brake, metadata
-

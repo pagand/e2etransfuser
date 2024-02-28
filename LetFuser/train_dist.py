@@ -11,11 +11,11 @@ import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
 from model_dist import letfuser
-#from model_no_attn import letfuser
 from data import CARLA_Data
 # from data import CARLA_Data
 from config import GlobalConfig
 from torch.utils.tensorboard import SummaryWriter
+import time
 
 import wandb
 
@@ -94,16 +94,22 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 	print("data amount is:")
 	print(total_batch)
 	batch_ke = 0
+	t1= time.time()
 	for data in data_loader:
 		cur_step = cur_epoch*total_batch + batch_ke
-		fronts = data['fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
-		seg_fronts = data['seg_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
-		depth_fronts = data['depth_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
+		t2 = time.time()
+		length = len(data['fronts'])
+		bs,di,wi,he = data['fronts'][0].shape
+		fronts = torch.stack(data['fronts'],dim=0).to(device, dtype=torch.float).reshape(bs*length,di,wi,he)
+		bss,dis,wis,hes = data['seg_fronts'][0].shape
+		seg_fronts = torch.stack(data['seg_fronts'],dim=0).to(device, dtype=torch.float).reshape(bss*length,dis,wis,hes) #ambil yang terakhir aja #[-1]
+		depth_fronts = torch.stack(data['depth_fronts'],dim=0).to(device, dtype=torch.float).reshape(bs*length,1,wi,he) #ambil yang terakhir aja #[-1]
 		target_point = torch.stack(data['target_point'], dim=1).to(device, dtype=torch.float)
 		gt_velocity = data['velocity'].to(device, dtype=torch.float)
 		gt_waypoints = [torch.stack(data['waypoints'][i], dim=1).to(device, dtype=torch.float) for i in range(config.seq_len, len(data['waypoints']))]
 		gt_waypoints = torch.stack(gt_waypoints, dim=1).to(device, dtype=torch.float)
-		
+		t3= time.time()
+	#	print(t2-t1,t3-t2)
 		# correct the nan in GT steer
 		if config.augment_control_data:
 			gt_steer = [data['steer'][i].to(device, dtype=torch.float) for i in range(len(data['steer']))]
@@ -334,9 +340,12 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 		batch_ke = 0
 		for data in data_loader:
 			cur_step = cur_epoch*total_batch + batch_ke
-			fronts = data['fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
-			seg_fronts = data['seg_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
-			depth_fronts = data['depth_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
+			length = len(data['fronts'])
+			bs,di,wi,he = data['fronts'][0].shape
+			fronts  = torch.stack(data['fronts'],dim=0).to(device, dtype=torch.float).reshape(bs*length,di,wi,he)
+			bss,dis,wis,hes = data['seg_fronts'][0].shape
+			seg_fronts = torch.stack(data['seg_fronts'],dim=0).to(device, dtype=torch.float).reshape(bss*length,dis,wis,hes)
+			depth_fronts = torch.stack(data['depth_fronts'],dim=0).to(device, dtype=torch.float).reshape(bs*length,1,wi,he)
 			target_point = torch.stack(data['target_point'], dim=1).to(device, dtype=torch.float)
 			gt_velocity = data['velocity'].to(device, dtype=torch.float)
 			gt_waypoints = [torch.stack(data['waypoints'][i], dim=1).to(device, dtype=torch.float) for i in range(config.seq_len, len(data['waypoints']))]
@@ -435,8 +444,8 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		wandb.init(project=config.wandb_name,  entity="transfuser", name = config.model)
-	#	wandb.init(project=config.wandb_name , entity="marslab", name = config.model)
+	#	wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
+		wandb.init(project=config.wandb_name , entity="transfuser", name = config.model)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 

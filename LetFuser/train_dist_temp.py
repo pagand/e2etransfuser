@@ -10,8 +10,8 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 torch.backends.cudnn.benchmark = True
 
-from model_nodist_1attention_1 import letfuser
-from data_main import CARLA_Data
+from model_dist_temp import letfuser
+from data_temp import CARLA_Data
 # from data import CARLA_Data
 from config import GlobalConfig
 from torch.utils.tensorboard import SummaryWriter
@@ -95,13 +95,17 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 	batch_ke = 0
 	for data in data_loader:
 		cur_step = cur_epoch*total_batch + batch_ke
-		fronts = data['fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
-		seg_fronts = data['seg_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
-		depth_fronts = data['depth_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
+		length = len(data['fronts'])
+		bs,di,wi,he = data['fronts'][0].shape
+		fronts = torch.stack(data['fronts'],dim=0).to(device, dtype=torch.float).reshape(bs*length,di,wi,he)
+		bss,dis,wis,hes = data['seg_fronts'][0].shape
+		seg_fronts = torch.stack(data['seg_fronts'],dim=0).to(device, dtype=torch.float).reshape(bss*length,dis,wis,hes) #ambil yang terakhir aja #[-1]
+		depth_fronts = torch.stack(data['depth_fronts'],dim=0).to(device, dtype=torch.float).reshape(bs*length,1,wi,he) #ambil yang terakhir aja #[-1]
 		target_point = torch.stack(data['target_point'], dim=1).to(device, dtype=torch.float)
 		gt_velocity = data['velocity'].to(device, dtype=torch.float)
 		gt_waypoints = [torch.stack(data['waypoints'][i], dim=1).to(device, dtype=torch.float) for i in range(config.seq_len, len(data['waypoints']))]
 		gt_waypoints = torch.stack(gt_waypoints, dim=1).to(device, dtype=torch.float)
+		
 		# correct the nan in GT steer
 		if config.augment_control_data:
 			gt_steer = [data['steer'][i].to(device, dtype=torch.float) for i in range(len(data['steer']))]
@@ -113,16 +117,16 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 			gt_brake = torch.stack(gt_brake, dim=1).to(device, dtype=torch.float)
 
 		else:
-                        gt_steer = data['steer'][0].to(device, dtype=torch.float)
-                        gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
-                        gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
-                        gt_brake = data['brake'][0].to(device, dtype=torch.float)
+			gt_steer = data['steer'][0].to(device, dtype=torch.float)
+			gt_steer = torch.nan_to_num(gt_steer) if any(torch.isnan(gt_steer)) else gt_steer
+			gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
+			gt_brake = data['brake'][0].to(device, dtype=torch.float)
 		gt_red_light = data['red_light'].to(device, dtype=torch.float)
 		gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 		gt_command = data['command'].to(device, dtype=torch.float)
 
 		#forward pass
-		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _,speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)
+		pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _,speed,D_pred_wp, D_steer, D_throttle, l1= model(fronts, depth_fronts, target_point, gt_velocity, gt_command)
 
 		if cur_epoch< config.cvt_freezed_epoch and list(model.named_parameters())[0][1].requires_grad: # freeze CVT
 			if list(model.named_parameters())[0][0][:3] != 'cvt' :
@@ -146,14 +150,15 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 
 		#compute loss
 		loss_seg = BCEDice(pred_seg, seg_fronts)
-		loss_wp = F.l1_loss(pred_wp, gt_waypoints)
-		loss_str = F.l1_loss(steer, gt_steer)
+		loss_wp = F.l1_loss(pred_wp, gt_waypoints) +F.l1_loss(D_pred_wp, gt_waypoints)
+		loss_str = F.l1_loss(steer, gt_steer) + F.l1_loss(D_steer , gt_steer)
 		loss_thr = F.l1_loss(throttle, gt_throttle)
-		loss_brk = F.l1_loss(brake, gt_brake)
+		loss_brk = F.l1_loss(brake, gt_brake) + F.l1_loss(D_throttle, gt_brake) 
 		loss_redl = F.l1_loss(red_light, gt_red_light)
-		loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
+		#loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
+		loss_stops = 0.001* np.sqrt(0.2*cur_epoch+0.04)* l1 # new definition of stops
 		loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)
-		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl + params_lw[6]*loss_stops +params_lw[7]* loss_speed		
+		total_loss = params_lw[0]*loss_seg + params_lw[1]*loss_wp + params_lw[2]*loss_str + params_lw[3]*loss_thr + params_lw[4]*loss_brk + params_lw[5]*loss_redl + params_lw[6]* loss_stops +params_lw[7]* loss_speed
 		optimizer.zero_grad()
 
 		if batch_ke == 0: #first batch, calculate the initial loss
@@ -196,6 +201,8 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 						G5 = torch.norm(G5R[0], keepdim=True)
 						# G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
 						# G6 = torch.norm(G6R[0], keepdim=True)
+						G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]-d], retain_graph=True, create_graph=True)
+						G6 = torch.norm(G6R[0], keepdim=True) # distilation
 						G7R = torch.autograd.grad(loss_speed, params[config.bottleneck[0]-d], retain_graph=True, create_graph=True)
 						G7 = torch.norm(G7R[0], keepdim=True)
 					
@@ -219,7 +226,9 @@ def train(data_loader, model, config, writer, cur_epoch, device, optimizer, para
 					G5 = torch.norm(G5R[0], keepdim=True)
 					# G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
 					# G6 = torch.norm(G6R[0], keepdim=True)
-					G6 = torch.zeros_like(G5) # we don't have stop sign
+					G6R = torch.autograd.grad(loss_stops, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
+					G6 = torch.norm(G6R[0], keepdim=True) # distilation
+					# G6 = torch.zeros_like(G5) # we don't have stop sign
 					G7R = torch.autograd.grad(loss_speed, params[config.bottleneck[0]], retain_graph=True, create_graph=True)
 					G7 = torch.norm(G7R[0], keepdim=True)
 				G_avg = (G0+G1+G2+G3+G4+G5+G6+G7) / len(config.loss_weights)
@@ -326,10 +335,14 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 		total_batch = len(data_loader)
 		batch_ke = 0
 		for data in data_loader:
+
 			cur_step = cur_epoch*total_batch + batch_ke
-			fronts = data['fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
-			seg_fronts = data['seg_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
-			depth_fronts = data['depth_fronts'].to(device, dtype=torch.float) #ambil yang terakhir aja #[-1]
+			length = len(data['fronts'])
+			bs,di,wi,he = data['fronts'][0].shape
+			fronts = torch.stack(data['fronts'],dim=0).to(device, dtype=torch.float).reshape(bs*length,di,wi,he)
+			bss,dis,wis,hes = data['seg_fronts'][0].shape
+			seg_fronts = torch.stack(data['seg_fronts'],dim=0).to(device, dtype=torch.float).reshape(bss*length,dis,wis,hes) #ambil yang terakhir aja #[-1]
+			depth_fronts = torch.stack(data['depth_fronts'],dim=0).to(device, dtype=torch.float).reshape(bs*length,1,wi,he) #ambil yang terakhir aja #[-1]
 			target_point = torch.stack(data['target_point'], dim=1).to(device, dtype=torch.float)
 			gt_velocity = data['velocity'].to(device, dtype=torch.float)
 			gt_waypoints = [torch.stack(data['waypoints'][i], dim=1).to(device, dtype=torch.float) for i in range(config.seq_len, len(data['waypoints']))]
@@ -349,17 +362,19 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 				gt_throttle = data['throttle'][0].to(device, dtype=torch.float)
 				gt_brake = data['brake'][0].to(device, dtype=torch.float)
 
+
 			gt_red_light = data['red_light'].to(device, dtype=torch.float)
 			gt_stop_sign = data['stop_sign'].to(device, dtype=torch.float)
 			gt_command = data['command'].to(device, dtype=torch.float)
 
 			#forward pass
-			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _,speed = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)
+			pred_seg, pred_wp, steer, throttle, brake, red_light, stop_sign, _,speed, D_pred_wp, D_steer, D_throttle, l1 = model(fronts, depth_fronts, target_point, gt_velocity, gt_command)
 
 			#compute loss
 			loss_seg = BCEDice(pred_seg, seg_fronts)
 			loss_wp = F.l1_loss(pred_wp, gt_waypoints)
 
+			
 			if config.augment_control_data:
 				# To be consistent with non-augment appraoches only compute the first error
 				loss_str = F.l1_loss(steer[:,0], gt_steer[:,0])
@@ -373,13 +388,15 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 			loss_redl = F.l1_loss(red_light, gt_red_light)
 			loss_stops = F.l1_loss(stop_sign, gt_stop_sign)
 			loss_speed = F.l1_loss(speed.squeeze(-1), gt_velocity)
-			
-			# compute all losses (horizon) for loss_str, loss_thr, loss_brk to avoid over fitting
+
 			#total_loss = loss_seg + loss_wp + loss_str + loss_thr + loss_brk + loss_redl + loss_stops + loss_speed
 			total_loss = loss_seg + loss_wp + F.l1_loss(steer, gt_steer) \
 											+ F.l1_loss(throttle, gt_throttle) \
 											+ F.l1_loss(brake, gt_brake) \
-											+ loss_redl + loss_stops + loss_speed
+											+ loss_redl + loss_stops + loss_speed \
+											+  F.l1_loss(D_pred_wp, gt_waypoints) \
+											+  F.l1_loss(D_steer, gt_steer) \
+											+  F.l1_loss(D_throttle, gt_throttle)	+ l1 #additional term for dist
 
 			score['total_loss'].update(total_loss.item())
 			score['ss_loss'].update(loss_seg.item()) 
@@ -424,7 +441,8 @@ def validate(data_loader, model, config, writer, cur_epoch, device):
 def main():
 	config = GlobalConfig()
 	if config.wandb:
-		wandb.init(project=config.wandb_name,  entity="transfuser", name = config.model)
+	#	wandb.init(project=config.model,  entity="ai-mars",name= config.wandb_name)
+		wandb.init(project=config.wandb_name , entity="transfuser", name = config.model)
 	torch.backends.cudnn.benchmark = True
 	device = torch.device("cuda:0")
 	os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" 

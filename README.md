@@ -103,7 +103,7 @@ chmod +x download_data.sh
 ./download_data.sh
 ```
 
-You can also download from our (HuggingFace dataset)[https://huggingface.co/datasets/mmahdavi/carla_1.8m/tree/main]
+You can also download from our [HuggingFace dataset](https://huggingface.co/datasets/mmahdavi/carla_1.8m/tree/main)
 
 ### Dataset Augmentation
 

@@ -103,6 +103,8 @@ chmod +x download_data.sh
 ./download_data.sh
 ```
 
+You can also download from our (HuggingFace dataset)[https://huggingface.co/datasets/mmahdavi/carla_1.8m/tree/main]
+
 ### Dataset Augmentation
 
 In order to generate long route and add to the current data, apply the data generation for long route. We have added [Town01long, Town02long, Town03long,Town04long, Town06long] for training and Town05long for validation.

@@ -78,7 +78,7 @@ The dataset is structured as follows:
 ```
 
 
-### Option 1: MAIN Data generation
+### Option 1: Data generation
 We have provided the scripts for data generation that we used to train our autopilot agent. To generate data, the first step is to launch a CARLA server:
 
 ```Shell
@@ -94,8 +94,8 @@ For more information on running CARLA servers (e.g. on a machine without a displ
 The main variables to set for this script are `SCENARIOS` and `ROUTES`. 
 
 
-### Option 2: Downloading 2.3 dataset
-A minimal dataset  (210GB) without the long scenario, where the camera is mounted in 2.3 m (instead of 1.8 m in the main data), can be downloaded  by running:
+### Option 2: Downloading dataset
+A minimal dataset  (210GB) without the long scenario, where the camera is mounted in 2.3 m, can be downloaded by running:
 
 ```Shell
 cd transfuser_pami
@@ -103,7 +103,7 @@ chmod +x download_data.sh
 ./download_data.sh
 ```
 
-You can also download from our [HuggingFace dataset](https://huggingface.co/datasets/mmahdavi/carla_1.8m/tree/main)
+The data with camera mounted at 1.8 m, can be download from [HuggingFace dataset](https://huggingface.co/datasets/mmahdavi/carla_1.8m/tree/main).
 
 ### Dataset Augmentation
 

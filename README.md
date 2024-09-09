@@ -5,9 +5,6 @@
 https://github.com/user-attachments/assets/7901c0d9-699d-4d0f-8cfb-f045c9200615
 
 
-<img src="transfuser_pami/figures/demo.gif">
-
-
 ## Contents
 
 1. [Setup](#setup)

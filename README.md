@@ -1,4 +1,4 @@
-# DMFuser: Distilled Multi-Task Learning for  End-to-end Transformer-Based Sensor Fusion in Autonomous Driving
+# DMFuser: Distilled Multi-Task End-to-end Sensor Fusion for Autonomous Driving
 
 
 
@@ -253,3 +253,17 @@ alpha login
 alpha benchmark:submit --split <2/3> <docker_image>
 ```
 Use ```split 2``` for MAP track and ```split 3``` for SENSORS track. -->
+
+
+## Cite
+
+```
+ @article{aganddmfuser,
+  title={DMFuser: Distilled Multi-Task Learning for  End-to-end Transformer-Based Sensor Fusion in Autonomous Driving},
+  author={Agand, Pedram, Mahdavian, Mohammad, Savva, Manolis, and Mo Chen},
+  booktitle={2024 IEEE/RSJ International Conference on Intelligent Robots and Systems},
+  pages={},
+  year={2024},
+  organization={IEEE}
+  }
+```

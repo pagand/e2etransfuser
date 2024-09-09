@@ -122,7 +122,13 @@ You can train different baselines. For each method, follow the corresponding sec
 
 ### DMFuser
 
-Or you can upload the latest model path files from [this directory](https://huggingface.co/pagand/DMFuser/tree/main). 
+The model will be saved in a newly created folder log. To train the model,
+```Shell
+cd LetFuser
+python train.py
+```
+
+Or you can alternatively download the latest model path files from [this directory](https://huggingface.co/pagand/DMFuser/tree/main). 
 
 
 ### X13 

@@ -1,5 +1,6 @@
 # DMFuser: Distilled Multi-Task Learning for  End-to-end Transformer-Based Sensor Fusion in Autonomous Driving
 
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/FILBccUEJjo/0.jpg)](https://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE)
 
 <img src="transfuser_pami/figures/demo.gif">
 

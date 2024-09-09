@@ -120,6 +120,11 @@ python augmentcontroldata.py
 ## TRAINING
 You can train different baselines. For each method, follow the corresponding section. Check the config file in each folder accordingly. 
 
+### DMFuser
+
+Or you can upload the latest model path files from [this directory](https://huggingface.co/pagand/DMFuser/tree/main). 
+
+
 ### X13 
 The model will be saved in a newly created folder log.
 ```Shell
@@ -131,9 +136,6 @@ To predict expert's driving records for task-wise evaluation
 python3 predict_expert.py is intended 
 ```
 
-### S13, CILRS, AIM, LF, GF, Transfuser CVPR
-
-Under development
 
 ### Transfuser PAMI
 
